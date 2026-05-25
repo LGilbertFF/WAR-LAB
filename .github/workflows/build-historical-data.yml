@@ -1,0 +1,38 @@
+name: Build Historical FantasyPros Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_year:
+        description: "First historical season"
+        required: true
+        default: "2015"
+      end_year:
+        description: "Last historical season"
+        required: true
+        default: "2025"
+
+permissions:
+  contents: write
+
+jobs:
+  build-historical-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install scraper dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Scrape historical weekly stats
+        run: python scripts/fantasypros_scraper.py --historical --start-year "${{ inputs.start_year }}" --end-year "${{ inputs.end_year }}"
+
+      - name: Commit historical data
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Build FantasyPros historical data"
+          file_pattern: data/fantasypros_weekly_*.csv data/scrape_manifest.json

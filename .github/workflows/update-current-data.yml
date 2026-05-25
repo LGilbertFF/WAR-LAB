@@ -1,0 +1,31 @@
+name: Update Current FantasyPros Data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 11 * * 2"
+
+permissions:
+  contents: write
+
+jobs:
+  update-current-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install scraper dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Scrape current projections and ADP
+        run: python scripts/fantasypros_scraper.py --current --season-year 2026 --adp-scoring ppr
+
+      - name: Commit updated data
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update FantasyPros projection data"
+          file_pattern: data/current_projections.csv data/current_adp.csv data/scrape_manifest.json
