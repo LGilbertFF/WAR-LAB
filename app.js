@@ -261,8 +261,14 @@ function buildBaselines(players) {
     ...startersByPosition(players, "WR", cfg.slots.WR * cfg.teams),
     ...startersByPosition(players, "TE", cfg.slots.TE * cfg.teams)
   ];
-  const flexAvailable = flexCandidates.filter((player) => !new Set(usedFlexStarters.map((p) => p.id)).has(player.id));
+  const usedStarterIds = new Set([
+    ...startersByPosition(players, "QB", cfg.slots.QB * cfg.teams),
+    ...usedFlexStarters
+  ].map((player) => player.id));
+  const flexAvailable = flexCandidates.filter((player) => !usedStarterIds.has(player.id));
   const flexCount = cfg.slots.FLEX * cfg.teams;
+  const flexStarters = flexAvailable.slice(0, flexCount);
+  flexStarters.forEach((player) => usedStarterIds.add(player.id));
   baselines.FLEX = {
     avg: average(flexAvailable.slice(0, Math.max(1, flexCount)).map((player) => player.AVG)),
     replacement: average(flexAvailable.slice(Math.max(0, flexCount), Math.max(1, flexCount * 2)).map((player) => player.AVG)),
@@ -270,7 +276,9 @@ function buildBaselines(players) {
     count: flexCount
   };
 
-  const superflexCandidates = players.filter((player) => player.AVG !== null).sort((a, b) => b.AVG - a.AVG);
+  const superflexCandidates = players
+    .filter((player) => player.AVG !== null && !usedStarterIds.has(player.id))
+    .sort((a, b) => b.AVG - a.AVG);
   const superflexCount = cfg.slots.SUPERFLEX * cfg.teams;
   baselines.SUPERFLEX = {
     avg: superflexCount ? average(superflexCandidates.slice(0, Math.max(1, superflexCount)).map((player) => player.AVG)) : 0,
