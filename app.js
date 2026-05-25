@@ -13,6 +13,7 @@ const state = {
   manifest: null,
   results: [],
   selectedId: null,
+  selectedHistoryYear: null,
   sortKey: "Overall Rank",
   sortDir: "asc",
   baselines: {}
@@ -62,6 +63,16 @@ function firstValue(row, names, fallback = null) {
 function fmt(value, digits = 2) {
   const parsed = number(value);
   return parsed === null ? "-" : parsed.toFixed(digits);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
 }
 
 function erf(x) {
@@ -447,7 +458,19 @@ function computeHistoricalModel() {
         war += normalCdf(teamAvg - base.avg + score, teamAvg, Math.max(teamStd, 1)) -
           normalCdf(teamAvg - base.avg + base.replacement, teamAvg, Math.max(teamStd, 1));
       }
-      historicalPlayerRows.push({ ...player, Year: year, WAR: war, Games: games });
+      const weeks = Array.from(player.weeks.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([week, points]) => ({ Week: week, FPTS: points }));
+      historicalPlayerRows.push({
+        ...player,
+        PlayerKey: playerKey(player.Player),
+        Year: year,
+        WAR: war,
+        Games: games,
+        FPTS: weeks.reduce((sum, week) => sum + week.FPTS, 0),
+        AVG: games ? weeks.reduce((sum, week) => sum + week.FPTS, 0) / games : 0,
+        Weeks: weeks
+      });
     }
   }
 
@@ -485,6 +508,7 @@ function computeHistoricalModel() {
     years,
     yearModels,
     curve,
+    playerRows: historicalPlayerRows,
     projectionTeam: {
       avg: average(years.map((year) => yearModels[year].team.avg)),
       std: average(years.map((year) => yearModels[year].team.std))
@@ -541,20 +565,88 @@ function calculateWar(players) {
 }
 
 function assignTiers(results) {
-  const method = el("tierMethod").value;
-  const sensitivity = number(el("tierSensitivity").value, 0.35);
-  const fixedSize = number(el("tierSize").value, 12);
-  const sorted = [...results].sort((a, b) => b.WAR - a.WAR);
-  let tier = 1;
-  sorted.forEach((player, index) => {
-    if (index > 0) {
-      const previous = sorted[index - 1];
-      const gap = previous.WAR - player.WAR;
-      if (method === "fixed" && index % fixedSize === 0) tier += 1;
-      if (method === "gaps" && gap >= sensitivity) tier += 1;
-    }
-    player.Tier = tier;
+  const values = results.map((player) => player.WAR).filter((value) => Number.isFinite(value));
+  if (values.length < 4) {
+    results.forEach((player) => { player.Tier = 1; });
+    return;
+  }
+
+  const maxK = Math.min(12, Math.max(2, Math.floor(Math.sqrt(values.length))), values.length);
+  let best = null;
+  for (let k = 2; k <= maxK; k += 1) {
+    const model = kmeans1d(values, k);
+    if (!best || model.score > best.score) best = model;
+  }
+  if (!best) {
+    results.forEach((player) => { player.Tier = 1; });
+    return;
+  }
+
+  const orderedClusters = best.centroids
+    .map((centroid, cluster) => ({ centroid, cluster }))
+    .sort((a, b) => b.centroid - a.centroid);
+  const tierByCluster = new Map(orderedClusters.map((item, index) => [item.cluster, index + 1]));
+  results.forEach((player) => {
+    player.Tier = tierByCluster.get(nearestCentroid(player.WAR, best.centroids)) || orderedClusters.length;
   });
+}
+
+function nearestCentroid(value, centroids) {
+  let bestIndex = 0;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  centroids.forEach((centroid, index) => {
+    const distance = Math.abs(value - centroid);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  });
+  return bestIndex;
+}
+
+function kmeans1d(values, k) {
+  const sorted = [...values].sort((a, b) => a - b);
+  let centroids = Array.from({ length: k }, (_, index) => {
+    const pick = Math.floor(((index + 0.5) / k) * sorted.length);
+    return sorted[Math.min(sorted.length - 1, pick)];
+  });
+
+  let assignments = values.map((value) => nearestCentroid(value, centroids));
+  for (let iteration = 0; iteration < 50; iteration += 1) {
+    const nextCentroids = centroids.map((centroid, cluster) => {
+      const clusterValues = values.filter((_, index) => assignments[index] === cluster);
+      return clusterValues.length ? average(clusterValues) : centroid;
+    });
+    const nextAssignments = values.map((value) => nearestCentroid(value, nextCentroids));
+    if (nextAssignments.every((cluster, index) => cluster === assignments[index])) {
+      centroids = nextCentroids;
+      break;
+    }
+    centroids = nextCentroids;
+    assignments = nextAssignments;
+  }
+
+  return { centroids, assignments, score: silhouetteScore(values, assignments, k) };
+}
+
+function silhouetteScore(values, assignments, k) {
+  const clusters = Array.from({ length: k }, () => []);
+  values.forEach((value, index) => clusters[assignments[index]].push({ value, index }));
+  const nonEmpty = clusters.filter((cluster) => cluster.length);
+  if (nonEmpty.length < 2 || nonEmpty.some((cluster) => cluster.length < 2)) return -1;
+
+  const scores = values.map((value, index) => {
+    const cluster = assignments[index];
+    const own = clusters[cluster];
+    const a = own.length > 1
+      ? average(own.filter((other) => other.index !== index).map((other) => Math.abs(value - other.value)))
+      : 0;
+    const b = Math.min(...clusters
+      .filter((_, otherCluster) => otherCluster !== cluster && clusters[otherCluster].length)
+      .map((other) => average(other.map((otherValue) => Math.abs(value - otherValue.value)))));
+    return (b - a) / Math.max(a, b, 0.000001);
+  });
+  return average(scores);
 }
 
 function visibleResults() {
@@ -670,6 +762,51 @@ function valueClass(value) {
   return parsed >= 0 ? "value-pos" : "value-neg";
 }
 
+function playerHistory(player) {
+  if (!player || !state.historicalModel?.playerRows) return [];
+  const key = playerKey(player.Player);
+  return state.historicalModel.playerRows
+    .filter((row) => row.PlayerKey === key && row.Pos === player.Pos)
+    .sort((a, b) => b.Year - a.Year);
+}
+
+function renderHistoryTable(player, historyRows) {
+  if (!historyRows.length) {
+    return `<p class="muted history-empty">No historical weekly rows found for ${escapeHtml(player.Player)}.</p>`;
+  }
+  const selectedYear = state.selectedHistoryYear ?? historyRows[0].Year;
+  const selected = historyRows.find((row) => row.Year === selectedYear) || historyRows[0];
+  state.selectedHistoryYear = selected.Year;
+  const years = historyRows.map((row) => `
+    <button class="history-year ${row.Year === selected.Year ? "active" : ""}" type="button" data-history-year="${row.Year}">
+      <span>${row.Year}</span>
+      <strong>${fmt(row.FPTS, 1)}</strong>
+      <em>${fmt(row.WAR)}</em>
+    </button>
+  `).join("");
+  const weeks = selected.Weeks.map((week) => `
+    <tr>
+      <td>${fmt(week.Week, 0)}</td>
+      <td>${fmt(week.FPTS, 2)}</td>
+    </tr>
+  `).join("");
+  return `
+    <div class="history-panel">
+      <div class="history-header">
+        <h3>Historical Performance</h3>
+        <span>${selected.Year} - ${fmt(selected.FPTS, 1)} FPTS - ${fmt(selected.AVG, 2)} / game - ${fmt(selected.WAR)} WAR</span>
+      </div>
+      <div class="history-years">${years}</div>
+      <div class="history-weeks">
+        <table>
+          <thead><tr><th>Week</th><th>FPTS</th></tr></thead>
+          <tbody>${weeks}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
 function renderTable(rows) {
   const limited = sortedResults(rows).slice(0, 400);
   el("playersBody").innerHTML = limited.map((player) => `
@@ -690,7 +827,7 @@ function renderTable(rows) {
   `).join("");
 }
 
-function renderPlayerCard(player) {
+function oldRenderPlayerCard(player) {
   if (!player) {
     el("playerCard").innerHTML = `
       <p class="eyebrow">Selected player</p>
@@ -716,6 +853,35 @@ function renderPlayerCard(player) {
   `;
 }
 
+function renderPlayerCard(player) {
+  if (!player) {
+    el("playerCard").innerHTML = `
+      <p class="eyebrow">Selected player</p>
+      <h2>Select a player</h2>
+      <p class="muted">Click a point or row to inspect scoring, WAR, tier, ADP, and positional-rank comparison.</p>
+    `;
+    return;
+  }
+  const historyRows = playerHistory(player);
+  el("playerCard").innerHTML = `
+    <p class="eyebrow">Selected player</p>
+    <h2>${escapeHtml(player.Player)}</h2>
+    <p class="muted">${escapeHtml(player.Team || "-")} - <span class="pos-pill pos-${player.Pos}">${player.Pos}</span> - ${escapeHtml(player["Pos Rank"])}</p>
+    <div class="player-stats">
+      <div><span>WAR</span><strong>${fmt(player.WAR)}</strong></div>
+      <div><span>Historical rank WAR</span><strong>${fmt(player["Historical WAR"])}</strong></div>
+      <div><span>Delta</span><strong class="${valueClass(player["Delta vs Historical"])}">${fmt(player["Delta vs Historical"])}</strong></div>
+      <div><span>Tier</span><strong>${fmt(player.Tier, 0)}</strong></div>
+      <div><span>Projected FPTS</span><strong>${fmt(player.FPTS, 1)}</strong></div>
+      <div><span>Projected AVG</span><strong>${fmt(player.AVG)}</strong></div>
+      <div><span>ADP value</span><strong class="${valueClass(player.Value)}">${fmt(player.Value, 1)}</strong></div>
+      <div><span>Flex WAR</span><strong>${fmt(player["Flex WAR"])}</strong></div>
+      <div><span>SuperFlex WAR</span><strong>${fmt(player["SuperFlex WAR"])}</strong></div>
+    </div>
+    ${renderHistoryTable(player, historyRows)}
+  `;
+}
+
 function render() {
   computeHistoricalModel();
   calculateWar(state.rawProjections);
@@ -728,6 +894,7 @@ function render() {
 }
 
 function selectPlayer(id) {
+  if (state.selectedId !== id) state.selectedHistoryYear = null;
   state.selectedId = id;
   renderPlayerCard(state.results.find((player) => player.id === id));
 }
@@ -827,6 +994,12 @@ function bindEvents() {
   el("playersBody").addEventListener("click", (event) => {
     const row = event.target.closest("tr[data-id]");
     if (row) selectPlayer(row.dataset.id);
+  });
+  el("playerCard").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-history-year]");
+    if (!button) return;
+    state.selectedHistoryYear = number(button.dataset.historyYear, null);
+    renderPlayerCard(state.results.find((player) => player.id === state.selectedId));
   });
   el("exportResults").addEventListener("click", exportResults);
 }

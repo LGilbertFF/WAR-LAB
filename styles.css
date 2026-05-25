@@ -417,6 +417,81 @@ summary::marker {
   color: var(--black);
 }
 
+.history-panel {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.history-header {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.history-header h3 {
+  margin: 0;
+  color: var(--white);
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.history-header span {
+  color: var(--white);
+  font-size: 0.82rem;
+}
+
+.history-years {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.history-year {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: rgba(240, 240, 240, 0.06);
+  color: var(--white);
+  cursor: pointer;
+}
+
+.history-year.active,
+.history-year:hover {
+  border-color: var(--red);
+  background: var(--red);
+}
+
+.history-year strong,
+.history-year em {
+  font-style: normal;
+  text-align: right;
+}
+
+.history-weeks {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--line);
+}
+
+.history-weeks table {
+  min-width: 0;
+}
+
+.history-weeks th,
+.history-weeks td {
+  padding: 8px 10px;
+}
+
+.history-empty {
+  margin-top: 12px;
+}
+
 .table-panel {
   margin-top: 18px;
 }

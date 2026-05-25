@@ -85,19 +85,8 @@
               <select id="historyStart"></select>
             </label>
             <label>
-              Tier method
-              <select id="tierMethod">
-                <option value="gaps">WAR gaps</option>
-                <option value="fixed">Fixed tier size</option>
-              </select>
-            </label>
-            <label>
-              Tier sensitivity
-              <input id="tierSensitivity" type="number" min="0.05" max="1.5" step="0.05" value="0.35">
-            </label>
-            <label>
-              Fixed tier size
-              <input id="tierSize" type="number" min="1" max="30" value="12">
+              Tier model
+              <input value="Auto k-means" disabled>
             </label>
             <label>
               Search
@@ -165,7 +154,7 @@
         <div class="panel-header">
           <div>
             <h2>Generated WAR Projections</h2>
-            <p>Sortable output built from the active projections, ADP, scoring, roster settings, historical curve, and tier rules.</p>
+            <p>Sortable output built from the active projections, ADP, scoring, roster settings, historical scoring, and tier rules.</p>
           </div>
           <fieldset class="position-filter">
             <legend>Positions</legend>
