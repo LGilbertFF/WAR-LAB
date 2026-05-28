@@ -451,16 +451,16 @@ function computeHistoricalModel() {
       const base = posModel[player.Pos];
       let war = 0;
       let games = 0;
+      const weeks = [];
       for (let week = 1; week <= maxWeek; week += 1) {
         const actual = player.weeks.get(week);
         const score = actual ?? base.replacement;
         if (actual !== undefined) games += 1;
-        war += normalCdf(teamAvg - base.avg + score, teamAvg, Math.max(teamStd, 1)) -
+        const weeklyWar = normalCdf(teamAvg - base.avg + score, teamAvg, Math.max(teamStd, 1)) -
           normalCdf(teamAvg - base.avg + base.replacement, teamAvg, Math.max(teamStd, 1));
+        war += weeklyWar;
+        if (actual !== undefined) weeks.push({ Week: week, FPTS: actual, WAR: weeklyWar });
       }
-      const weeks = Array.from(player.weeks.entries())
-        .sort((a, b) => a[0] - b[0])
-        .map(([week, points]) => ({ Week: week, FPTS: points }));
       historicalPlayerRows.push({
         ...player,
         PlayerKey: playerKey(player.Player),
@@ -571,9 +571,10 @@ function assignTiers(results) {
     return;
   }
 
-  const maxK = Math.min(12, Math.max(2, Math.floor(Math.sqrt(values.length))), values.length);
+  const minK = Math.min(12, values.length);
+  const maxK = Math.min(24, Math.max(minK, Math.ceil(Math.sqrt(values.length) * 1.5)), values.length);
   let best = null;
-  for (let k = 2; k <= maxK; k += 1) {
+  for (let k = minK; k <= maxK; k += 1) {
     const model = kmeans1d(values, k);
     if (!best || model.score > best.score) best = model;
   }
@@ -588,6 +589,16 @@ function assignTiers(results) {
   const tierByCluster = new Map(orderedClusters.map((item, index) => [item.cluster, index + 1]));
   results.forEach((player) => {
     player.Tier = tierByCluster.get(nearestCentroid(player.WAR, best.centroids)) || orderedClusters.length;
+  });
+  if (new Set(results.map((player) => player.Tier)).size < minK) {
+    assignRankBalancedTiers(results, minK);
+  }
+}
+
+function assignRankBalancedTiers(results, tierCount) {
+  const sorted = [...results].sort((a, b) => b.WAR - a.WAR);
+  sorted.forEach((player, index) => {
+    player.Tier = Math.min(tierCount, Math.floor((index / sorted.length) * tierCount) + 1);
   });
 }
 
@@ -777,17 +788,23 @@ function renderHistoryTable(player, historyRows) {
   const selectedYear = state.selectedHistoryYear ?? historyRows[0].Year;
   const selected = historyRows.find((row) => row.Year === selectedYear) || historyRows[0];
   state.selectedHistoryYear = selected.Year;
-  const years = historyRows.map((row) => `
-    <button class="history-year ${row.Year === selected.Year ? "active" : ""}" type="button" data-history-year="${row.Year}">
-      <span>${row.Year}</span>
-      <strong>${fmt(row.FPTS, 1)}</strong>
-      <em>${fmt(row.WAR)}</em>
-    </button>
+  const yearOptions = historyRows.map((row) => `
+    <option value="${row.Year}" ${row.Year === selected.Year ? "selected" : ""}>
+      ${row.Year} - ${fmt(row.FPTS, 1)} FPTS - ${fmt(row.WAR)} WAR
+    </option>
   `).join("");
-  const weeks = selected.Weeks.map((week) => `
+  const selectedWeekMap = new Map(selected.Weeks.map((week) => [week.Week, week]));
+  const weekNumbers = Array.from({ length: weekLimit() }, (_, index) => index + 1);
+  const weekHeaders = weekNumbers.map((week) => `<th>${week}</th>`).join("");
+  const warCells = weekNumbers.map((week) => `<td>${fmt(selectedWeekMap.get(week)?.WAR, 3)}</td>`).join("");
+  const fptsCells = weekNumbers.map((week) => `<td>${fmt(selectedWeekMap.get(week)?.FPTS, 2)}</td>`).join("");
+  const yearlyRows = historyRows.map((row) => `
     <tr>
-      <td>${fmt(week.Week, 0)}</td>
-      <td>${fmt(week.FPTS, 2)}</td>
+      <td>${row.Year}</td>
+      <td>${fmt(row.FPTS, 1)}</td>
+      <td>${fmt(row.AVG, 2)}</td>
+      <td>${fmt(row.WAR)}</td>
+      <td>${fmt(row.Games, 0)}</td>
     </tr>
   `).join("");
   return `
@@ -796,11 +813,23 @@ function renderHistoryTable(player, historyRows) {
         <h3>Historical Performance</h3>
         <span>${selected.Year} - ${fmt(selected.FPTS, 1)} FPTS - ${fmt(selected.AVG, 2)} / game - ${fmt(selected.WAR)} WAR</span>
       </div>
-      <div class="history-years">${years}</div>
+      <label class="history-select">
+        Season
+        <select id="historyYearSelect">${yearOptions}</select>
+      </label>
+      <div class="history-season-table">
+        <table>
+          <thead><tr><th>Year</th><th>FPTS</th><th>AVG</th><th>WAR</th><th>Games</th></tr></thead>
+          <tbody>${yearlyRows}</tbody>
+        </table>
+      </div>
       <div class="history-weeks">
         <table>
-          <thead><tr><th>Week</th><th>FPTS</th></tr></thead>
-          <tbody>${weeks}</tbody>
+          <thead><tr><th>Metric</th>${weekHeaders}</tr></thead>
+          <tbody>
+            <tr><th>WAR</th>${warCells}</tr>
+            <tr><th>FPTS</th>${fptsCells}</tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -995,10 +1024,9 @@ function bindEvents() {
     const row = event.target.closest("tr[data-id]");
     if (row) selectPlayer(row.dataset.id);
   });
-  el("playerCard").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-history-year]");
-    if (!button) return;
-    state.selectedHistoryYear = number(button.dataset.historyYear, null);
+  el("playerCard").addEventListener("change", (event) => {
+    if (event.target.id !== "historyYearSelect") return;
+    state.selectedHistoryYear = number(event.target.value, null);
     renderPlayerCard(state.results.find((player) => player.id === state.selectedId));
   });
   el("exportResults").addEventListener("click", exportResults);
