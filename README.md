@@ -58,7 +58,7 @@ The repository includes three GitHub Actions workflows:
 .github/workflows/build-historical-data.yml
 ```
 
-`deploy-pages.yml` publishes the static app to GitHub Pages whenever `main` changes. `update-current-data.yml` refreshes 2026 projections and ADP automatically and commits the generated CSVs. `build-historical-data.yml` is a manual one-time historical scrape that commits the historical export.
+`deploy-pages.yml` publishes the static app to GitHub Pages whenever `main` changes. `update-current-data.yml` refreshes 2026 projections and ADP hourly and commits the generated CSVs. `build-historical-data.yml` is a manual one-time historical scrape that commits the historical export.
 
 ## Generated Inputs
 

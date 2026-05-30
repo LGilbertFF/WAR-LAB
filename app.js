@@ -571,8 +571,8 @@ function assignTiers(results) {
     return;
   }
 
-  const minK = Math.min(12, values.length);
-  const maxK = Math.min(24, Math.max(minK, Math.ceil(Math.sqrt(values.length) * 1.5)), values.length);
+  const minK = Math.min(18, values.length);
+  const maxK = Math.min(36, Math.max(minK, Math.ceil(Math.sqrt(values.length) * 2)), values.length);
   let best = null;
   for (let k = minK; k <= maxK; k += 1) {
     const model = kmeans1d(values, k);
@@ -838,22 +838,36 @@ function renderHistoryTable(player, historyRows) {
 
 function renderTable(rows) {
   const limited = sortedResults(rows).slice(0, 400);
-  el("playersBody").innerHTML = limited.map((player) => `
-    <tr data-id="${player.id}">
-      <td>${fmt(player["Overall Rank"], 0)}</td>
-      <td><strong>${player.Player}</strong></td>
-      <td><span class="pos-pill pos-${player.Pos}">${player.Pos}</span></td>
-      <td>${player.Team || "-"}</td>
-      <td>${fmt(player.WAR)}</td>
-      <td>${fmt(player["Flex WAR"])}</td>
-      <td>${fmt(player["SuperFlex WAR"])}</td>
-      <td>${fmt(player["Historical WAR"])}</td>
-      <td class="${valueClass(player["Delta vs Historical"])}">${fmt(player["Delta vs Historical"])}</td>
-      <td>${fmt(player.ADP, 1)}</td>
-      <td class="${valueClass(player.Value)}">${fmt(player.Value, 1)}</td>
-      <td>${fmt(player.Tier, 0)}</td>
+  el("playersBody").innerHTML = limited.map((player) => {
+    const selected = player.id === state.selectedId;
+    return `
+      <tr data-id="${player.id}" class="${selected ? "selected-row" : ""}">
+        <td>${fmt(player["Overall Rank"], 0)}</td>
+        <td><strong>${escapeHtml(player.Player)}</strong></td>
+        <td><span class="pos-pill pos-${player.Pos}">${player.Pos}</span></td>
+        <td>${escapeHtml(player.Team || "-")}</td>
+        <td>${fmt(player.WAR)}</td>
+        <td>${fmt(player["Flex WAR"])}</td>
+        <td>${fmt(player["SuperFlex WAR"])}</td>
+        <td>${fmt(player["Historical WAR"])}</td>
+        <td class="${valueClass(player["Delta vs Historical"])}">${fmt(player["Delta vs Historical"])}</td>
+        <td>${fmt(player.ADP, 1)}</td>
+        <td class="${valueClass(player.Value)}">${fmt(player.Value, 1)}</td>
+        <td>${fmt(player.Tier, 0)}</td>
+      </tr>
+      ${selected ? renderPlayerDetailRow(player) : ""}
+    `;
+  }).join("");
+}
+
+function renderPlayerDetailRow(player) {
+  return `
+    <tr class="player-detail-row">
+      <td colspan="12">
+        ${renderPlayerDetail(player)}
+      </td>
     </tr>
-  `).join("");
+  `;
 }
 
 function oldRenderPlayerCard(player) {
@@ -882,17 +896,17 @@ function oldRenderPlayerCard(player) {
   `;
 }
 
-function renderPlayerCard(player) {
+function renderPlayerDetail(player) {
   if (!player) {
-    el("playerCard").innerHTML = `
+    return `
       <p class="eyebrow">Selected player</p>
       <h2>Select a player</h2>
       <p class="muted">Click a point or row to inspect scoring, WAR, tier, ADP, and positional-rank comparison.</p>
     `;
-    return;
   }
   const historyRows = playerHistory(player);
-  el("playerCard").innerHTML = `
+  return `
+    <div class="inline-player-detail">
     <p class="eyebrow">Selected player</p>
     <h2>${escapeHtml(player.Player)}</h2>
     <p class="muted">${escapeHtml(player.Team || "-")} - <span class="pos-pill pos-${player.Pos}">${player.Pos}</span> - ${escapeHtml(player["Pos Rank"])}</p>
@@ -908,7 +922,13 @@ function renderPlayerCard(player) {
       <div><span>SuperFlex WAR</span><strong>${fmt(player["SuperFlex WAR"])}</strong></div>
     </div>
     ${renderHistoryTable(player, historyRows)}
+    </div>
   `;
+}
+
+function renderPlayerCard(player) {
+  const card = el("playerCard");
+  if (card) card.innerHTML = renderPlayerDetail(player);
 }
 
 function render() {
@@ -919,13 +939,12 @@ function render() {
   renderProjectionChart(rows);
   renderRankCurve();
   renderTable(rows);
-  renderPlayerCard(state.results.find((player) => player.id === state.selectedId));
 }
 
 function selectPlayer(id) {
   if (state.selectedId !== id) state.selectedHistoryYear = null;
-  state.selectedId = id;
-  renderPlayerCard(state.results.find((player) => player.id === id));
+  state.selectedId = state.selectedId === id ? null : id;
+  render();
 }
 
 async function parseCsvFile(file) {
@@ -1021,13 +1040,14 @@ function bindEvents() {
     });
   });
   el("playersBody").addEventListener("click", (event) => {
+    if (event.target.closest(".player-detail-row")) return;
     const row = event.target.closest("tr[data-id]");
     if (row) selectPlayer(row.dataset.id);
   });
-  el("playerCard").addEventListener("change", (event) => {
+  el("playersBody").addEventListener("change", (event) => {
     if (event.target.id !== "historyYearSelect") return;
     state.selectedHistoryYear = number(event.target.value, null);
-    renderPlayerCard(state.results.find((player) => player.id === state.selectedId));
+    renderTable(visibleResults());
   });
   el("exportResults").addEventListener("click", exportResults);
 }
@@ -1042,5 +1062,6 @@ function initControls() {
 initControls();
 bindEvents();
 initData().catch((error) => {
-  el("playerCard").innerHTML = `<p class="eyebrow">Load error</p><h2>Data could not load</h2><p class="muted">${error.message}</p>`;
+  const body = el("playersBody");
+  if (body) body.innerHTML = `<tr><td colspan="12"><p class="eyebrow">Load error</p><h2>Data could not load</h2><p class="muted">${error.message}</p></td></tr>`;
 });

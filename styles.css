@@ -558,6 +558,31 @@ tbody tr:hover {
   background: rgba(204, 51, 51, 0.16);
 }
 
+tbody tr.selected-row {
+  background: rgba(204, 51, 51, 0.28);
+}
+
+.player-detail-row td {
+  padding: 0;
+  white-space: normal;
+}
+
+.player-detail-row:hover {
+  background: transparent;
+}
+
+.inline-player-detail {
+  padding: 18px;
+  border-top: 1px solid var(--red);
+  border-bottom: 1px solid var(--line);
+  background: rgba(17, 17, 17, 0.94);
+}
+
+.inline-player-detail h2 {
+  margin-bottom: 4px;
+  color: var(--white);
+}
+
 .pos-pill {
   display: inline-flex;
   min-width: 34px;
