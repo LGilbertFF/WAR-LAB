@@ -10,12 +10,17 @@ const state = {
   historicalWeeklyRows: [],
   historicalModel: null,
   historicalModelKey: "",
+  historicalScoredRows: [],
+  historicalScoredRowsKey: "",
   manifest: null,
   results: [],
   selectedId: null,
   selectedHistoryYear: null,
   sortKey: "Overall Rank",
   sortDir: "asc",
+  renderTimer: null,
+  projectionSource: CURRENT_PROJECTIONS_PATH,
+  adpSource: CURRENT_ADP_PATH,
   baselines: {}
 };
 
@@ -331,6 +336,10 @@ function historicalForRank(pos, rank) {
 
 function computeHistoricalModel() {
   const cfg = settings();
+  const scoringKey = JSON.stringify({
+    rows: state.historicalWeeklyRows.length,
+    scoring: cfg.scoring
+  });
   const modelKey = JSON.stringify({
     rows: state.historicalWeeklyRows.length,
     start: el("historyStart").value,
@@ -349,8 +358,9 @@ function computeHistoricalModel() {
 
   const startYear = number(el("historyStart").value, 2015);
   const maxWeek = weekLimit();
-  const rows = state.historicalWeeklyRows
-    .map((row) => {
+  if (state.historicalScoredRowsKey !== scoringKey) {
+    state.historicalScoredRowsKey = scoringKey;
+    state.historicalScoredRows = state.historicalWeeklyRows.map((row) => {
       const pos = String(firstValue(row, ["Pos", "position"], "")).toUpperCase();
       const year = number(firstValue(row, ["Year", "year"], null), null);
       const week = number(firstValue(row, ["Week", "week"], null), null);
@@ -364,7 +374,9 @@ function computeHistoricalModel() {
         Week: week,
         FPTS: points
       };
-    })
+    });
+  }
+  const rows = state.historicalScoredRows
     .filter((row) => row.Player && ["QB", "RB", "WR", "TE"].includes(row.Pos) && row.Year >= startYear && row.Week >= 1 && row.Week <= maxWeek && row.FPTS !== null);
 
   const years = [...new Set(rows.map((row) => row.Year))].sort((a, b) => a - b);
@@ -939,6 +951,10 @@ function renderPlayerCard(player) {
 }
 
 function render() {
+  if (state.renderTimer) {
+    clearTimeout(state.renderTimer);
+    state.renderTimer = null;
+  }
   computeHistoricalModel();
   calculateWar(state.rawProjections);
   const rows = visibleResults();
@@ -948,10 +964,18 @@ function render() {
   renderTable(rows);
 }
 
+function scheduleRender(delay = 90) {
+  if (state.renderTimer) clearTimeout(state.renderTimer);
+  state.renderTimer = setTimeout(() => {
+    state.renderTimer = null;
+    render();
+  }, delay);
+}
+
 function selectPlayer(id) {
   if (state.selectedId !== id) state.selectedHistoryYear = null;
   state.selectedId = state.selectedId === id ? null : id;
-  render();
+  scheduleRender(0);
 }
 
 async function parseCsvFile(file) {
@@ -968,15 +992,10 @@ async function loadCsv(path) {
 async function setProjectionRows(rows) {
   state.rawProjections = rows;
   state.selectedId = null;
-  render();
+  scheduleRender(0);
 }
 
 async function initData() {
-  try {
-    state.historicalWeeklyRows = await loadCsv(HISTORICAL_WEEKLY_PATH);
-  } catch {
-    state.historicalWeeklyRows = [];
-  }
   try {
     state.manifest = await loadJson("data/scrape_manifest.json");
   } catch {
@@ -985,13 +1004,30 @@ async function initData() {
   try {
     state.rawProjections = await loadCsv(CURRENT_PROJECTIONS_PATH);
     state.adpRows = await loadCsv(CURRENT_ADP_PATH);
-    setDataStatus(CURRENT_PROJECTIONS_PATH, CURRENT_ADP_PATH, state.manifest);
+    state.projectionSource = CURRENT_PROJECTIONS_PATH;
+    state.adpSource = CURRENT_ADP_PATH;
+    setDataStatus(state.projectionSource, state.adpSource, state.manifest);
   } catch {
     state.rawProjections = await loadCsv(FALLBACK_PROJECTIONS_PATH);
     state.adpRows = [];
-    setDataStatus(FALLBACK_PROJECTIONS_PATH, "Unavailable", state.manifest);
+    state.projectionSource = FALLBACK_PROJECTIONS_PATH;
+    state.adpSource = "Unavailable";
+    setDataStatus(state.projectionSource, state.adpSource, state.manifest);
   }
   render();
+  loadHistoricalData();
+}
+
+async function loadHistoricalData() {
+  try {
+    state.historicalWeeklyRows = await loadCsv(HISTORICAL_WEEKLY_PATH);
+  } catch {
+    state.historicalWeeklyRows = [];
+  }
+  state.historicalModelKey = "";
+  state.historicalScoredRowsKey = "";
+  setDataStatus(state.projectionSource, state.adpSource, state.manifest);
+  scheduleRender(0);
 }
 
 async function loadJson(path) {
@@ -1032,10 +1068,10 @@ function exportResults() {
 
 function bindEvents() {
   document.querySelectorAll("input, select").forEach((input) => {
-    input.addEventListener("input", render);
-    input.addEventListener("change", render);
+    input.addEventListener("input", () => scheduleRender());
+    input.addEventListener("change", () => scheduleRender(0));
   });
-  document.querySelectorAll("input[name='posFilter']").forEach((input) => input.addEventListener("change", render));
+  document.querySelectorAll("input[name='posFilter']").forEach((input) => input.addEventListener("change", () => scheduleRender(0)));
   document.querySelectorAll("th[data-sort]").forEach((th) => {
     th.addEventListener("click", () => {
       const key = th.dataset.sort;
@@ -1044,7 +1080,7 @@ function bindEvents() {
         state.sortKey = key;
         state.sortDir = key === "Player" || key === "Pos" ? "asc" : "desc";
       }
-      render();
+      scheduleRender(0);
     });
   });
   el("playersBody").addEventListener("click", (event) => {
