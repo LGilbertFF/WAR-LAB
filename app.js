@@ -450,6 +450,8 @@ function computeHistoricalModel() {
     for (const player of weeklyMaps.values()) {
       const base = posModel[player.Pos];
       let war = 0;
+      let flexWar = 0;
+      let superflexWar = 0;
       let games = 0;
       const weeks = [];
       for (let week = 1; week <= maxWeek; week += 1) {
@@ -458,7 +460,17 @@ function computeHistoricalModel() {
         if (actual !== undefined) games += 1;
         const weeklyWar = normalCdf(teamAvg - base.avg + score, teamAvg, Math.max(teamStd, 1)) -
           normalCdf(teamAvg - base.avg + base.replacement, teamAvg, Math.max(teamStd, 1));
+        const weeklyFlexWar = ["RB", "WR", "TE"].includes(player.Pos)
+          ? normalCdf(teamAvg - posModel.FLEX.avg + score, teamAvg, Math.max(teamStd, 1)) -
+            normalCdf(teamAvg - posModel.FLEX.avg + posModel.FLEX.replacement, teamAvg, Math.max(teamStd, 1))
+          : null;
+        const weeklySuperflexWar = posModel.SUPERFLEX.count
+          ? normalCdf(teamAvg - posModel.SUPERFLEX.avg + score, teamAvg, Math.max(teamStd, 1)) -
+            normalCdf(teamAvg - posModel.SUPERFLEX.avg + posModel.SUPERFLEX.replacement, teamAvg, Math.max(teamStd, 1))
+          : null;
         war += weeklyWar;
+        if (weeklyFlexWar !== null) flexWar += weeklyFlexWar;
+        if (weeklySuperflexWar !== null) superflexWar += weeklySuperflexWar;
         if (actual !== undefined) weeks.push({ Week: week, FPTS: actual, WAR: weeklyWar });
       }
       historicalPlayerRows.push({
@@ -466,6 +478,8 @@ function computeHistoricalModel() {
         PlayerKey: playerKey(player.Player),
         Year: year,
         WAR: war,
+        "Flex WAR": ["RB", "WR", "TE"].includes(player.Pos) ? flexWar : null,
+        "SuperFlex WAR": posModel.SUPERFLEX.count ? superflexWar : null,
         Games: games,
         FPTS: weeks.reduce((sum, week) => sum + week.FPTS, 0),
         AVG: games ? weeks.reduce((sum, week) => sum + week.FPTS, 0) / games : 0,
@@ -788,22 +802,19 @@ function renderHistoryTable(player, historyRows) {
   const selectedYear = state.selectedHistoryYear ?? historyRows[0].Year;
   const selected = historyRows.find((row) => row.Year === selectedYear) || historyRows[0];
   state.selectedHistoryYear = selected.Year;
-  const yearOptions = historyRows.map((row) => `
-    <option value="${row.Year}" ${row.Year === selected.Year ? "selected" : ""}>
-      ${row.Year} - ${fmt(row.FPTS, 1)} FPTS - ${fmt(row.WAR)} WAR
-    </option>
-  `).join("");
   const selectedWeekMap = new Map(selected.Weeks.map((week) => [week.Week, week]));
   const weekNumbers = Array.from({ length: weekLimit() }, (_, index) => index + 1);
   const weekHeaders = weekNumbers.map((week) => `<th>${week}</th>`).join("");
   const warCells = weekNumbers.map((week) => `<td>${fmt(selectedWeekMap.get(week)?.WAR, 3)}</td>`).join("");
   const fptsCells = weekNumbers.map((week) => `<td>${fmt(selectedWeekMap.get(week)?.FPTS, 2)}</td>`).join("");
   const yearlyRows = historyRows.map((row) => `
-    <tr>
+    <tr class="${row.Year === selected.Year ? "selected-history-year" : ""}" data-history-year="${row.Year}">
       <td>${row.Year}</td>
       <td>${fmt(row.FPTS, 1)}</td>
       <td>${fmt(row.AVG, 2)}</td>
       <td>${fmt(row.WAR)}</td>
+      <td>${fmt(row["Flex WAR"])}</td>
+      <td>${fmt(row["SuperFlex WAR"])}</td>
       <td>${fmt(row.Games, 0)}</td>
     </tr>
   `).join("");
@@ -813,13 +824,9 @@ function renderHistoryTable(player, historyRows) {
         <h3>Historical Performance</h3>
         <span>${selected.Year} - ${fmt(selected.FPTS, 1)} FPTS - ${fmt(selected.AVG, 2)} / game - ${fmt(selected.WAR)} WAR</span>
       </div>
-      <label class="history-select">
-        Season
-        <select id="historyYearSelect">${yearOptions}</select>
-      </label>
       <div class="history-season-table">
         <table>
-          <thead><tr><th>Year</th><th>FPTS</th><th>AVG</th><th>WAR</th><th>Games</th></tr></thead>
+          <thead><tr><th>Year</th><th>FPTS</th><th>AVG</th><th>WAR</th><th>Flex</th><th>SF</th><th>Games</th></tr></thead>
           <tbody>${yearlyRows}</tbody>
         </table>
       </div>
@@ -994,10 +1001,11 @@ async function loadJson(path) {
 }
 
 function setDataStatus(projectionSource, adpSource, manifest) {
-  if (el("projectionSource")) el("projectionSource").textContent = projectionSource;
-  if (el("adpSource")) el("adpSource").textContent = adpSource;
+  const updatedAt = manifest?.updated_at ? new Date(manifest.updated_at) : null;
+  const updatedText = updatedAt && !Number.isNaN(updatedAt.valueOf()) ? updatedAt.toLocaleString() : "Not recorded";
+  if (el("projectionSource")) el("projectionSource").textContent = projectionSource === FALLBACK_PROJECTIONS_PATH ? "Fallback data" : updatedText;
+  if (el("adpSource")) el("adpSource").textContent = adpSource === "Unavailable" ? "Unavailable" : updatedText;
   if (el("lastRefresh")) {
-    const updatedAt = manifest?.updated_at ? new Date(manifest.updated_at) : null;
     const year = manifest?.season_year ? ` · ${manifest.season_year}` : "";
     const historical = state.historicalWeeklyRows.length ? " · historical loaded" : " · historical missing";
     el("lastRefresh").textContent = updatedAt && !Number.isNaN(updatedAt.valueOf())
@@ -1040,14 +1048,15 @@ function bindEvents() {
     });
   });
   el("playersBody").addEventListener("click", (event) => {
+    const yearRow = event.target.closest("[data-history-year]");
+    if (yearRow) {
+      state.selectedHistoryYear = number(yearRow.dataset.historyYear, null);
+      renderTable(visibleResults());
+      return;
+    }
     if (event.target.closest(".player-detail-row")) return;
     const row = event.target.closest("tr[data-id]");
     if (row) selectPlayer(row.dataset.id);
-  });
-  el("playersBody").addEventListener("change", (event) => {
-    if (event.target.id !== "historyYearSelect") return;
-    state.selectedHistoryYear = number(event.target.value, null);
-    renderTable(visibleResults());
   });
   el("exportResults").addEventListener("click", exportResults);
 }

@@ -441,14 +441,6 @@ summary::marker {
   font-size: 0.82rem;
 }
 
-.history-select {
-  margin-bottom: 12px;
-}
-
-.history-select select {
-  width: 100%;
-}
-
 .history-season-table {
   max-height: 190px;
   margin-bottom: 12px;
@@ -473,6 +465,14 @@ summary::marker {
 .history-weeks td {
   padding: 8px 10px;
   text-align: right;
+}
+
+.history-season-table tbody tr {
+  cursor: pointer;
+}
+
+.history-season-table tbody tr.selected-history-year {
+  background: rgba(204, 51, 51, 0.28);
 }
 
 .history-season-table th:first-child,
