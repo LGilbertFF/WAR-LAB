@@ -585,8 +585,8 @@ function assignTiers(results) {
     return;
   }
 
-  const minK = Math.min(18, values.length);
-  const maxK = Math.min(36, Math.max(minK, Math.ceil(Math.sqrt(values.length) * 2)), values.length);
+  const minK = Math.min(30, values.length);
+  const maxK = Math.min(48, Math.max(minK, Math.ceil(Math.sqrt(values.length) * 2.5)), values.length);
   let best = null;
   for (let k = minK; k <= maxK; k += 1) {
     const model = kmeans1d(values, k);
