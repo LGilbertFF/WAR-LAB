@@ -582,9 +582,13 @@ function calculateWar(players) {
   }
 
   results.sort((a, b) => b.WAR - a.WAR);
+  const topWar = Math.max(...results.map((player) => Math.max(0, number(player.WAR, 0))), 1);
   results.forEach((player, index) => {
     player["Overall Rank"] = index + 1;
-    player.Value = player.ADP === null ? null : player.ADP - (index + 1);
+    const adpDiscount = player.ADP === null ? null : player.ADP - (index + 1);
+    const warWeight = Math.max(0, number(player.WAR, 0)) / topWar;
+    player["ADP Discount"] = adpDiscount;
+    player.Value = adpDiscount === null ? null : adpDiscount * warWeight;
   });
   assignTiers(results);
   state.results = results;
@@ -711,7 +715,7 @@ function updateSummary(rows) {
   const valueRows = rows.filter((row) => row.Value !== null);
   const topValue = [...valueRows].sort((a, b) => b.Value - a.Value)[0];
   const reps = ["QB", "RB", "WR", "TE"]
-    .map((pos) => `${pos} ${fmt(state.baselines[pos]?.replacement, 1)}`)
+    .map((pos) => `${pos} ${fmt(state.baselines[pos]?.replacement, 1)} FPTS/G`)
     .join(" · ");
   el("playerCount").textContent = rows.length;
   el("topWar").textContent = topWar ? `${topWar.Player} ${fmt(topWar.WAR)}` : "-";
@@ -908,7 +912,8 @@ function oldRenderPlayerCard(player) {
       <div><span>Delta</span><strong class="${valueClass(player["Delta vs Historical"])}">${fmt(player["Delta vs Historical"])}</strong></div>
       <div><span>Tier</span><strong>${fmt(player.Tier, 0)}</strong></div>
       <div><span>Projected AVG</span><strong>${fmt(player.AVG)}</strong></div>
-      <div><span>ADP value</span><strong class="${valueClass(player.Value)}">${fmt(player.Value, 1)}</strong></div>
+      <div><span>Weighted ADP value</span><strong class="${valueClass(player.Value)}">${fmt(player.Value, 1)}</strong></div>
+      <div><span>ADP discount</span><strong class="${valueClass(player["ADP Discount"])}">${fmt(player["ADP Discount"], 1)}</strong></div>
       <div><span>Flex WAR</span><strong>${fmt(player["Flex WAR"])}</strong></div>
       <div><span>SuperFlex WAR</span><strong>${fmt(player["SuperFlex WAR"])}</strong></div>
     </div>
@@ -936,7 +941,8 @@ function renderPlayerDetail(player) {
       <div><span>Tier</span><strong>${fmt(player.Tier, 0)}</strong></div>
       <div><span>Projected FPTS</span><strong>${fmt(player.FPTS, 1)}</strong></div>
       <div><span>Projected AVG</span><strong>${fmt(player.AVG)}</strong></div>
-      <div><span>ADP value</span><strong class="${valueClass(player.Value)}">${fmt(player.Value, 1)}</strong></div>
+      <div><span>Weighted ADP value</span><strong class="${valueClass(player.Value)}">${fmt(player.Value, 1)}</strong></div>
+      <div><span>ADP discount</span><strong class="${valueClass(player["ADP Discount"])}">${fmt(player["ADP Discount"], 1)}</strong></div>
       <div><span>Flex WAR</span><strong>${fmt(player["Flex WAR"])}</strong></div>
       <div><span>SuperFlex WAR</span><strong>${fmt(player["SuperFlex WAR"])}</strong></div>
     </div>
@@ -1052,7 +1058,7 @@ function setDataStatus(projectionSource, adpSource, manifest) {
 
 function exportResults() {
   if (!state.results.length) return;
-  const cols = ["Year", "Overall Rank", "Player", "Team", "Pos", "Pos Rank", "WAR", "Historical WAR", "Delta vs Historical", "ADP", "Value", "Tier", "AVG", "FPTS", "Flex WAR", "SuperFlex WAR"];
+  const cols = ["Year", "Overall Rank", "Player", "Team", "Pos", "Pos Rank", "WAR", "Historical WAR", "Delta vs Historical", "ADP", "ADP Discount", "Value", "Tier", "AVG", "FPTS", "Flex WAR", "SuperFlex WAR"];
   const csv = [
     cols.join(","),
     ...state.results.map((row) => cols.map((col) => JSON.stringify(row[col] ?? "")).join(","))
