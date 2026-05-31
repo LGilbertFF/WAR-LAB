@@ -110,41 +110,112 @@
         <span>HISTORICAL TEAM SCORING</span>
       </section>
 
-      <section class="workspace">
-        <div class="chart-panel">
+      <nav class="view-tabs" aria-label="WAR Lab views">
+        <button class="active" type="button" data-view="projectionsView">Projections</button>
+        <button type="button" data-view="historicalView">Historical Looks</button>
+      </nav>
+
+      <section id="projectionsView" class="view-panel active">
+        <div class="workspace">
+          <div class="chart-panel">
+            <div class="panel-header">
+              <div>
+                <h2 id="projectionChartTitle">Projection WAR vs ADP</h2>
+                <p id="projectionChartSubtitle">Projected WAR, uncertainty, tiers, and historical positional-rank context.</p>
+              </div>
+              <select id="chartMetric">
+                <option value="WAR">WAR</option>
+                <option value="Value">Weighted ADP value</option>
+                <option value="Historical WAR">Historical rank WAR</option>
+                <option value="Delta vs Historical">Delta vs historical</option>
+              </select>
+            </div>
+            <div id="projectionChart"></div>
+          </div>
+
+          <aside class="side-panel">
+            <section class="rank-card">
+              <div class="panel-header compact">
+                <h2>Rank Curve</h2>
+                <select id="rankCurvePosition">
+                  <option value="ALL">All</option>
+                  <option value="QB">QB</option>
+                  <option value="RB">RB</option>
+                  <option value="WR">WR</option>
+                  <option value="TE">TE</option>
+                </select>
+              </div>
+              <div id="rankCurveChart"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="historicalView" class="view-panel">
+        <section class="historical-panel">
           <div class="panel-header">
             <div>
-              <h2 id="projectionChartTitle">Projection WAR vs ADP</h2>
-              <p id="projectionChartSubtitle">Projected WAR, uncertainty, tiers, and historical positional-rank context.</p>
+              <h2 id="historicalChartTitle">Historical WAR Explorer</h2>
+              <p id="historicalChartSubtitle">Compare positional rank outcomes or individual player seasons using the active scoring and league settings.</p>
             </div>
-            <select id="chartMetric">
-              <option value="WAR">WAR</option>
-              <option value="Value">Weighted ADP value</option>
-              <option value="Historical WAR">Historical rank WAR</option>
-              <option value="Delta vs Historical">Delta vs historical</option>
-            </select>
           </div>
-          <div id="projectionChart"></div>
-        </div>
-
-        <aside class="side-panel">
-          <section class="rank-card">
-            <div class="panel-header compact">
-              <h2>Rank Curve</h2>
-              <select id="rankCurvePosition">
-                <option value="ALL">All</option>
+          <div class="historical-controls">
+            <label>
+              View
+              <select id="historicalMode">
+                <option value="rank">Positional rank by year</option>
+                <option value="player">Player performance over time</option>
+              </select>
+            </label>
+            <label>
+              Metric
+              <select id="historicalMetric">
+                <option value="WAR">WAR</option>
+                <option value="FPTS">Fantasy points</option>
+                <option value="AVG">FPTS/G</option>
+                <option value="Flex WAR">Flex WAR</option>
+                <option value="SuperFlex WAR">SuperFlex WAR</option>
+              </select>
+            </label>
+            <label>
+              Positions
+              <select id="historicalPositions">
+                <option value="ALL">All positions</option>
                 <option value="QB">QB</option>
                 <option value="RB">RB</option>
                 <option value="WR">WR</option>
                 <option value="TE">TE</option>
               </select>
-            </div>
-            <div id="rankCurveChart"></div>
-          </section>
-        </aside>
+            </label>
+            <label>
+              Pos rank
+              <input id="historicalRank" type="number" min="1" max="250" value="1">
+            </label>
+            <label>
+              Start year
+              <select id="historicalPlotStart"></select>
+            </label>
+            <label>
+              End year
+              <select id="historicalPlotEnd"></select>
+            </label>
+            <label class="player-query-control">
+              Players
+              <input id="historicalPlayers" type="search" placeholder="Josh Allen, Travis Kelce:2020">
+            </label>
+            <label>
+              Player timeline
+              <select id="historicalTimeline">
+                <option value="calendar">Calendar years</option>
+                <option value="aligned">Align each player to Year 1</option>
+              </select>
+            </label>
+          </div>
+          <div id="historicalExplorerChart"></div>
+        </section>
       </section>
 
-      <section class="table-panel">
+      <section class="table-panel view-panel active" data-view-section="projectionsView">
         <div class="panel-header">
           <div>
             <h2>Generated WAR Projections</h2>

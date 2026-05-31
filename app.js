@@ -16,6 +16,7 @@ const state = {
   results: [],
   selectedId: null,
   selectedHistoryYear: null,
+  activeView: "projectionsView",
   sortKey: "Overall Rank",
   sortDir: "asc",
   renderTimer: null,
@@ -828,6 +829,140 @@ function renderRankCurve() {
   }, { responsive: true, displayModeBar: false });
 }
 
+function historicalPlayerTokens() {
+  return String(el("historicalPlayers")?.value || "")
+    .split(",")
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .map((token) => {
+      const [name, start] = token.split(":").map((part) => part.trim());
+      return { name, key: playerKey(name), start: number(start, null) };
+    });
+}
+
+function historicalExplorerTitle(mode, metric) {
+  const start = number(el("historicalPlotStart")?.value, 2015);
+  const end = number(el("historicalPlotEnd")?.value, settings().year - 1);
+  if (mode === "player") {
+    const timeline = el("historicalTimeline")?.value === "aligned" ? "Aligned career-year" : "Calendar-year";
+    return {
+      title: `${timeline} ${metric} for Selected Players`,
+      subtitle: `${start}-${end} seasons using active scoring and roster settings`
+    };
+  }
+  const rank = number(el("historicalRank")?.value, 1);
+  const pos = el("historicalPositions")?.value || "ALL";
+  return {
+    title: `Historical ${metric} for ${pos === "ALL" ? "All Positions" : pos} Rank ${rank}`,
+    subtitle: `${start}-${end} seasons using active scoring and roster settings`
+  };
+}
+
+function renderHistoricalExplorer() {
+  const chart = el("historicalExplorerChart");
+  if (!chart) return;
+  const mode = el("historicalMode")?.value || "rank";
+  const metric = el("historicalMetric")?.value || "WAR";
+  const start = number(el("historicalPlotStart")?.value, 2015);
+  const end = number(el("historicalPlotEnd")?.value, settings().year - 1);
+  const copy = historicalExplorerTitle(mode, metric);
+  if (el("historicalChartTitle")) el("historicalChartTitle").textContent = copy.title;
+  if (el("historicalChartSubtitle")) el("historicalChartSubtitle").textContent = copy.subtitle;
+
+  const rows = (state.historicalModel?.playerRows || []).filter((row) => row.Year >= start && row.Year <= end);
+  if (!rows.length) {
+    Plotly.react(chart, [], historicalLayout(copy.title, "Year", metric, "Historical data is still loading"), { responsive: true });
+    return;
+  }
+
+  const traces = mode === "player"
+    ? historicalPlayerTraces(rows, metric)
+    : historicalRankTraces(rows, metric);
+  const xTitle = mode === "player" && el("historicalTimeline")?.value === "aligned" ? "Player season index" : "Season";
+  Plotly.react(chart, traces, historicalLayout(copy.title, xTitle, metric), { responsive: true });
+}
+
+function historicalRankTraces(rows, metric) {
+  const selected = el("historicalPositions")?.value || "ALL";
+  const rank = number(el("historicalRank")?.value, 1);
+  const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
+  return positions.map((pos) => {
+    const points = rows
+      .filter((row) => row.Pos === pos && row.Rank === rank)
+      .sort((a, b) => a.Year - b.Year);
+    return {
+      type: "scatter",
+      mode: "lines+markers",
+      name: `${pos}${rank}`,
+      x: points.map((row) => row.Year),
+      y: points.map((row) => number(row[metric])),
+      text: points.map((row) => `${row.Year} ${row.Player}`),
+      line: { color: posColors[pos], width: 2, dash: posDashes[pos] },
+      marker: { color: posColors[pos], symbol: posSymbols[pos], size: 8 },
+      hovertemplate: "<b>%{text}</b><br>%{y:.2f}<extra></extra>"
+    };
+  });
+}
+
+function historicalPlayerTraces(rows, metric) {
+  const tokens = historicalPlayerTokens();
+  const selectedRows = tokens.length
+    ? tokens.map((token) => ({ token, rows: rows.filter((row) => row.PlayerKey === token.key && (!token.start || row.Year >= token.start)) }))
+    : defaultHistoricalPlayers(rows);
+  const aligned = el("historicalTimeline")?.value === "aligned";
+  return selectedRows
+    .filter((entry) => entry.rows.length)
+    .map((entry, index) => {
+      const points = entry.rows.sort((a, b) => a.Year - b.Year);
+      const pos = points[0]?.Pos || ["QB", "RB", "WR", "TE"][index % 4];
+      return {
+        type: "scatter",
+        mode: "lines+markers",
+        name: points[0]?.Player || entry.token?.name || `Player ${index + 1}`,
+        x: points.map((row, pointIndex) => aligned ? pointIndex + 1 : row.Year),
+        y: points.map((row) => number(row[metric])),
+        text: points.map((row) => `${row.Year} ${row.Player} (${row.Pos})`),
+        line: { color: posColors[pos] || "#f0f0f0", width: 2 },
+        marker: { color: posColors[pos] || "#f0f0f0", symbol: posSymbols[pos] || "circle", size: 8 },
+        hovertemplate: "<b>%{text}</b><br>%{y:.2f}<extra></extra>"
+      };
+    });
+}
+
+function defaultHistoricalPlayers(rows) {
+  const latest = Math.max(...rows.map((row) => row.Year));
+  return rows
+    .filter((row) => row.Year === latest)
+    .sort((a, b) => b.WAR - a.WAR)
+    .slice(0, 6)
+    .map((row) => ({ token: { name: row.Player, key: row.PlayerKey }, rows: rows.filter((candidate) => candidate.PlayerKey === row.PlayerKey && candidate.Pos === row.Pos) }));
+}
+
+function historicalLayout(title, xTitle, yTitle, annotation = null) {
+  const annotations = annotation ? [{
+    text: annotation,
+    xref: "paper",
+    yref: "paper",
+    x: 0.5,
+    y: 0.5,
+    showarrow: false,
+    font: { color: "#f0f0f0", size: 16 }
+  }] : [];
+  return {
+    title: { text: title, font: { size: 18 }, x: 0.02, xanchor: "left" },
+    margin: { l: 58, r: 20, t: 58, b: 50 },
+    xaxis: { title: xTitle, gridcolor: "rgba(240,240,240,0.18)", color: "#f0f0f0" },
+    yaxis: { title: yTitle, gridcolor: "rgba(240,240,240,0.18)", color: "#f0f0f0" },
+    legend: { orientation: "h", y: 1.08 },
+    annotations,
+    font: { family: "Mulish, sans-serif", color: "#f0f0f0" },
+    plot_bgcolor: "#111111",
+    paper_bgcolor: "#111111",
+    hovermode: "closest",
+    hoverlabel: { bgcolor: "#111111", bordercolor: "#cc3333", font: { color: "#f0f0f0" } }
+  };
+}
+
 function valueClass(value) {
   const parsed = number(value);
   if (parsed === null) return "";
@@ -992,12 +1127,14 @@ function render() {
     clearTimeout(state.renderTimer);
     state.renderTimer = null;
   }
+  updateActiveView();
   computeHistoricalModel();
   calculateWar(state.rawProjections);
   const rows = visibleResults();
   updateSummary(rows);
   renderProjectionChart(rows);
   renderRankCurve();
+  renderHistoricalExplorer();
   renderTable(rows);
 }
 
@@ -1007,6 +1144,16 @@ function scheduleRender(delay = 90) {
     state.renderTimer = null;
     render();
   }, delay);
+}
+
+function updateActiveView() {
+  document.querySelectorAll("[data-view]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === state.activeView);
+  });
+  document.querySelectorAll(".view-panel").forEach((panel) => {
+    const target = panel.id || panel.dataset.viewSection;
+    panel.classList.toggle("active", target === state.activeView);
+  });
 }
 
 function selectPlayer(id) {
@@ -1109,6 +1256,12 @@ function bindEvents() {
     input.addEventListener("change", () => scheduleRender(0));
   });
   document.querySelectorAll("input[name='posFilter']").forEach((input) => input.addEventListener("change", () => scheduleRender(0)));
+  document.querySelectorAll("[data-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeView = button.dataset.view;
+      scheduleRender(0);
+    });
+  });
   document.querySelectorAll("th[data-sort]").forEach((th) => {
     th.addEventListener("click", () => {
       const key = th.dataset.sort;
@@ -1139,6 +1292,18 @@ function initControls() {
     .filter((year) => year >= 2015)
     .map((year) => `<option value="${year}" ${year === 2015 ? "selected" : ""}>${year}</option>`)
     .join("");
+  const years = Array.from({ length: 12 }, (_, i) => 2026 - i).filter((year) => year >= 2015);
+  if (el("historicalPlotStart")) {
+    el("historicalPlotStart").innerHTML = years
+      .map((year) => `<option value="${year}" ${year === 2015 ? "selected" : ""}>${year}</option>`)
+      .join("");
+  }
+  if (el("historicalPlotEnd")) {
+    el("historicalPlotEnd").innerHTML = years
+      .map((year) => `<option value="${year}" ${year === 2025 ? "selected" : ""}>${year}</option>`)
+      .join("");
+  }
+  updateActiveView();
 }
 
 initControls();
