@@ -724,9 +724,39 @@ function updateSummary(rows) {
   el("replacementSummary").textContent = reps ? `${reps} · ${teamSource}` : "-";
 }
 
+function projectionChartCopy(metric) {
+  const cfg = settings();
+  const scoringBits = [];
+  if (cfg.scoring.rec === 1) scoringBits.push("PPR");
+  else if (cfg.scoring.rec === 0.5) scoringBits.push("Half PPR");
+  else if (cfg.scoring.rec === 0) scoringBits.push("Standard");
+  else scoringBits.push(`${fmt(cfg.scoring.rec, 1)} PPR`);
+  if (cfg.scoring.tePremium) scoringBits.push(`TE+${fmt(cfg.scoring.tePremium, 1)}`);
+
+  const rosterBits = [`${cfg.teams} teams`, `${cfg.slots.QB}QB`, `${cfg.slots.RB}RB`, `${cfg.slots.WR}WR`, `${cfg.slots.TE}TE`];
+  if (cfg.slots.FLEX) rosterBits.push(`${cfg.slots.FLEX} Flex`);
+  if (cfg.slots.SUPERFLEX) rosterBits.push(`${cfg.slots.SUPERFLEX} SuperFlex`);
+
+  const labels = {
+    WAR: "Projected WAR",
+    Value: "Weighted ADP Value",
+    "Historical WAR": "Historical Positional-Rank WAR",
+    "Delta vs Historical": "Projection Delta vs Historical Rank"
+  };
+  const teamSource = state.baselines.TEAM?.source === "historical" ? "historical team scoring" : "projection-only team scoring";
+  const start = el("historyStart")?.value || "2015";
+  return {
+    title: `${cfg.year} ${labels[metric] || metric} vs ADP by Position`,
+    subtitle: `${rosterBits.join(" / ")} - ${scoringBits.join(" / ")} - ${cfg.weeks} weeks - ${teamSource} from ${start}+ seasons`
+  };
+}
+
 function renderProjectionChart(rows) {
   const metric = el("chartMetric").value;
   const xKey = rows.some((row) => row[metric] !== null) ? metric : "WAR";
+  const copy = projectionChartCopy(xKey);
+  if (el("projectionChartTitle")) el("projectionChartTitle").textContent = copy.title;
+  if (el("projectionChartSubtitle")) el("projectionChartSubtitle").textContent = copy.subtitle;
   const traces = ["QB", "RB", "WR", "TE"].map((pos) => {
     const group = rows.filter((player) => player.Pos === pos);
     return {
@@ -756,7 +786,8 @@ function renderProjectionChart(rows) {
   });
 
   Plotly.react("projectionChart", traces, {
-    margin: { l: 56, r: 18, t: 12, b: 48 },
+    title: { text: copy.title, font: { size: 18 }, x: 0.02, xanchor: "left" },
+    margin: { l: 56, r: 18, t: 58, b: 48 },
     xaxis: { title: xKey, zeroline: false, gridcolor: "rgba(240,240,240,0.18)", color: "#f0f0f0" },
     yaxis: { title: "ADP / overall rank", autorange: "reversed", gridcolor: "rgba(240,240,240,0.18)", color: "#f0f0f0" },
     legend: { orientation: "h", y: 1.08 },
