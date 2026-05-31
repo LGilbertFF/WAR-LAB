@@ -255,6 +255,20 @@ summary::marker {
   grid-template-columns: repeat(4, minmax(110px, 1fr));
 }
 
+.scoring-grid {
+  grid-template-columns: repeat(5, minmax(92px, 1fr));
+  gap: 10px;
+}
+
+.scoring-grid label {
+  min-width: 0;
+}
+
+.scoring-grid input {
+  min-width: 0;
+  padding: 8px 9px;
+}
+
 .file-grid {
   grid-template-columns: repeat(3, minmax(180px, 1fr));
 }
@@ -642,20 +656,27 @@ tbody tr.selected-row {
   font-weight: 900;
 }
 
+.pos-QB {
+  background: #7aa6c2;
+  border-color: #7aa6c2;
+  color: var(--black);
+}
+
 .pos-RB {
-  background: var(--red);
-  border-color: var(--red);
+  background: #c46f6f;
+  border-color: #c46f6f;
+  color: var(--black);
 }
 
 .pos-WR {
-  background: #8a8a8a;
-  border-color: #8a8a8a;
+  background: #8fba7a;
+  border-color: #8fba7a;
   color: var(--black);
 }
 
 .pos-TE {
-  background: #f2b3b3;
-  border-color: #f2b3b3;
+  background: #b08ac7;
+  border-color: #b08ac7;
   color: var(--black);
 }
 

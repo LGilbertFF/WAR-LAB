@@ -26,10 +26,10 @@ const state = {
 };
 
 const posColors = {
-  QB: "#f0f0f0",
-  RB: "#cc3333",
-  WR: "#8a8a8a",
-  TE: "#f2b3b3"
+  QB: "#7aa6c2",
+  RB: "#c46f6f",
+  WR: "#8fba7a",
+  TE: "#b08ac7"
 };
 
 const posSymbols = {
