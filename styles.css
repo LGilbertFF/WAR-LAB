@@ -445,6 +445,57 @@ summary::marker {
   grid-column: span 2;
 }
 
+.label-with-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.info-button {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--black);
+  font-size: 0.72rem;
+  font-weight: 900;
+  cursor: help;
+}
+
+.player-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 0;
+}
+
+.player-suggestions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  background: rgba(240, 240, 240, 0.08);
+  color: var(--white);
+  cursor: pointer;
+}
+
+.player-suggestions button:hover {
+  border-color: var(--red);
+  background: rgba(204, 51, 51, 0.28);
+}
+
+.player-suggestions em {
+  color: var(--red);
+  font-style: normal;
+  font-weight: 900;
+}
+
 .side-panel {
   display: grid;
   gap: 16px;

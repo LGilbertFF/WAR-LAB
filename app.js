@@ -46,6 +46,19 @@ const posDashes = {
   TE: "dashdot"
 };
 
+const playerTraceColors = [
+  "#7aa6c2",
+  "#c46f6f",
+  "#8fba7a",
+  "#b08ac7",
+  "#d0a85b",
+  "#6fb7aa",
+  "#c08da3",
+  "#9ca3cf",
+  "#b7b06f",
+  "#d08a68"
+];
+
 const el = (id) => document.querySelector(`#${id}`);
 
 function number(value, fallback = null) {
@@ -788,10 +801,10 @@ function renderProjectionChart(rows) {
 
   Plotly.react("projectionChart", traces, {
     title: { text: copy.title, font: { size: 18 }, x: 0.02, xanchor: "left" },
-    margin: { l: 56, r: 18, t: 58, b: 48 },
+    margin: { l: 56, r: 18, t: 62, b: 82 },
     xaxis: { title: xKey, zeroline: false, gridcolor: "rgba(240,240,240,0.18)", color: "#f0f0f0" },
     yaxis: { title: "ADP / overall rank", autorange: "reversed", gridcolor: "rgba(240,240,240,0.18)", color: "#f0f0f0" },
-    legend: { orientation: "h", y: 1.08 },
+    legend: { orientation: "h", y: -0.18, x: 0 },
     font: { family: "Mulish, sans-serif", color: "#f0f0f0" },
     plot_bgcolor: "#111111",
     paper_bgcolor: "#111111",
@@ -840,6 +853,48 @@ function historicalPlayerTokens() {
     });
 }
 
+function historicalPlayerOptions() {
+  const seen = new Map();
+  for (const row of state.historicalModel?.playerRows || []) {
+    if (!seen.has(row.PlayerKey)) seen.set(row.PlayerKey, { Player: row.Player, Pos: row.Pos });
+  }
+  return [...seen.values()].sort((a, b) => a.Player.localeCompare(b.Player));
+}
+
+function currentHistoricalPlayerToken() {
+  const value = el("historicalPlayers")?.value || "";
+  return value.split(",").pop().trim().split(":")[0].trim();
+}
+
+function renderHistoricalPlayerSuggestions() {
+  const box = el("historicalPlayerSuggestions");
+  if (!box) return;
+  const query = currentHistoricalPlayerToken().toLowerCase();
+  if (!query || query.length < 2 || !state.historicalModel?.playerRows?.length) {
+    box.innerHTML = "";
+    return;
+  }
+  const matches = historicalPlayerOptions()
+    .filter((player) => player.Player.toLowerCase().includes(query))
+    .slice(0, 8);
+  box.innerHTML = matches.map((player) => `
+    <button type="button" data-player-suggestion="${escapeHtml(player.Player)}">
+      <span>${escapeHtml(player.Player)}</span>
+      <em>${player.Pos}</em>
+    </button>
+  `).join("");
+}
+
+function applyHistoricalPlayerSuggestion(name) {
+  const input = el("historicalPlayers");
+  if (!input) return;
+  const parts = input.value.split(",");
+  parts[parts.length - 1] = ` ${name}`;
+  input.value = parts.map((part, index) => index === 0 ? part.trim() : part.trim()).filter(Boolean).join(", ");
+  renderHistoricalPlayerSuggestions();
+  scheduleRender(0);
+}
+
 function historicalExplorerTitle(mode, metric) {
   const start = number(el("historicalPlotStart")?.value, 2015);
   const end = number(el("historicalPlotEnd")?.value, settings().year - 1);
@@ -868,6 +923,7 @@ function renderHistoricalExplorer() {
   const copy = historicalExplorerTitle(mode, metric);
   if (el("historicalChartTitle")) el("historicalChartTitle").textContent = copy.title;
   if (el("historicalChartSubtitle")) el("historicalChartSubtitle").textContent = copy.subtitle;
+  renderHistoricalPlayerSuggestions();
 
   const rows = (state.historicalModel?.playerRows || []).filter((row) => row.Year >= start && row.Year <= end);
   if (!rows.length) {
@@ -915,6 +971,7 @@ function historicalPlayerTraces(rows, metric) {
     .map((entry, index) => {
       const points = entry.rows.sort((a, b) => a.Year - b.Year);
       const pos = points[0]?.Pos || ["QB", "RB", "WR", "TE"][index % 4];
+      const color = playerTraceColors[index % playerTraceColors.length];
       return {
         type: "scatter",
         mode: "lines+markers",
@@ -922,8 +979,8 @@ function historicalPlayerTraces(rows, metric) {
         x: points.map((row, pointIndex) => aligned ? pointIndex + 1 : row.Year),
         y: points.map((row) => number(row[metric])),
         text: points.map((row) => `${row.Year} ${row.Player} (${row.Pos})`),
-        line: { color: posColors[pos] || "#f0f0f0", width: 2 },
-        marker: { color: posColors[pos] || "#f0f0f0", symbol: posSymbols[pos] || "circle", size: 8 },
+        line: { color, width: 2 },
+        marker: { color, symbol: posSymbols[pos] || "circle", size: 8 },
         hovertemplate: "<b>%{text}</b><br>%{y:.2f}<extra></extra>"
       };
     });
@@ -950,10 +1007,10 @@ function historicalLayout(title, xTitle, yTitle, annotation = null) {
   }] : [];
   return {
     title: { text: title, font: { size: 18 }, x: 0.02, xanchor: "left" },
-    margin: { l: 58, r: 20, t: 58, b: 50 },
+    margin: { l: 58, r: 20, t: 62, b: 82 },
     xaxis: { title: xTitle, gridcolor: "rgba(240,240,240,0.18)", color: "#f0f0f0" },
     yaxis: { title: yTitle, gridcolor: "rgba(240,240,240,0.18)", color: "#f0f0f0" },
-    legend: { orientation: "h", y: 1.08 },
+    legend: { orientation: "h", y: -0.18, x: 0 },
     annotations,
     font: { family: "Mulish, sans-serif", color: "#f0f0f0" },
     plot_bgcolor: "#111111",
@@ -1261,6 +1318,12 @@ function bindEvents() {
       state.activeView = button.dataset.view;
       scheduleRender(0);
     });
+  });
+  el("historicalPlayers")?.addEventListener("input", renderHistoricalPlayerSuggestions);
+  el("historicalPlayerSuggestions")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-player-suggestion]");
+    if (!button) return;
+    applyHistoricalPlayerSuggestion(button.dataset.playerSuggestion);
   });
   document.querySelectorAll("th[data-sort]").forEach((th) => {
     th.addEventListener("click", () => {

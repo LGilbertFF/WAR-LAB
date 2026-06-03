@@ -200,8 +200,12 @@
               <select id="historicalPlotEnd"></select>
             </label>
             <label class="player-query-control">
-              Players
+              <span class="label-with-info">
+                Players
+                <button class="info-button" type="button" aria-label="Historical player input help" title="Type player names separated by commas. Add :YEAR after a name to start that player's line later, like Josh Allen:2020. Select suggestions below to insert names.">i</button>
+              </span>
               <input id="historicalPlayers" type="search" placeholder="Josh Allen, Travis Kelce:2020">
+              <div id="historicalPlayerSuggestions" class="player-suggestions" aria-label="Player suggestions"></div>
             </label>
             <label>
               Player timeline
