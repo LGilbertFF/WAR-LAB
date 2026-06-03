@@ -408,6 +408,23 @@ summary::marker {
   margin-bottom: 12px;
 }
 
+.inline-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  background: rgba(240, 240, 240, 0.06);
+}
+
+.inline-toggle input {
+  min-height: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+}
+
 .panel-header.compact {
   display: flex;
   justify-content: space-between;

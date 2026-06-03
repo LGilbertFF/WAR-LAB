@@ -798,6 +798,9 @@ function renderProjectionChart(rows) {
       }
     };
   });
+  if (el("showRankCurveOverlay")?.checked) {
+    traces.push(...projectionRankCurveOverlayTraces(xKey));
+  }
 
   Plotly.react("projectionChart", traces, {
     title: { text: copy.title, font: { size: 18 }, x: 0.02, xanchor: "left" },
@@ -816,6 +819,27 @@ function renderProjectionChart(rows) {
     const id = event.points?.[0]?.id;
     if (id) selectPlayer(id);
   });
+}
+
+function projectionRankCurveOverlayTraces(xKey) {
+  const curve = state.historicalModel?.curve || [];
+  if (!curve.length) return [];
+  if (!["WAR", "Historical WAR"].includes(xKey)) return [];
+  const selected = el("rankCurvePosition")?.value || "ALL";
+  const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
+  return positions.map((pos) => ({
+    type: "scatter",
+    mode: "lines",
+    name: `${pos} historical rank curve`,
+    x: curve.map((row) => number(row[`${pos} WAR`])),
+    y: curve.map((row) => number(row.Rank)),
+    text: curve.map((row) => `${pos}${row.Rank}`),
+    hovertemplate: `<b>%{text}</b><br>Historical WAR: %{x:.2f}<br>Rank: %{y}<extra></extra>`,
+    line: { color: posColors[pos], width: 2, dash: "dash" },
+    opacity: 0.95,
+    yaxis: "y",
+    xaxis: "x"
+  }));
 }
 
 function renderRankCurve() {
@@ -1186,12 +1210,15 @@ function render() {
   }
   updateActiveView();
   computeHistoricalModel();
+  if (state.activeView === "historicalView") {
+    renderHistoricalExplorer();
+    return;
+  }
   calculateWar(state.rawProjections);
   const rows = visibleResults();
   updateSummary(rows);
   renderProjectionChart(rows);
   renderRankCurve();
-  renderHistoricalExplorer();
   renderTable(rows);
 }
 
