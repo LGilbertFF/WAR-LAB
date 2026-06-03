@@ -745,7 +745,8 @@ tbody tr.selected-row {
   .topbar,
   .setup-grid,
   .summary-grid,
-  .workspace {
+  .workspace,
+  .historical-controls {
     grid-template-columns: 1fr;
   }
 
@@ -760,33 +761,187 @@ tbody tr.selected-row {
   .brand-strip {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .historical-controls .player-query-control {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 760px) {
+  body {
+    background-attachment: scroll, scroll, scroll;
+  }
+
   .app-shell {
-    width: min(100% - 20px, 1560px);
-    padding-top: 14px;
+    width: min(100% - 14px, 1560px);
+    padding: 10px 0 34px;
   }
 
   .topbar {
-    min-height: 440px;
-    padding: 20px;
+    min-height: 0;
+    padding: 16px;
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .topbar::after {
+    right: 12px;
+    top: 10px;
+    width: 180px;
+  }
+
+  .brand-wordmark {
+    width: min(280px, 76vw);
+    margin-bottom: 22px;
+  }
+
+  .topbar h1 {
+    font-size: clamp(2.8rem, 16vw, 4.8rem);
+  }
+
+  .lede {
+    font-size: 0.94rem;
+  }
+
+  .topbar-actions {
+    justify-content: stretch;
+    align-items: stretch;
+  }
+
+  .topbar-actions > label,
+  .topbar-actions > button {
+    flex: 1 1 180px;
+  }
+
+  .brand-flame {
+    display: none;
+  }
+
+  details,
+  .summary-grid article,
+  .chart-panel,
+  .side-panel section,
+  .table-panel,
+  .historical-panel {
+    box-shadow: none;
   }
 
   .control-grid,
   .compact-grid,
+  .scoring-grid,
   .file-grid,
   .data-status-grid,
+  .historical-controls,
   .panel-header,
   .brand-strip {
     grid-template-columns: 1fr;
   }
 
-  .position-filter {
-    flex-wrap: wrap;
+  .panel-header {
+    align-items: stretch;
   }
 
-  #projectionChart {
-    height: 500px;
+  .panel-header select {
+    width: 100%;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .summary-grid article {
+    min-height: 96px;
+    padding: 12px;
+  }
+
+  .summary-grid strong {
+    font-size: 1.05rem;
+  }
+
+  .view-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    flex-wrap: wrap;
+    background: var(--black);
+    padding-top: 6px;
+  }
+
+  .view-tabs button {
+    flex: 1 1 145px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .position-filter {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .position-filter label {
+    min-width: 64px;
+  }
+
+  #projectionChart,
+  #historicalExplorerChart {
+    height: 460px;
+  }
+
+  #rankCurveChart {
+    height: 260px;
+  }
+
+  .table-wrap,
+  .history-season-table,
+  .history-weeks {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 960px;
+  }
+
+  .history-season-table table,
+  .history-weeks table {
+    min-width: 720px;
+  }
+
+  .player-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .inline-player-detail {
+    padding: 14px;
+  }
+
+  .player-suggestions {
+    max-height: 140px;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 460px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-strip {
+    gap: 8px;
+    font-size: 0.88rem;
+  }
+
+  button,
+  input,
+  select {
+    min-height: 40px;
+  }
+
+  details {
+    padding: 11px;
+  }
+
+  summary {
+    font-size: 1.05rem;
   }
 }
