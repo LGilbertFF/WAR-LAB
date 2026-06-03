@@ -739,6 +739,20 @@ function updateSummary(rows) {
 }
 
 function projectionChartCopy(metric) {
+  const context = chartContextCopy();
+  const labels = {
+    WAR: "Projected WAR",
+    Value: "Weighted ADP Value",
+    "Historical WAR": "Historical Positional-Rank WAR",
+    "Delta vs Historical": "Projection Delta vs Historical Rank"
+  };
+  return {
+    title: `${context.year} ${labels[metric] || metric} vs ADP by Position`,
+    subtitle: `${context.roster} - ${context.scoring} - ${context.weeks} weeks - ${context.teamSource} from ${context.historyStart}+ seasons`
+  };
+}
+
+function chartContextCopy() {
   const cfg = settings();
   const scoringBits = [];
   if (cfg.scoring.rec === 1) scoringBits.push("PPR");
@@ -751,17 +765,15 @@ function projectionChartCopy(metric) {
   if (cfg.slots.FLEX) rosterBits.push(`${cfg.slots.FLEX} Flex`);
   if (cfg.slots.SUPERFLEX) rosterBits.push(`${cfg.slots.SUPERFLEX} SuperFlex`);
 
-  const labels = {
-    WAR: "Projected WAR",
-    Value: "Weighted ADP Value",
-    "Historical WAR": "Historical Positional-Rank WAR",
-    "Delta vs Historical": "Projection Delta vs Historical Rank"
-  };
   const teamSource = state.baselines.TEAM?.source === "historical" ? "historical team scoring" : "projection-only team scoring";
   const start = el("historyStart")?.value || "2015";
   return {
-    title: `${cfg.year} ${labels[metric] || metric} vs ADP by Position`,
-    subtitle: `${rosterBits.join(" / ")} - ${scoringBits.join(" / ")} - ${cfg.weeks} weeks - ${teamSource} from ${start}+ seasons`
+    year: cfg.year,
+    weeks: cfg.weeks,
+    roster: rosterBits.join(" / "),
+    scoring: scoringBits.join(" / "),
+    teamSource,
+    historyStart: start
   };
 }
 
@@ -920,20 +932,27 @@ function applyHistoricalPlayerSuggestion(name) {
 }
 
 function historicalExplorerTitle(mode, metric) {
+  const context = chartContextCopy();
   const start = number(el("historicalPlotStart")?.value, 2015);
   const end = number(el("historicalPlotEnd")?.value, settings().year - 1);
   if (mode === "player") {
-    const timeline = el("historicalTimeline")?.value === "aligned" ? "Aligned career-year" : "Calendar-year";
+    const aligned = el("historicalTimeline")?.value === "aligned";
+    const timeline = aligned ? "Aligned Career-Year" : "Calendar-Year";
+    const tokens = historicalPlayerTokens();
+    const playerText = tokens.length
+      ? tokens.slice(0, 4).map((token) => token.start ? `${token.name} (${token.start}+)` : token.name).join(", ") + (tokens.length > 4 ? ` +${tokens.length - 4} more` : "")
+      : "Top Latest-Season Players";
     return {
-      title: `${timeline} ${metric} for Selected Players`,
-      subtitle: `${start}-${end} seasons using active scoring and roster settings`
+      title: `${timeline} Historical ${metric}: ${playerText}`,
+      subtitle: `${start}-${end} seasons - ${context.roster} - ${context.scoring} - ${context.weeks} weeks - ${context.teamSource}`
     };
   }
   const rank = number(el("historicalRank")?.value, 1);
   const pos = el("historicalPositions")?.value || "ALL";
+  const positionText = pos === "ALL" ? "QB/RB/WR/TE" : pos;
   return {
-    title: `Historical ${metric} for ${pos === "ALL" ? "All Positions" : pos} Rank ${rank}`,
-    subtitle: `${start}-${end} seasons using active scoring and roster settings`
+    title: `${start}-${end} Historical ${metric} for ${positionText} Positional Rank ${rank}`,
+    subtitle: `${context.roster} - ${context.scoring} - ${context.weeks} weeks - ${context.teamSource} from ${context.historyStart}+ seasons`
   };
 }
 
