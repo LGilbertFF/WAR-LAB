@@ -781,6 +781,95 @@ function adpSettings() {
   };
 }
 
+function adpScoringOptions(format) {
+  const redraft = [
+    ["ppr", "PPR"],
+    ["half_ppr", "Half PPR"],
+    ["std", "Standard"],
+    ["2qb", "2QB"],
+    ["idp", "IDP"],
+    ["idp_1qb", "IDP 1QB"]
+  ];
+  const dynasty = [
+    ["dynasty_2qb", "Dynasty 2QB"],
+    ["dynasty_ppr", "Dynasty PPR"],
+    ["dynasty_half_ppr", "Dynasty half PPR"],
+    ["dynasty_std", "Dynasty standard"]
+  ];
+  const options = format === "dynasty" ? dynasty : format === "redraft" ? redraft : [...redraft, ...dynasty];
+  return [...options, ["all", "All scoring"]];
+}
+
+function updateAdpScoringOptions() {
+  const select = el("adpScoring");
+  if (!select) return;
+  const format = el("adpLeagueFormat")?.value || "redraft";
+  const previous = select.value;
+  const options = adpScoringOptions(format);
+  select.innerHTML = options.map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+  const values = new Set(options.map(([value]) => value));
+  if (values.has(previous)) select.value = previous;
+  else select.value = format === "dynasty" ? "dynasty_2qb" : "ppr";
+}
+
+function syncAdpFromWarSettings() {
+  const cfg = settings();
+  const assignments = {
+    adpQbSlots: cfg.slots.QB,
+    adpRbSlots: cfg.slots.RB,
+    adpWrSlots: cfg.slots.WR,
+    adpTeSlots: cfg.slots.TE,
+    adpFlexSlots: cfg.slots.FLEX,
+    adpSfSlots: cfg.slots.SUPERFLEX,
+    adpRec: cfg.scoring.rec,
+    adpTePremium: cfg.scoring.tePremium,
+    adpRecYds: cfg.scoring.recYds,
+    adpRecTd: cfg.scoring.recTd,
+    adpRushYds: cfg.scoring.rushYds,
+    adpRushTd: cfg.scoring.rushTd,
+    adpPassYds: cfg.scoring.passYds,
+    adpPassTd: cfg.scoring.passTd,
+    adpPassInt: cfg.scoring.int,
+    adpFumLost: cfg.scoring.fl
+  };
+  for (const [id, value] of Object.entries(assignments)) {
+    if (el(id)) el(id).value = value;
+  }
+  if (el("adpTeams")) el("adpTeams").value = String(cfg.teams);
+  const isTwoQb = cfg.slots.SUPERFLEX > 0 || cfg.slots.QB > 1;
+  if (el("adpSuperflex")) el("adpSuperflex").value = isTwoQb ? "true" : "false";
+  const format = el("adpLeagueFormat")?.value || "redraft";
+  const scoringSelect = el("adpScoring");
+  if (scoringSelect) {
+    if (format === "dynasty") {
+      scoringSelect.value = isTwoQb ? "dynasty_2qb" : cfg.scoring.rec >= 1 ? "dynasty_ppr" : cfg.scoring.rec >= 0.5 ? "dynasty_half_ppr" : "dynasty_std";
+    } else {
+      scoringSelect.value = isTwoQb ? "2qb" : cfg.scoring.rec >= 1 ? "ppr" : cfg.scoring.rec >= 0.5 ? "half_ppr" : "std";
+    }
+  }
+}
+
+function applyAdpFormatDefaults() {
+  const format = el("adpLeagueFormat")?.value || "redraft";
+  if (el("adpBoardType")) {
+    const current = el("adpBoardType").value;
+    if (format === "redraft") el("adpBoardType").value = "redraft";
+    if (format === "dynasty" && current === "redraft") el("adpBoardType").value = "all";
+  }
+  updateAdpScoringOptions();
+}
+
+function applyAdpTwoQbHint() {
+  const scoring = el("adpScoring")?.value || "";
+  const superflex = el("adpSuperflex")?.value || "all";
+  const wantsTwoQb = scoring.includes("2qb") || superflex === "true";
+  if (!wantsTwoQb) return;
+  if (el("adpSuperflex")) el("adpSuperflex").value = "true";
+  if (el("adpSfSlots") && number(el("adpSfSlots").value, 0) === 0 && number(el("adpQbSlots")?.value, 1) < 2) {
+    el("adpSfSlots").value = 1;
+  }
+}
+
 function uniqueSorted(values, numeric = false) {
   const clean = [...new Set(values.filter((value) => value !== null && value !== undefined && value !== ""))];
   return clean.sort((a, b) => numeric ? number(a, 0) - number(b, 0) : String(a).localeCompare(String(b)));
@@ -929,6 +1018,7 @@ function renderAdpLab() {
     loadCustomAdpData();
     return;
   }
+  applyAdpTwoQbHint();
   const rows = customAdpBoard();
   const copy = adpTitle(rows);
   if (el("adpChartTitle")) el("adpChartTitle").textContent = copy.title;
@@ -986,7 +1076,7 @@ function renderAdpTable(rows) {
   if (!body) return;
   const limited = sortedAdpRows(rows).slice(0, 500);
   body.innerHTML = limited.map((row) => `
-    <tr data-adp-player="${escapeHtml(row.player_id)}">
+    <tr data-adp-player="${escapeHtml(row.player_id)}" class="${row.player_id === state.selectedAdpPlayer ? "selected-row" : ""}">
       <td>${fmt(row.rank, 0)}</td>
       <td><strong>${escapeHtml(row.full_name)}</strong></td>
       <td><span class="pos-pill pos-${row.position}">${escapeHtml(row.position)}</span></td>
@@ -998,7 +1088,33 @@ function renderAdpTable(rows) {
       <td>${fmt(row.max_pick, 0)}</td>
       <td class="${row.trend === null ? "" : row.trend <= 0 ? "value-pos" : "value-neg"}">${row.trend === null ? "-" : `${row.trend > 0 ? "+" : ""}${fmt(row.trend, 1)}`}</td>
     </tr>
+    ${row.player_id === state.selectedAdpPlayer ? `<tr class="player-detail-row"><td colspan="10">${renderAdpPlayerDetail(row)}</td></tr>` : ""}
   `).join("");
+}
+
+function renderAdpPlayerDetail(selected) {
+  return `
+    <div class="inline-player-detail adp-inline-detail">
+      <div class="adp-card-layout">
+        <img class="adp-headshot" src="${escapeHtml(selected.headshot_url)}" alt="${escapeHtml(selected.full_name)} headshot" onerror="this.style.display='none'">
+        <div>
+          <p class="eyebrow">ADP profile</p>
+          <h2>${escapeHtml(selected.full_name)}</h2>
+          <p class="muted">${escapeHtml(selected.team || "-")} - <span class="pos-pill pos-${selected.position}">${escapeHtml(selected.position)}</span> - ${escapeHtml(selected.league_format)} ${escapeHtml(selected.board_class)}</p>
+        </div>
+      </div>
+      <div class="player-stats adp-card-stats">
+        <div><span>Rank</span><strong>${fmt(selected.rank, 0)}</strong></div>
+        <div><span>ADP</span><strong>${fmt(selected.adp, 1)}</strong></div>
+        <div><span>Drafts</span><strong>${fmt(selected.drafts, 0)}</strong></div>
+        <div><span>Picks</span><strong>${fmt(selected.picks, 0)}</strong></div>
+        <div><span>Min pick</span><strong>${fmt(selected.min_pick, 0)}</strong></div>
+        <div><span>Max pick</span><strong>${fmt(selected.max_pick, 0)}</strong></div>
+        <div><span>Trend</span><strong class="${selected.trend === null ? "" : selected.trend <= 0 ? "value-pos" : "value-neg"}">${selected.trend === null ? "-" : `${selected.trend > 0 ? "+" : ""}${fmt(selected.trend, 1)}`}</strong></div>
+        <div><span>Position rank</span><strong>${selected.position}${fmt(selected.pos_rank, 0)}</strong></div>
+      </div>
+    </div>
+  `;
 }
 
 function renderAdpPlayerCard(rows) {
@@ -1688,10 +1804,35 @@ function bindEvents() {
     input.addEventListener("input", () => scheduleRender());
     input.addEventListener("change", () => scheduleRender(0));
   });
+  ["teamsInput", "qbSlots", "rbSlots", "wrSlots", "teSlots", "flexSlots", "superflexSlots", "receptions", "tePremium", "receivingYds", "receivingTd", "rushingYds", "rushingTd", "passingYds", "passingTd", "interception", "fumbleLost"].forEach((id) => {
+    el(id)?.addEventListener("change", () => {
+      if (state.activeView === "adpView") {
+        syncAdpFromWarSettings();
+        scheduleRender(0);
+      }
+    });
+  });
+  el("adpLeagueFormat")?.addEventListener("change", () => {
+    applyAdpFormatDefaults();
+    syncAdpFromWarSettings();
+    scheduleRender(0);
+  });
+  el("adpScoring")?.addEventListener("change", () => {
+    applyAdpTwoQbHint();
+    scheduleRender(0);
+  });
+  el("adpSuperflex")?.addEventListener("change", () => {
+    applyAdpTwoQbHint();
+    scheduleRender(0);
+  });
   document.querySelectorAll("input[name='posFilter']").forEach((input) => input.addEventListener("change", () => scheduleRender(0)));
   document.querySelectorAll("[data-view]").forEach((button) => {
     button.addEventListener("click", () => {
       state.activeView = button.dataset.view;
+      if (state.activeView === "adpView") {
+        applyAdpFormatDefaults();
+        syncAdpFromWarSettings();
+      }
       scheduleRender(0);
     });
   });
@@ -1737,7 +1878,7 @@ function bindEvents() {
   el("adpBody")?.addEventListener("click", (event) => {
     const row = event.target.closest("tr[data-adp-player]");
     if (!row) return;
-    state.selectedAdpPlayer = row.dataset.adpPlayer;
+    state.selectedAdpPlayer = state.selectedAdpPlayer === row.dataset.adpPlayer ? null : row.dataset.adpPlayer;
     scheduleRender(0);
   });
   el("exportResults").addEventListener("click", exportResults);
@@ -1774,6 +1915,7 @@ function selectOptions(id, values, selected, allLabel = null) {
 }
 
 function populateEmptyAdpControls() {
+  updateAdpScoringOptions();
   selectOptions("adpSeason", [2026], 2026);
   selectOptions("adpTeams", [12], 12, "All teams");
   selectOptions("adpRounds", [29], "all", "All rounds");
@@ -1782,6 +1924,7 @@ function populateEmptyAdpControls() {
 }
 
 function populateAdpControls() {
+  updateAdpScoringOptions();
   const rows = state.customAdpRows;
   const seasons = uniqueSorted(rows.map((row) => row.season), true);
   const teams = uniqueSorted(rows.map((row) => row.st_teams), true);

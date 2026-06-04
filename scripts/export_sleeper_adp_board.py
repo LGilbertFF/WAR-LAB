@@ -123,6 +123,8 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     player_cols = [col for col in ["player_id", "full_name", "position", "team", "age", "years_exp"] if col in players.columns]
     players = players[player_cols].copy()
     players["player_id"] = players["player_id"].astype(str)
+    if "team" in players.columns:
+        players["team"] = players["team"].replace("", pd.NA)
 
     draft_cols = [
         "draft_id",
@@ -146,12 +148,19 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     ]
     merged = picks.merge(drafts[draft_cols], on="draft_id", how="inner")
     merged = merged[merged["md_pos"].isin(PLAYER_POSITIONS)].copy()
+    merged["md_team"] = merged["md_team"].replace("", pd.NA)
     merged = merged.merge(players, on="player_id", how="left")
     merged["full_name"] = merged["full_name"].fillna(
         (merged["md_first_name"].fillna("") + " " + merged["md_last_name"].fillna("")).str.strip()
     )
     merged["position"] = merged["position"].fillna(merged["md_pos"])
     merged["team"] = merged["team"].fillna(merged["md_team"])
+    player_team = (
+        merged[merged["team"].notna()]
+        .groupby("player_id")["team"]
+        .agg(lambda teams: teams.mode().iloc[0] if not teams.mode().empty else teams.iloc[0])
+    )
+    merged["team"] = merged["team"].fillna(merged["player_id"].map(player_team)).fillna("FA")
     merged["headshot_url"] = "https://sleepercdn.com/content/nfl/players/" + merged["player_id"].astype(str) + ".jpg"
 
     group_cols = [
