@@ -653,6 +653,64 @@ summary::marker {
   margin-bottom: 14px;
 }
 
+.adp-common-leagues {
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: rgba(240, 240, 240, 0.04);
+}
+
+.adp-common-leagues .panel-header {
+  margin-bottom: 10px;
+}
+
+.adp-common-leagues .panel-header p {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.league-preset-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.league-preset {
+  display: grid;
+  gap: 5px;
+  min-height: 124px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: rgba(17, 17, 17, 0.78);
+  color: var(--white);
+  text-align: left;
+  text-transform: none;
+}
+
+.league-preset:hover {
+  border-color: var(--red);
+}
+
+.league-preset strong {
+  color: var(--white);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.league-preset span,
+.league-preset em {
+  color: var(--white);
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.league-preset em {
+  color: var(--red);
+  font-weight: 900;
+}
+
 .adp-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -895,7 +953,8 @@ tbody tr.selected-row {
   .workspace,
   .historical-controls,
   .adp-controls,
-  .adp-summary-grid {
+  .adp-summary-grid,
+  .league-preset-list {
     grid-template-columns: 1fr;
   }
 
@@ -983,6 +1042,7 @@ tbody tr.selected-row {
   .historical-controls,
   .adp-controls,
   .adp-summary-grid,
+  .league-preset-list,
   .panel-header,
   .brand-strip {
     grid-template-columns: 1fr;

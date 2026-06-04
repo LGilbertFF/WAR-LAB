@@ -868,6 +868,143 @@ function adpScoringDistance(row, scoring) {
   return pairs.reduce((sum, [key, expected, weight]) => sum + Math.abs(number(row[key], expected) - expected) * weight, 0);
 }
 
+function adpLeaguePresetKey(row) {
+  return [
+    row.season,
+    row.league_format,
+    row.board_class,
+    row.type,
+    row.md_scoring_type,
+    row.st_teams,
+    row.st_rounds,
+    row.slots_qb,
+    row.slots_rb,
+    row.slots_wr,
+    row.slots_te,
+    row.slots_flex,
+    row.slots_superflex,
+    row.is_superflex,
+    row.score_rec,
+    row.score_te_premium,
+    row.score_rec_yd,
+    row.score_rec_td,
+    row.score_rush_yd,
+    row.score_rush_td,
+    row.score_pass_yd,
+    row.score_pass_td,
+    row.score_pass_int,
+    row.score_fum_lost
+  ].join("|");
+}
+
+function adpLeaguePresets(limit = 10) {
+  const config = adpSettings();
+  const groups = new Map();
+  for (const row of state.customAdpRows) {
+    if (number(row.season) !== config.season) continue;
+    if (config.leagueFormat !== "all" && row.league_format !== config.leagueFormat) continue;
+    const key = adpLeaguePresetKey(row);
+    if (!groups.has(key)) {
+      groups.set(key, {
+        ...row,
+        draftObs: 0,
+        playerIds: new Set(),
+        dates: new Set()
+      });
+    }
+    const item = groups.get(key);
+    item.draftObs += number(row.drafts, 0);
+    item.playerIds.add(row.player_id);
+    item.dates.add(row.start_date);
+  }
+  return [...groups.values()]
+    .filter((item) => item.playerIds.size >= 24)
+    .sort((a, b) => b.draftObs - a.draftObs)
+    .slice(0, limit)
+    .map((item, index) => ({
+      ...item,
+      presetId: `preset-${index}`,
+      players: item.playerIds.size,
+      dateCount: item.dates.size
+    }));
+}
+
+function scoringLabelFromType(type) {
+  const labels = {
+    ppr: "PPR",
+    half_ppr: "Half PPR",
+    std: "Standard",
+    "2qb": "2QB",
+    idp: "IDP",
+    idp_1qb: "IDP 1QB",
+    dynasty_2qb: "Dynasty 2QB",
+    dynasty_ppr: "Dynasty PPR",
+    dynasty_half_ppr: "Dynasty half PPR",
+    dynasty_std: "Dynasty standard"
+  };
+  return labels[type] || String(type || "Custom").replace(/_/g, " ");
+}
+
+function presetLineupText(preset) {
+  return `${fmt(preset.st_teams, 0)} teams - ${fmt(preset.slots_qb, 0)}QB/${fmt(preset.slots_rb, 0)}RB/${fmt(preset.slots_wr, 0)}WR/${fmt(preset.slots_te, 0)}TE/${fmt(preset.slots_flex, 0)}Flex/${fmt(preset.slots_superflex, 0)}SF`;
+}
+
+function presetScoringText(preset) {
+  return `Rec ${fmt(preset.score_rec, 1)}, TE+ ${fmt(preset.score_te_premium, 1)}, RecYd ${fmt(preset.score_rec_yd, 2)}, RushYd ${fmt(preset.score_rush_yd, 2)}, PassYd ${fmt(preset.score_pass_yd, 2)}, PassTD ${fmt(preset.score_pass_td, 1)}, INT ${fmt(preset.score_pass_int, 1)}, FL ${fmt(preset.score_fum_lost, 1)}`;
+}
+
+function renderAdpLeaguePresets() {
+  const box = el("adpLeaguePresets");
+  if (!box) return;
+  const presets = adpLeaguePresets(10);
+  if (!presets.length) {
+    box.innerHTML = `<p class="muted">No league presets found for the selected season and league type.</p>`;
+    return;
+  }
+  box.innerHTML = presets.map((preset) => `
+    <button class="league-preset" type="button" data-preset-key="${escapeHtml(adpLeaguePresetKey(preset))}">
+      <strong>${escapeHtml(scoringLabelFromType(preset.md_scoring_type))} ${String(preset.is_superflex).toLowerCase() === "true" ? "SF/2QB" : "1QB"}</strong>
+      <span>${escapeHtml(presetLineupText(preset))}</span>
+      <span>${escapeHtml(presetScoringText(preset))}</span>
+      <em>${fmt(preset.players, 0)} players - ${fmt(preset.draftObs, 0)} observations</em>
+    </button>
+  `).join("");
+}
+
+function applyAdpLeaguePreset(key) {
+  const preset = adpLeaguePresets(80).find((item) => adpLeaguePresetKey(item) === key);
+  if (!preset) return;
+  if (el("adpLeagueFormat")) el("adpLeagueFormat").value = preset.league_format;
+  applyAdpFormatDefaults();
+  if (el("adpBoardType")) el("adpBoardType").value = preset.board_class;
+  if (el("adpDraftType")) el("adpDraftType").value = preset.type;
+  if (el("adpScoring")) el("adpScoring").value = preset.md_scoring_type;
+
+  const assignments = {
+    teamsInput: preset.st_teams,
+    qbSlots: preset.slots_qb,
+    rbSlots: preset.slots_rb,
+    wrSlots: preset.slots_wr,
+    teSlots: preset.slots_te,
+    flexSlots: preset.slots_flex,
+    superflexSlots: preset.slots_superflex,
+    receptions: preset.score_rec,
+    tePremium: preset.score_te_premium,
+    receivingYds: preset.score_rec_yd,
+    receivingTd: preset.score_rec_td,
+    rushingYds: preset.score_rush_yd,
+    rushingTd: preset.score_rush_td,
+    passingYds: preset.score_pass_yd,
+    passingTd: preset.score_pass_td,
+    interception: preset.score_pass_int,
+    fumbleLost: preset.score_fum_lost
+  };
+  for (const [id, value] of Object.entries(assignments)) {
+    if (el(id)) el(id).value = value;
+  }
+  scheduleRender(0);
+}
+
 function adpCompatibility(row, config) {
   const slotPenalty = adpSlotDistance(row, config.slots) * 0.16;
   const scoringPenalty = adpScoringDistance(row, config.scoringValues) * 0.08;
@@ -999,6 +1136,7 @@ function renderAdpLab() {
   const copy = adpTitle(rows);
   if (el("adpChartTitle")) el("adpChartTitle").textContent = copy.title;
   if (el("adpChartSubtitle")) el("adpChartSubtitle").textContent = copy.subtitle;
+  renderAdpLeaguePresets();
   renderAdpSummary(rows);
   renderAdpTrendChart(rows, copy);
   renderAdpTable(rows);
@@ -1818,6 +1956,11 @@ function bindEvents() {
     if (!row) return;
     state.selectedAdpPlayer = state.selectedAdpPlayer === row.dataset.adpPlayer ? null : row.dataset.adpPlayer;
     scheduleRender(0);
+  });
+  el("adpLeaguePresets")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-preset-key]");
+    if (!button) return;
+    applyAdpLeaguePreset(button.dataset.presetKey);
   });
   el("exportResults").addEventListener("click", exportResults);
   el("exportAdpBoard")?.addEventListener("click", exportAdpBoard);
