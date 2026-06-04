@@ -745,39 +745,23 @@ function updateSummary(rows) {
 }
 
 function adpSettings() {
+  const cfg = settings();
+  const isTwoQb = cfg.slots.SUPERFLEX > 0 || cfg.slots.QB > 1;
   return {
-    season: number(el("adpSeason")?.value, settings().year),
+    season: number(el("adpSeason")?.value, cfg.year),
     leagueFormat: el("adpLeagueFormat")?.value || "redraft",
     boardType: el("adpBoardType")?.value || "all",
     draftType: el("adpDraftType")?.value || "snake",
     scoring: el("adpScoring")?.value || "ppr",
-    superflex: el("adpSuperflex")?.value || "all",
-    teams: el("adpTeams")?.value || "12",
-    rounds: el("adpRounds")?.value || "all",
+    superflex: isTwoQb ? "true" : "false",
+    teams: String(cfg.teams),
+    rounds: "all",
     startDate: el("adpStartDate")?.value || "",
     endDate: el("adpEndDate")?.value || "",
     minDrafts: number(el("adpMinDrafts")?.value, 5),
     query: String(el("adpSearch")?.value || "").trim().toLowerCase(),
-    slots: {
-      QB: number(el("adpQbSlots")?.value, 1),
-      RB: number(el("adpRbSlots")?.value, 2),
-      WR: number(el("adpWrSlots")?.value, 2),
-      TE: number(el("adpTeSlots")?.value, 1),
-      FLEX: number(el("adpFlexSlots")?.value, 2),
-      SUPERFLEX: number(el("adpSfSlots")?.value, 0)
-    },
-    scoringValues: {
-      rec: number(el("adpRec")?.value, 1),
-      tePremium: number(el("adpTePremium")?.value, 0),
-      recYds: number(el("adpRecYds")?.value, 0.1),
-      recTd: number(el("adpRecTd")?.value, 6),
-      rushYds: number(el("adpRushYds")?.value, 0.1),
-      rushTd: number(el("adpRushTd")?.value, 6),
-      passYds: number(el("adpPassYds")?.value, 0.04),
-      passTd: number(el("adpPassTd")?.value, 4),
-      passInt: number(el("adpPassInt")?.value, -1),
-      fumLost: number(el("adpFumLost")?.value, -2)
-    }
+    slots: cfg.slots,
+    scoringValues: cfg.scoring
   };
 }
 
@@ -814,30 +798,7 @@ function updateAdpScoringOptions() {
 
 function syncAdpFromWarSettings() {
   const cfg = settings();
-  const assignments = {
-    adpQbSlots: cfg.slots.QB,
-    adpRbSlots: cfg.slots.RB,
-    adpWrSlots: cfg.slots.WR,
-    adpTeSlots: cfg.slots.TE,
-    adpFlexSlots: cfg.slots.FLEX,
-    adpSfSlots: cfg.slots.SUPERFLEX,
-    adpRec: cfg.scoring.rec,
-    adpTePremium: cfg.scoring.tePremium,
-    adpRecYds: cfg.scoring.recYds,
-    adpRecTd: cfg.scoring.recTd,
-    adpRushYds: cfg.scoring.rushYds,
-    adpRushTd: cfg.scoring.rushTd,
-    adpPassYds: cfg.scoring.passYds,
-    adpPassTd: cfg.scoring.passTd,
-    adpPassInt: cfg.scoring.int,
-    adpFumLost: cfg.scoring.fl
-  };
-  for (const [id, value] of Object.entries(assignments)) {
-    if (el(id)) el(id).value = value;
-  }
-  if (el("adpTeams")) el("adpTeams").value = String(cfg.teams);
   const isTwoQb = cfg.slots.SUPERFLEX > 0 || cfg.slots.QB > 1;
-  if (el("adpSuperflex")) el("adpSuperflex").value = isTwoQb ? "true" : "false";
   const format = el("adpLeagueFormat")?.value || "redraft";
   const scoringSelect = el("adpScoring");
   if (scoringSelect) {
@@ -861,12 +822,8 @@ function applyAdpFormatDefaults() {
 
 function applyAdpTwoQbHint() {
   const scoring = el("adpScoring")?.value || "";
-  const superflex = el("adpSuperflex")?.value || "all";
-  const wantsTwoQb = scoring.includes("2qb") || superflex === "true";
-  if (!wantsTwoQb) return;
-  if (el("adpSuperflex")) el("adpSuperflex").value = "true";
-  if (el("adpSfSlots") && number(el("adpSfSlots").value, 0) === 0 && number(el("adpQbSlots")?.value, 1) < 2) {
-    el("adpSfSlots").value = 1;
+  if (scoring.includes("2qb") && number(el("superflexSlots")?.value, 0) === 0 && number(el("qbSlots")?.value, 1) < 2) {
+    if (el("superflexSlots")) el("superflexSlots").value = 1;
   }
 }
 
@@ -886,6 +843,37 @@ function closeEnough(actual, expected, tolerance = 0.001) {
   return Math.abs(number(actual, 999999) - expected) <= tolerance;
 }
 
+function adpSlotDistance(row, slots) {
+  return Math.abs(number(row.slots_qb, 0) - slots.QB) +
+    Math.abs(number(row.slots_rb, 0) - slots.RB) +
+    Math.abs(number(row.slots_wr, 0) - slots.WR) +
+    Math.abs(number(row.slots_te, 0) - slots.TE) +
+    Math.abs(number(row.slots_flex, 0) - slots.FLEX) +
+    Math.abs(number(row.slots_superflex, 0) - slots.SUPERFLEX);
+}
+
+function adpScoringDistance(row, scoring) {
+  const pairs = [
+    ["score_rec", scoring.rec, 1],
+    ["score_te_premium", scoring.tePremium, 1],
+    ["score_rec_yd", scoring.recYds, 10],
+    ["score_rec_td", scoring.recTd, 0.25],
+    ["score_rush_yd", scoring.rushYds, 10],
+    ["score_rush_td", scoring.rushTd, 0.25],
+    ["score_pass_yd", scoring.passYds, 20],
+    ["score_pass_td", scoring.passTd, 0.25],
+    ["score_pass_int", scoring.int, 0.5],
+    ["score_fum_lost", scoring.fl, 0.5]
+  ];
+  return pairs.reduce((sum, [key, expected, weight]) => sum + Math.abs(number(row[key], expected) - expected) * weight, 0);
+}
+
+function adpCompatibility(row, config) {
+  const slotPenalty = adpSlotDistance(row, config.slots) * 0.16;
+  const scoringPenalty = adpScoringDistance(row, config.scoringValues) * 0.08;
+  return Math.max(0.25, 1 - slotPenalty - scoringPenalty);
+}
+
 function filteredAdpRows() {
   const config = adpSettings();
   return state.customAdpRows.filter((row) => {
@@ -898,22 +886,6 @@ function filteredAdpRows() {
     if (config.teams !== "all" && String(row.st_teams) !== config.teams) return false;
     if (config.rounds !== "all" && String(row.st_rounds) !== config.rounds) return false;
     if (!dateInWindow(row.start_date, config.startDate, config.endDate)) return false;
-    if (number(row.slots_qb, 0) !== config.slots.QB) return false;
-    if (number(row.slots_rb, 0) !== config.slots.RB) return false;
-    if (number(row.slots_wr, 0) !== config.slots.WR) return false;
-    if (number(row.slots_te, 0) !== config.slots.TE) return false;
-    if (number(row.slots_flex, 0) !== config.slots.FLEX) return false;
-    if (number(row.slots_superflex, 0) !== config.slots.SUPERFLEX) return false;
-    if (!closeEnough(row.score_rec, config.scoringValues.rec)) return false;
-    if (!closeEnough(row.score_te_premium, config.scoringValues.tePremium)) return false;
-    if (!closeEnough(row.score_rec_yd, config.scoringValues.recYds)) return false;
-    if (!closeEnough(row.score_rec_td, config.scoringValues.recTd)) return false;
-    if (!closeEnough(row.score_rush_yd, config.scoringValues.rushYds)) return false;
-    if (!closeEnough(row.score_rush_td, config.scoringValues.rushTd)) return false;
-    if (!closeEnough(row.score_pass_yd, config.scoringValues.passYds)) return false;
-    if (!closeEnough(row.score_pass_td, config.scoringValues.passTd)) return false;
-    if (!closeEnough(row.score_pass_int, config.scoringValues.passInt)) return false;
-    if (!closeEnough(row.score_fum_lost, config.scoringValues.fumLost)) return false;
     return true;
   });
 }
@@ -940,6 +912,7 @@ function customAdpBoard() {
         drafts: 0,
         picks: 0,
         weightedPickTotal: 0,
+        compatibilityTotal: 0,
         weight: 0,
         min_pick: Number.POSITIVE_INFINITY,
         max_pick: 0,
@@ -950,10 +923,12 @@ function customAdpBoard() {
     const drafts = number(row.drafts, 0);
     const picks = number(row.picks, 0);
     const adp = number(row.adp, null);
-    const weight = Math.max(picks, drafts, 1);
+    const fit = adpCompatibility(row, config);
+    const weight = Math.max(picks, drafts, 1) * fit;
     item.drafts += drafts;
     item.picks += picks;
     item.weight += weight;
+    item.compatibilityTotal += fit * Math.max(picks, drafts, 1);
     if (adp !== null) item.weightedPickTotal += adp * weight;
     item.min_pick = Math.min(item.min_pick, number(row.min_pick, item.min_pick));
     item.max_pick = Math.max(item.max_pick, number(row.max_pick, item.max_pick));
@@ -964,6 +939,7 @@ function customAdpBoard() {
     .map((item) => ({
       ...item,
       adp: item.weightedPickTotal / Math.max(item.weight, 1),
+      compatibility: item.compatibilityTotal / Math.max(item.picks || item.drafts, 1),
       min_pick: item.min_pick === Number.POSITIVE_INFINITY ? null : item.min_pick,
       max_pick: item.max_pick || null,
       dates: item.dates.size
@@ -1025,7 +1001,6 @@ function renderAdpLab() {
   if (el("adpChartSubtitle")) el("adpChartSubtitle").textContent = copy.subtitle;
   renderAdpSummary(rows);
   renderAdpTrendChart(rows, copy);
-  renderAdpPlayerCard(rows);
   renderAdpTable(rows);
 }
 
@@ -1112,41 +1087,8 @@ function renderAdpPlayerDetail(selected) {
         <div><span>Max pick</span><strong>${fmt(selected.max_pick, 0)}</strong></div>
         <div><span>Trend</span><strong class="${selected.trend === null ? "" : selected.trend <= 0 ? "value-pos" : "value-neg"}">${selected.trend === null ? "-" : `${selected.trend > 0 ? "+" : ""}${fmt(selected.trend, 1)}`}</strong></div>
         <div><span>Position rank</span><strong>${selected.position}${fmt(selected.pos_rank, 0)}</strong></div>
+        <div><span>Settings fit</span><strong>${fmt(selected.compatibility * 100, 0)}%</strong></div>
       </div>
-    </div>
-  `;
-}
-
-function renderAdpPlayerCard(rows) {
-  const card = el("adpPlayerCard");
-  if (!card) return;
-  const selected = rows.find((row) => row.player_id === state.selectedAdpPlayer) || rows[0];
-  if (!selected) {
-    card.innerHTML = `
-      <p class="eyebrow">Selected ADP player</p>
-      <h2>No ADP rows</h2>
-      <p class="muted">No players match the selected league, lineup, scoring, and date filters.</p>
-    `;
-    return;
-  }
-  card.innerHTML = `
-    <div class="adp-card-layout">
-      <img class="adp-headshot" src="${escapeHtml(selected.headshot_url)}" alt="${escapeHtml(selected.full_name)} headshot" onerror="this.style.display='none'">
-      <div>
-        <p class="eyebrow">Selected ADP player</p>
-        <h2>${escapeHtml(selected.full_name)}</h2>
-        <p class="muted">${escapeHtml(selected.team || "-")} - <span class="pos-pill pos-${selected.position}">${escapeHtml(selected.position)}</span> - ${escapeHtml(selected.league_format)} ${escapeHtml(selected.board_class)}</p>
-      </div>
-    </div>
-    <div class="player-stats adp-card-stats">
-      <div><span>Rank</span><strong>${fmt(selected.rank, 0)}</strong></div>
-      <div><span>ADP</span><strong>${fmt(selected.adp, 1)}</strong></div>
-      <div><span>Drafts</span><strong>${fmt(selected.drafts, 0)}</strong></div>
-      <div><span>Picks</span><strong>${fmt(selected.picks, 0)}</strong></div>
-      <div><span>Min pick</span><strong>${fmt(selected.min_pick, 0)}</strong></div>
-      <div><span>Max pick</span><strong>${fmt(selected.max_pick, 0)}</strong></div>
-      <div><span>Trend</span><strong class="${selected.trend === null ? "" : selected.trend <= 0 ? "value-pos" : "value-neg"}">${selected.trend === null ? "-" : `${selected.trend > 0 ? "+" : ""}${fmt(selected.trend, 1)}`}</strong></div>
-      <div><span>Position rank</span><strong>${selected.position}${fmt(selected.pos_rank, 0)}</strong></div>
     </div>
   `;
 }
@@ -1821,10 +1763,6 @@ function bindEvents() {
     applyAdpTwoQbHint();
     scheduleRender(0);
   });
-  el("adpSuperflex")?.addEventListener("change", () => {
-    applyAdpTwoQbHint();
-    scheduleRender(0);
-  });
   document.querySelectorAll("input[name='posFilter']").forEach((input) => input.addEventListener("change", () => scheduleRender(0)));
   document.querySelectorAll("[data-view]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1917,8 +1855,6 @@ function selectOptions(id, values, selected, allLabel = null) {
 function populateEmptyAdpControls() {
   updateAdpScoringOptions();
   selectOptions("adpSeason", [2026], 2026);
-  selectOptions("adpTeams", [12], 12, "All teams");
-  selectOptions("adpRounds", [29], "all", "All rounds");
   if (el("adpStartDate")) el("adpStartDate").value = "";
   if (el("adpEndDate")) el("adpEndDate").value = "";
 }
@@ -1927,13 +1863,9 @@ function populateAdpControls() {
   updateAdpScoringOptions();
   const rows = state.customAdpRows;
   const seasons = uniqueSorted(rows.map((row) => row.season), true);
-  const teams = uniqueSorted(rows.map((row) => row.st_teams), true);
-  const rounds = uniqueSorted(rows.map((row) => row.st_rounds), true);
   const dates = uniqueSorted(rows.map((row) => row.start_date));
   const currentYear = settings().year;
   selectOptions("adpSeason", seasons.length ? seasons : [currentYear], seasons.includes(String(currentYear)) || seasons.includes(currentYear) ? currentYear : seasons[seasons.length - 1] || currentYear);
-  selectOptions("adpTeams", teams, teams.includes("12") || teams.includes(12) ? 12 : "all", "All teams");
-  selectOptions("adpRounds", rounds, "all", "All rounds");
   if (el("adpStartDate") && dates.length) {
     el("adpStartDate").min = dates[0];
     el("adpStartDate").max = dates[dates.length - 1];
