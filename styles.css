@@ -649,6 +649,10 @@ summary::marker {
   margin-bottom: 14px;
 }
 
+.adp-detail-controls {
+  margin-bottom: 14px;
+}
+
 .adp-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -691,6 +695,45 @@ summary::marker {
 #adpTrendChart {
   width: 100%;
   height: 560px;
+}
+
+.adp-player-card {
+  padding: 16px;
+  background:
+    linear-gradient(180deg, rgba(17, 17, 17, 0.92), rgba(17, 17, 17, 0.86)),
+    url("assets/brand/textures/Secondary-Grunge.jpg");
+  background-size: cover;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+
+.adp-player-card h2 {
+  margin: 0;
+  font-family: "Kanit FPTS", Impact, sans-serif;
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.adp-card-layout {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.adp-headshot {
+  width: 112px;
+  height: 112px;
+  object-fit: cover;
+  object-position: 50% 12%;
+  border: 1px solid var(--line-strong);
+  background: rgba(240, 240, 240, 0.08);
+}
+
+.adp-card-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .adp-table-wrap table {
@@ -1018,6 +1061,15 @@ tbody tr.selected-row {
 
   .player-stats {
     grid-template-columns: 1fr;
+  }
+
+  .adp-card-layout {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .adp-headshot {
+    width: 84px;
+    height: 84px;
   }
 
   .inline-player-detail {

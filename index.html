@@ -229,7 +229,7 @@
           <div class="panel-header">
             <div>
               <h2 id="adpChartTitle">Custom Sleeper ADP Lab</h2>
-              <p id="adpChartSubtitle">Filter Sleeper dynasty draft snapshots by league type and settings before this ADP source is integrated into WAR.</p>
+              <p id="adpChartSubtitle">Filter Sleeper draft snapshots by league type, lineup, scoring, and date range before this ADP source is integrated into WAR.</p>
             </div>
             <button id="exportAdpBoard" type="button">Export ADP</button>
           </div>
@@ -239,10 +239,20 @@
               <select id="adpSeason"></select>
             </label>
             <label>
+              League type
+              <select id="adpLeagueFormat">
+                <option value="redraft">Redraft</option>
+                <option value="dynasty">Dynasty</option>
+                <option value="all">All</option>
+              </select>
+            </label>
+            <label>
               Board type
               <select id="adpBoardType">
-                <option value="startup">Startup ADP</option>
-                <option value="rookie">Rookie ADP</option>
+                <option value="all">All boards</option>
+                <option value="startup">Dynasty startup</option>
+                <option value="rookie">Dynasty rookie</option>
+                <option value="redraft">Redraft</option>
               </select>
             </label>
             <label>
@@ -256,19 +266,25 @@
             <label>
               Scoring
               <select id="adpScoring">
+                <option value="ppr">PPR</option>
+                <option value="half_ppr">Half PPR</option>
+                <option value="std">Standard</option>
+                <option value="2qb">2QB</option>
                 <option value="dynasty_2qb">Dynasty 2QB</option>
                 <option value="dynasty_ppr">Dynasty PPR</option>
                 <option value="dynasty_half_ppr">Dynasty half PPR</option>
                 <option value="dynasty_std">Dynasty standard</option>
+                <option value="idp">IDP</option>
+                <option value="idp_1qb">IDP 1QB</option>
                 <option value="all">All scoring</option>
               </select>
             </label>
             <label>
               QB format
               <select id="adpSuperflex">
+                <option value="all">All</option>
                 <option value="true">SuperFlex / 2QB</option>
                 <option value="false">1QB</option>
-                <option value="all">All</option>
               </select>
             </label>
             <label>
@@ -280,12 +296,12 @@
               <select id="adpRounds"></select>
             </label>
             <label>
-              Start month
-              <select id="adpStartMonth"></select>
+              Start date
+              <input id="adpStartDate" type="date">
             </label>
             <label>
-              End month
-              <select id="adpEndMonth"></select>
+              End date
+              <input id="adpEndDate" type="date">
             </label>
             <label>
               Min drafts
@@ -296,6 +312,29 @@
               <input id="adpSearch" type="search" placeholder="Player">
             </label>
           </div>
+          <details class="adp-detail-controls">
+            <summary>ADP Lineup & Scoring Filters</summary>
+            <div class="control-grid compact-grid">
+              <label>QB <input id="adpQbSlots" type="number" min="0" max="4" value="1"></label>
+              <label>RB <input id="adpRbSlots" type="number" min="0" max="6" value="2"></label>
+              <label>WR <input id="adpWrSlots" type="number" min="0" max="6" value="2"></label>
+              <label>TE <input id="adpTeSlots" type="number" min="0" max="4" value="1"></label>
+              <label>Flex <input id="adpFlexSlots" type="number" min="0" max="6" value="2"></label>
+              <label>SuperFlex <input id="adpSfSlots" type="number" min="0" max="4" value="0"></label>
+            </div>
+            <div class="control-grid scoring-grid">
+              <label>Reception <input id="adpRec" type="number" step="0.1" value="1"></label>
+              <label>TE premium <input id="adpTePremium" type="number" step="0.1" value="0"></label>
+              <label>Receiving yards <input id="adpRecYds" type="number" step="0.01" value="0.1"></label>
+              <label>Receiving TD <input id="adpRecTd" type="number" step="0.5" value="6"></label>
+              <label>Rushing yards <input id="adpRushYds" type="number" step="0.01" value="0.1"></label>
+              <label>Rushing TD <input id="adpRushTd" type="number" step="0.5" value="6"></label>
+              <label>Passing yards <input id="adpPassYds" type="number" step="0.01" value="0.04"></label>
+              <label>Passing TD <input id="adpPassTd" type="number" step="0.5" value="4"></label>
+              <label>Interception <input id="adpPassInt" type="number" step="0.5" value="-1"></label>
+              <label>Fumble lost <input id="adpFumLost" type="number" step="0.5" value="-2"></label>
+            </div>
+          </details>
           <div class="adp-summary-grid">
             <article><span>Players</span><strong id="adpPlayerCount">-</strong></article>
             <article><span>Draft sample</span><strong id="adpDraftSample">-</strong></article>
@@ -306,6 +345,11 @@
             <div class="chart-panel">
               <div id="adpTrendChart"></div>
             </div>
+            <aside id="adpPlayerCard" class="adp-player-card">
+              <p class="eyebrow">Selected ADP player</p>
+              <h2>Select a player</h2>
+              <p class="muted">Click a table row to inspect the filtered ADP profile, sample size, trend, and Sleeper headshot.</p>
+            </aside>
             <div class="table-wrap adp-table-wrap">
               <table>
                 <thead>
