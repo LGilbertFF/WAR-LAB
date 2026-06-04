@@ -622,6 +622,81 @@ summary::marker {
   margin-top: 18px;
 }
 
+.adp-panel {
+  padding: 16px;
+  background:
+    linear-gradient(180deg, rgba(17, 17, 17, 0.92), rgba(17, 17, 17, 0.86)),
+    url("assets/brand/textures/Secondary-Dots.jpg");
+  background-size: cover;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  box-shadow: var(--shadow);
+}
+
+.adp-panel h2 {
+  margin: 0;
+  font-family: "Kanit FPTS", Impact, sans-serif;
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.adp-controls {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.adp-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.adp-summary-grid article {
+  min-height: 96px;
+  padding: 14px;
+  background: var(--white);
+  color: var(--black);
+  border-left: 4px solid var(--red);
+}
+
+.adp-summary-grid span {
+  display: block;
+  color: var(--black);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.adp-summary-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--black);
+  font-family: "Kanit FPTS", Impact, sans-serif;
+  font-size: 1.12rem;
+  font-style: italic;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.adp-workspace {
+  display: grid;
+  gap: 14px;
+}
+
+#adpTrendChart {
+  width: 100%;
+  height: 560px;
+}
+
+.adp-table-wrap table {
+  min-width: 940px;
+}
+
 .position-filter {
   display: flex;
   align-items: center;
@@ -748,6 +823,18 @@ tbody tr.selected-row {
   color: var(--black);
 }
 
+.pos-RDP {
+  background: #d0a85b;
+  border-color: #d0a85b;
+  color: var(--black);
+}
+
+.pos-UNK {
+  background: #9ca3cf;
+  border-color: #9ca3cf;
+  color: var(--black);
+}
+
 .value-pos {
   color: var(--white);
   font-weight: 900;
@@ -763,7 +850,9 @@ tbody tr.selected-row {
   .setup-grid,
   .summary-grid,
   .workspace,
-  .historical-controls {
+  .historical-controls,
+  .adp-controls,
+  .adp-summary-grid {
     grid-template-columns: 1fr;
   }
 
@@ -849,6 +938,8 @@ tbody tr.selected-row {
   .file-grid,
   .data-status-grid,
   .historical-controls,
+  .adp-controls,
+  .adp-summary-grid,
   .panel-header,
   .brand-strip {
     grid-template-columns: 1fr;
@@ -900,7 +991,8 @@ tbody tr.selected-row {
   }
 
   #projectionChart,
-  #historicalExplorerChart {
+  #historicalExplorerChart,
+  #adpTrendChart {
     height: 460px;
   }
 

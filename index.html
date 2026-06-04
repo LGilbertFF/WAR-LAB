@@ -113,6 +113,7 @@
       <nav class="view-tabs" aria-label="WAR Lab views">
         <button class="active" type="button" data-view="projectionsView">Projections</button>
         <button type="button" data-view="historicalView">Historical Looks</button>
+        <button type="button" data-view="adpView">ADP Lab</button>
       </nav>
 
       <section id="projectionsView" class="view-panel active">
@@ -220,6 +221,111 @@
             </label>
           </div>
           <div id="historicalExplorerChart"></div>
+        </section>
+      </section>
+
+      <section id="adpView" class="view-panel">
+        <section class="adp-panel">
+          <div class="panel-header">
+            <div>
+              <h2 id="adpChartTitle">Custom Sleeper ADP Lab</h2>
+              <p id="adpChartSubtitle">Filter Sleeper dynasty draft snapshots by league type and settings before this ADP source is integrated into WAR.</p>
+            </div>
+            <button id="exportAdpBoard" type="button">Export ADP</button>
+          </div>
+          <div class="adp-controls">
+            <label>
+              Season
+              <select id="adpSeason"></select>
+            </label>
+            <label>
+              Board type
+              <select id="adpBoardType">
+                <option value="startup">Startup ADP</option>
+                <option value="rookie">Rookie ADP</option>
+              </select>
+            </label>
+            <label>
+              Draft type
+              <select id="adpDraftType">
+                <option value="snake">Snake</option>
+                <option value="linear">Linear</option>
+                <option value="all">All types</option>
+              </select>
+            </label>
+            <label>
+              Scoring
+              <select id="adpScoring">
+                <option value="dynasty_2qb">Dynasty 2QB</option>
+                <option value="dynasty_ppr">Dynasty PPR</option>
+                <option value="dynasty_half_ppr">Dynasty half PPR</option>
+                <option value="dynasty_std">Dynasty standard</option>
+                <option value="all">All scoring</option>
+              </select>
+            </label>
+            <label>
+              QB format
+              <select id="adpSuperflex">
+                <option value="true">SuperFlex / 2QB</option>
+                <option value="false">1QB</option>
+                <option value="all">All</option>
+              </select>
+            </label>
+            <label>
+              Teams
+              <select id="adpTeams"></select>
+            </label>
+            <label>
+              Rounds
+              <select id="adpRounds"></select>
+            </label>
+            <label>
+              Start month
+              <select id="adpStartMonth"></select>
+            </label>
+            <label>
+              End month
+              <select id="adpEndMonth"></select>
+            </label>
+            <label>
+              Min drafts
+              <input id="adpMinDrafts" type="number" min="2" max="500" value="5">
+            </label>
+            <label>
+              Search
+              <input id="adpSearch" type="search" placeholder="Player">
+            </label>
+          </div>
+          <div class="adp-summary-grid">
+            <article><span>Players</span><strong id="adpPlayerCount">-</strong></article>
+            <article><span>Draft sample</span><strong id="adpDraftSample">-</strong></article>
+            <article><span>Month window</span><strong id="adpMonthWindow">-</strong></article>
+            <article><span>Top ADP</span><strong id="adpTopPlayer">-</strong></article>
+          </div>
+          <div class="adp-workspace">
+            <div class="chart-panel">
+              <div id="adpTrendChart"></div>
+            </div>
+            <div class="table-wrap adp-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th data-adp-sort="rank">Rank</th>
+                    <th data-adp-sort="full_name">Player</th>
+                    <th data-adp-sort="position">Pos</th>
+                    <th data-adp-sort="team">Team</th>
+                    <th data-adp-sort="adp">ADP</th>
+                    <th data-adp-sort="drafts">Drafts</th>
+                    <th data-adp-sort="picks">Picks</th>
+                    <th data-adp-sort="min_pick">Min</th>
+                    <th data-adp-sort="max_pick">Max</th>
+                    <th data-adp-sort="trend">Trend</th>
+                  </tr>
+                </thead>
+                <tbody id="adpBody"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
       </section>
 
