@@ -39,6 +39,7 @@ jobs:
           --raw-dir sleeper_work/raw
           --players sleeper_work/cache/players_nfl.parquet
           --out data/custom_adp_board.csv
+          --append-existing
 
       - name: Commit updated Sleeper ADP data
         uses: stefanzweifel/git-auto-commit-action@v5

@@ -1,0 +1,70 @@
+name: Backfill Historical Sleeper ADP
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_season:
+        description: "First Sleeper season to backfill"
+        required: true
+        default: "2018"
+      end_season:
+        description: "Last Sleeper season to backfill"
+        required: true
+        default: "2025"
+      expansion_steps:
+        description: "League discovery expansion steps"
+        required: true
+        default: "2"
+      max_leagues_per_season:
+        description: "Maximum leagues to discover per season"
+        required: true
+        default: "60000"
+      max_output_rows:
+        description: "Fair cap for committed ADP CSV rows; 0 means no cap"
+        required: true
+        default: "750000"
+
+permissions:
+  contents: write
+
+jobs:
+  backfill-sleeper-adp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ADP dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Fetch historical Sleeper drafts
+        run: >
+          python scripts/sleeper_ingest_historical.py
+          --start-season "${{ inputs.start_season }}"
+          --end-season "${{ inputs.end_season }}"
+          --out-dir sleeper_work
+          --expansion-steps "${{ inputs.expansion_steps }}"
+          --max-users-per-step 2500
+          --max-leagues-per-season "${{ inputs.max_leagues_per_season }}"
+          --workers 20
+
+      - name: Export historical ADP Lab data
+        run: >
+          python scripts/export_sleeper_adp_board.py
+          --start-season "${{ inputs.start_season }}"
+          --end-season "${{ inputs.end_season }}"
+          --raw-dir sleeper_work/raw
+          --players sleeper_work/cache/players_nfl.parquet
+          --out data/custom_adp_board.csv
+          --append-existing
+          --max-output-rows "${{ inputs.max_output_rows }}"
+
+      - name: Commit historical Sleeper ADP data
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Backfill historical Sleeper ADP data"
+          file_pattern: data/custom_adp_board.csv

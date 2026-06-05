@@ -248,8 +248,67 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     return out
 
 
-def export_adp_board(raw_dir: Path, players_path: Path, out_path: Path, season: int) -> pd.DataFrame:
-    out = read_season(raw_dir, players_path, season)
+def season_range(season: int | None, start_season: int | None, end_season: int | None) -> list[int]:
+    if start_season is None and end_season is None:
+        return [season or 2026]
+    start = start_season if start_season is not None else end_season
+    end = end_season if end_season is not None else start_season
+    if start is None or end is None:
+        return [season or 2026]
+    if start > end:
+        start, end = end, start
+    return list(range(start, end + 1))
+
+
+def fair_limit_rows(df: pd.DataFrame, max_rows: int) -> pd.DataFrame:
+    if max_rows <= 0 or len(df) <= max_rows:
+        return df
+
+    group_cols = [col for col in ["season", "league_format", "board_class", "type"] if col in df.columns]
+    if not group_cols:
+        return df.sort_values(["drafts", "picks"], ascending=False).head(max_rows)
+
+    keys = df[group_cols].fillna("unknown").astype(str).agg("|".join, axis=1)
+    groups = list(keys.drop_duplicates())
+    quota = max(1, max_rows // max(1, len(groups)))
+    parts = []
+    remainder = []
+    for key in groups:
+        group = df.loc[keys == key].sort_values(["drafts", "picks", "adp"], ascending=[False, False, True])
+        parts.append(group.head(quota))
+        if len(group) > quota:
+            remainder.append(group.iloc[quota:])
+
+    limited = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=df.columns)
+    remaining_slots = max_rows - len(limited)
+    if remaining_slots > 0 and remainder:
+        extra = (
+            pd.concat(remainder, ignore_index=True)
+            .sort_values(["drafts", "picks", "adp"], ascending=[False, False, True])
+            .head(remaining_slots)
+        )
+        limited = pd.concat([limited, extra], ignore_index=True)
+    return limited
+
+
+def export_adp_board(
+    raw_dir: Path,
+    players_path: Path,
+    out_path: Path,
+    seasons: list[int],
+    append_existing: bool = False,
+    max_output_rows: int = 0,
+) -> pd.DataFrame:
+    frames = []
+    for season in seasons:
+        try:
+            frames.append(read_season(raw_dir, players_path, season))
+        except FileNotFoundError as exc:
+            print(f"skipping season {season}: {exc}")
+    if not frames:
+        raise RuntimeError(f"No raw Sleeper ADP data found for seasons: {', '.join(map(str, seasons))}")
+
+    out = pd.concat(frames, ignore_index=True)
 
     rename = {
         "st_slots_qb": "slots_qb",
@@ -317,7 +376,20 @@ def export_adp_board(raw_dir: Path, players_path: Path, out_path: Path, season: 
         "min_pick",
         "max_pick",
     ]
-    out = out[[col for col in cols if col in out.columns]].sort_values(
+    out = out[[col for col in cols if col in out.columns]]
+
+    if append_existing and out_path.exists():
+        existing = pd.read_csv(out_path)
+        if "season" in existing.columns:
+            refresh_seasons = set(pd.to_numeric(out["season"], errors="coerce").dropna().astype(int).tolist())
+            existing = existing[
+                ~pd.to_numeric(existing["season"], errors="coerce").isin(refresh_seasons)
+            ].copy()
+            out = pd.concat([existing, out], ignore_index=True)
+
+    out = fair_limit_rows(out, max_output_rows)
+
+    out = out.sort_values(
         ["season", "start_date", "league_format", "board_class", "type", "md_scoring_type", "st_teams", "st_rounds", "adp"]
     )
 
@@ -332,9 +404,21 @@ def main() -> None:
     parser.add_argument("--players", type=Path, default=DEFAULT_PLAYERS)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--season", type=int, default=2026)
+    parser.add_argument("--start-season", type=int)
+    parser.add_argument("--end-season", type=int)
+    parser.add_argument("--append-existing", action="store_true", help="Keep other seasons already in the output CSV.")
+    parser.add_argument("--max-output-rows", type=int, default=0, help="Fairly cap rows across season and league-type groups.")
     args = parser.parse_args()
 
-    out = export_adp_board(args.raw_dir, args.players, args.out, args.season)
+    seasons = season_range(args.season, args.start_season, args.end_season)
+    out = export_adp_board(
+        args.raw_dir,
+        args.players,
+        args.out,
+        seasons,
+        append_existing=args.append_existing,
+        max_output_rows=args.max_output_rows,
+    )
     print(f"wrote {args.out} rows={len(out):,} cols={len(out.columns)}")
 
 

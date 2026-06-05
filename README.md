@@ -56,9 +56,15 @@ The repository includes three GitHub Actions workflows:
 .github/workflows/deploy-pages.yml
 .github/workflows/update-current-data.yml
 .github/workflows/build-historical-data.yml
+.github/workflows/update-sleeper-adp.yml
+.github/workflows/backfill-sleeper-adp.yml
 ```
 
-`deploy-pages.yml` publishes the static app to GitHub Pages whenever `main` changes. `update-current-data.yml` refreshes 2026 projections and ADP hourly and commits the generated CSVs. `build-historical-data.yml` is a manual one-time historical scrape that commits the historical export.
+`deploy-pages.yml` publishes the static app to GitHub Pages whenever `main` changes. `update-current-data.yml` refreshes 2026 FantasyPros projections and ADP hourly and commits the generated CSVs. `build-historical-data.yml` is a manual one-time historical weekly scoring scrape that commits the historical export.
+
+`update-sleeper-adp.yml` refreshes current-season Sleeper ADP once per day. It preserves other seasons already in `data/custom_adp_board.csv`, so historical backfills do not get erased by the daily 2026 scrape.
+
+`backfill-sleeper-adp.yml` is a manual historical Sleeper ADP pull. In GitHub, open `Actions` -> `Backfill Historical Sleeper ADP` -> `Run workflow`, then choose the start season, end season, discovery size, and max committed output rows. The workflow scrapes broad raw Sleeper league/draft/pick data by season, exports ADP rows, and commits them into `data/custom_adp_board.csv`. The default output cap is deterministic and fair across season and league-type groups to keep the GitHub Pages payload practical.
 
 ## Generated Inputs
 
