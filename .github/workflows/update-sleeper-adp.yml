@@ -12,6 +12,8 @@ jobs:
   update-sleeper-adp:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
 
@@ -27,10 +29,10 @@ jobs:
           python scripts/sleeper_ingest_current.py
           --season 2026
           --out-dir sleeper_work
-          --expansion-steps 2
-          --max-users-per-step 2500
-          --max-leagues 60000
-          --workers 24
+          --expansion-steps 1
+          --max-users-per-step 1500
+          --max-leagues 25000
+          --workers 16
 
       - name: Export ADP Lab data
         run: >

@@ -9,6 +9,7 @@ from sleeper_ingest_current import (
     fetch_drafts,
     fetch_picks,
     fetch_players,
+    log,
     write_parquet,
 )
 
@@ -20,7 +21,7 @@ def bounded_years(start_season: int, end_season: int) -> list[int]:
 
 
 def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
-    print(f"season {season}: discovering leagues")
+    log(f"season {season}: discovering leagues")
     leagues, league_users = discover_leagues(
         session,
         seed_users,
@@ -31,19 +32,19 @@ def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
         args.max_leagues_per_season,
     )
     if leagues.empty:
-        print(f"season {season}: no leagues discovered")
+        log(f"season {season}: no leagues discovered")
         return
 
-    print(f"season {season}: fetching drafts from {len(leagues):,} leagues")
+    log(f"season {season}: fetching drafts from {len(leagues):,} leagues")
     drafts = fetch_drafts(session, leagues["league_id"].astype(str).tolist(), season, args.workers)
     if drafts.empty:
-        print(f"season {season}: no drafts discovered")
+        log(f"season {season}: no drafts discovered")
         return
 
-    print(f"season {season}: fetching picks from {len(drafts):,} drafts")
+    log(f"season {season}: fetching picks from {len(drafts):,} drafts")
     picks = fetch_picks(session, drafts["draft_id"].astype(str).tolist(), args.workers)
     if picks.empty:
-        print(f"season {season}: no draft picks discovered")
+        log(f"season {season}: no draft picks discovered")
         return
 
     raw = args.out_dir / "raw"
@@ -51,7 +52,7 @@ def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
     write_parquet(league_users, raw / "league_users" / f"league_users_{season}.parquet")
     write_parquet(drafts, raw / "drafts" / f"drafts_{season}.parquet")
     write_parquet(picks, raw / "picks" / f"picks_{season}.parquet")
-    print(f"season {season}: wrote leagues={len(leagues):,} drafts={len(drafts):,} picks={len(picks):,}")
+    log(f"season {season}: wrote leagues={len(leagues):,} drafts={len(drafts):,} picks={len(picks):,}")
 
 
 def main() -> None:
@@ -71,6 +72,7 @@ def main() -> None:
     session.headers.update({"User-Agent": "WAR-LAB-Sleeper-Historical-ADP/1.0"})
 
     cache = args.out_dir / "cache"
+    log(f"starting historical Sleeper ADP ingest for seasons {args.start_season}-{args.end_season}")
     write_parquet(fetch_players(session), cache / "players_nfl.parquet")
 
     for season in bounded_years(args.start_season, args.end_season):

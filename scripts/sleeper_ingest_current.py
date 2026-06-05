@@ -17,6 +17,15 @@ DEFAULT_SEED_USERS = [
 ]
 
 
+def log(message: str) -> None:
+    print(message, flush=True)
+
+
+def chunks(items, size: int):
+    for start in range(0, len(items), size):
+        yield items[start:start + size]
+
+
 def get_json(session: requests.Session, url: str, retries: int = 4):
     last_error = None
     for attempt in range(retries):
@@ -33,16 +42,28 @@ def get_json(session: requests.Session, url: str, retries: int = 4):
     raise RuntimeError(f"GET failed: {url}: {last_error}")
 
 
-def fetch_many(session: requests.Session, urls, workers: int):
+def fetch_many(session: requests.Session, urls, workers: int, label: str = "requests"):
+    urls = list(urls)
     rows = []
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(get_json, session, url): url for url in urls}
-        for future in as_completed(futures):
-            url = futures[future]
-            try:
-                rows.append((url, future.result(), None))
-            except Exception as exc:
-                rows.append((url, None, str(exc)))
+    if not urls:
+        return rows
+    done = 0
+    batch_size = max(250, workers * 25)
+    log(f"{label}: fetching {len(urls):,} urls with {workers} workers")
+    for batch_index, batch in enumerate(chunks(urls, batch_size), start=1):
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(get_json, session, url): url for url in batch}
+            for future in as_completed(futures):
+                url = futures[future]
+                try:
+                    rows.append((url, future.result(), None))
+                except Exception as exc:
+                    rows.append((url, None, str(exc)))
+                done += 1
+                if done % max(100, workers * 10) == 0 or done == len(urls):
+                    log(f"{label}: {done:,}/{len(urls):,} urls complete")
+        if batch_index % 4 == 0:
+            log(f"{label}: finished batch {batch_index:,}")
     return rows
 
 
@@ -65,7 +86,7 @@ def draft_picks_url(draft_id: str) -> str:
 def fetch_leagues_for_users(session, user_ids, season, workers):
     urls = [user_leagues_url(user_id, season) for user_id in user_ids]
     rows = []
-    for url, data, err in fetch_many(session, urls, workers):
+    for url, data, err in fetch_many(session, urls, workers, f"season {season} user leagues"):
         if err or not data:
             continue
         for league in data:
@@ -79,7 +100,7 @@ def fetch_leagues_for_users(session, user_ids, season, workers):
 def fetch_users_for_leagues(session, league_ids, workers):
     urls = [league_users_url(league_id) for league_id in league_ids]
     rows = []
-    for url, data, err in fetch_many(session, urls, workers):
+    for url, data, err in fetch_many(session, urls, workers, "league users"):
         if err or not data:
             continue
         league_id = url.split("/league/")[1].split("/users")[0]
@@ -101,6 +122,7 @@ def discover_leagues(session, seed_users, season, workers, expansion_steps, max_
     for _step in range(expansion_steps + 1):
         if not frontier:
             break
+        log(f"season {season}: discovery step {_step + 1}/{expansion_steps + 1}, frontier={len(frontier):,}, seen_leagues={len(seen_leagues):,}")
         leagues = fetch_leagues_for_users(session, frontier[:max_users_per_step], season, workers)
         if leagues.empty:
             break
@@ -109,6 +131,7 @@ def discover_leagues(session, seed_users, season, workers, expansion_steps, max_
             break
         all_leagues.append(new_leagues)
         seen_leagues.update(new_leagues["league_id"].astype(str).tolist())
+        log(f"season {season}: found {len(new_leagues):,} new leagues, total={len(seen_leagues):,}")
         if len(seen_leagues) >= max_leagues:
             break
 
@@ -129,7 +152,7 @@ def discover_leagues(session, seed_users, season, workers, expansion_steps, max_
 def fetch_drafts(session, league_ids, season, workers):
     urls = [league_drafts_url(league_id) for league_id in league_ids]
     rows = []
-    for url, data, err in fetch_many(session, urls, workers):
+    for url, data, err in fetch_many(session, urls, workers, f"season {season} league drafts"):
         if err or not data:
             continue
         league_id = url.split("/league/")[1].split("/drafts")[0]
@@ -145,7 +168,7 @@ def fetch_drafts(session, league_ids, season, workers):
 def fetch_picks(session, draft_ids, workers):
     urls = [draft_picks_url(draft_id) for draft_id in draft_ids]
     rows = []
-    for url, data, err in fetch_many(session, urls, workers):
+    for url, data, err in fetch_many(session, urls, workers, "draft picks"):
         if err or not data:
             continue
         draft_id = url.split("/draft/")[1].split("/picks")[0]
@@ -168,6 +191,7 @@ def fetch_picks(session, draft_ids, workers):
 
 
 def fetch_players(session):
+    log("fetching Sleeper NFL players")
     data = get_json(session, f"{BASE}/players/nfl", retries=5)
     rows = []
     for player_id, player in data.items():
@@ -205,6 +229,7 @@ def main():
     session = requests.Session()
     session.headers.update({"User-Agent": "WAR-LAB-Sleeper-ADP/1.0"})
 
+    log(f"starting Sleeper ADP ingest for season {args.season}")
     players = fetch_players(session)
     leagues, league_users = discover_leagues(
         session,
@@ -218,10 +243,12 @@ def main():
     if leagues.empty:
         raise RuntimeError("No Sleeper leagues discovered.")
 
+    log(f"season {args.season}: fetching drafts from {len(leagues):,} leagues")
     drafts = fetch_drafts(session, leagues["league_id"].astype(str).tolist(), args.season, args.workers)
     if drafts.empty:
         raise RuntimeError("No Sleeper drafts discovered.")
 
+    log(f"season {args.season}: fetching picks from {len(drafts):,} drafts")
     picks = fetch_picks(session, drafts["draft_id"].astype(str).tolist(), args.workers)
     if picks.empty:
         raise RuntimeError("No Sleeper draft picks discovered.")
@@ -233,7 +260,7 @@ def main():
     write_parquet(drafts, raw / "drafts" / f"drafts_{args.season}.parquet")
     write_parquet(picks, raw / "picks" / f"picks_{args.season}.parquet")
     write_parquet(players, cache / "players_nfl.parquet")
-    print(f"wrote leagues={len(leagues):,} drafts={len(drafts):,} picks={len(picks):,} players={len(players):,}")
+    log(f"wrote leagues={len(leagues):,} drafts={len(drafts):,} picks={len(picks):,} players={len(players):,}")
 
 
 if __name__ == "__main__":

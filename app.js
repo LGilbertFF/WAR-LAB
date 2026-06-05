@@ -869,11 +869,12 @@ function adpScoringDistance(row, scoring) {
 }
 
 function adpLeaguePresetKey(row) {
+  const rookieKey = row.league_format === "dynasty" ? row.rookie_inclusion : "n/a";
   return [
     row.season,
     row.league_format,
     row.board_class,
-    row.rookie_inclusion,
+    rookieKey,
     row.type,
     row.md_scoring_type,
     row.st_teams,
@@ -952,7 +953,7 @@ function presetLineupText(preset) {
 
 function rookieInclusionLabel(value) {
   const label = String(value || "n/a");
-  return label === "n/a" ? "redraft" : label;
+  return label === "n/a" ? "" : label;
 }
 
 function presetScoringText(preset) {
@@ -971,7 +972,7 @@ function renderAdpLeaguePresets() {
     <button class="league-preset" type="button" data-preset-key="${escapeHtml(adpLeaguePresetKey(preset))}">
       <strong>${escapeHtml(scoringLabelFromType(preset.md_scoring_type))} ${String(preset.is_superflex).toLowerCase() === "true" ? "SF/2QB" : "1QB"}</strong>
       <span>${escapeHtml(presetLineupText(preset))}</span>
-      <span>${escapeHtml(preset.board_class)} - ${escapeHtml(rookieInclusionLabel(preset.rookie_inclusion))}</span>
+      <span>${escapeHtml(preset.league_format === "dynasty" && rookieInclusionLabel(preset.rookie_inclusion) ? `${preset.board_class} - ${rookieInclusionLabel(preset.rookie_inclusion)}` : preset.board_class)}</span>
       <span>${escapeHtml(presetScoringText(preset))}</span>
       <em>${fmt(preset.players, 0)} players - ${fmt(preset.draftObs, 0)} observations</em>
     </button>
@@ -1022,6 +1023,7 @@ function filteredAdpRows() {
   const config = adpSettings();
   return state.customAdpRows.filter((row) => {
     if (number(row.season) !== config.season) return false;
+    if (String(row.position || row.md_pos || "").toUpperCase() === "K") return false;
     if (config.leagueFormat !== "all" && row.league_format !== config.leagueFormat) return false;
     if (config.boardType !== "all" && row.board_class !== config.boardType) return false;
     if (config.draftType !== "all" && row.type !== config.draftType) return false;
@@ -1078,7 +1080,7 @@ function customAdpBoard() {
     item.min_pick = Math.min(item.min_pick, number(row.min_pick, item.min_pick));
     item.max_pick = Math.max(item.max_pick, number(row.max_pick, item.max_pick));
     item.dates.add(row.start_date);
-    item.rookieInclusions.add(rookieInclusionLabel(row.rookie_inclusion));
+    if (row.league_format === "dynasty") item.rookieInclusions.add(rookieInclusionLabel(row.rookie_inclusion));
   }
 
   const rows = [...grouped.values()]
@@ -1088,7 +1090,7 @@ function customAdpBoard() {
       compatibility: item.compatibilityTotal / Math.max(item.picks || item.drafts, 1),
       min_pick: item.min_pick === Number.POSITIVE_INFINITY ? null : item.min_pick,
       max_pick: item.max_pick || null,
-      rookie_inclusion: [...item.rookieInclusions].sort().join(", "),
+      rookie_inclusion: [...item.rookieInclusions].filter(Boolean).sort().join(", "),
       dates: item.dates.size
     }))
     .filter((item) => item.drafts >= config.minDrafts)
@@ -1209,7 +1211,6 @@ function renderAdpTable(rows) {
       </td>
       <td><span class="pos-pill pos-${row.position}">${escapeHtml(row.position)}</span></td>
       <td>${escapeHtml(row.team || "-")}</td>
-      <td>${escapeHtml(row.rookie_inclusion || "-")}</td>
       <td>${fmt(row.adp, 1)}</td>
       <td>${fmt(row.drafts, 0)}</td>
       <td>${fmt(row.picks, 0)}</td>
@@ -1217,7 +1218,7 @@ function renderAdpTable(rows) {
       <td>${fmt(row.max_pick, 0)}</td>
       <td class="${row.trend === null ? "" : row.trend <= 0 ? "value-pos" : "value-neg"}">${row.trend === null ? "-" : `${row.trend > 0 ? "+" : ""}${fmt(row.trend, 1)}`}</td>
     </tr>
-    ${row.player_id === state.selectedAdpPlayer ? `<tr class="player-detail-row"><td colspan="11">${renderAdpPlayerDetail(row)}</td></tr>` : ""}
+    ${row.player_id === state.selectedAdpPlayer ? `<tr class="player-detail-row"><td colspan="10">${renderAdpPlayerDetail(row)}</td></tr>` : ""}
   `).join("");
 }
 
@@ -1230,7 +1231,6 @@ function renderAdpPlayerDetail(selected) {
           <p class="eyebrow">ADP profile</p>
           <h2>${escapeHtml(selected.full_name)}</h2>
           <p class="muted">${escapeHtml(selected.team || "-")} - <span class="pos-pill pos-${selected.position}">${escapeHtml(selected.position)}</span> - ${escapeHtml(selected.league_format)} ${escapeHtml(selected.board_class)}</p>
-          <p class="muted">Dynasty setup: ${escapeHtml(selected.rookie_inclusion || "-")}</p>
         </div>
       </div>
       <div class="player-stats adp-card-stats">

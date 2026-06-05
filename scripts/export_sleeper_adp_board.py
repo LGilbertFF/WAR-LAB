@@ -12,7 +12,7 @@ DEFAULT_RAW = ROOT / "raw"
 DEFAULT_PLAYERS = ROOT / "cache" / "players_nfl.parquet"
 DEFAULT_OUT = Path("data/custom_adp_board.csv")
 
-PLAYER_POSITIONS = ["QB", "RB", "WR", "TE", "K"]
+PLAYER_POSITIONS = ["QB", "RB", "WR", "TE"]
 KEEP_DRAFT_TYPES = ["snake", "linear"]
 KEEP_TEAMS = list(range(4, 33))
 
@@ -213,6 +213,7 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     draft_flags.loc[draft_flags["has_rookie_players"] & draft_flags["has_rookie_picks"], "rookie_inclusion"] = "rookies + picks"
     merged = merged.merge(draft_flags[["draft_id", "rookie_inclusion"]], on="draft_id", how="left")
     merged["rookie_inclusion"] = merged["rookie_inclusion"].fillna("n/a")
+    merged.loc[merged["league_format"] != "dynasty", "rookie_inclusion"] = "n/a"
 
     group_cols = [
         "season",
