@@ -801,15 +801,16 @@ summary::marker {
 .adp-player-cell {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 7px;
 }
 
 .adp-row-headshot {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
   object-fit: cover;
   object-position: 50% 12%;
+  border-radius: 50%;
   border: 1px solid var(--line);
   background: rgba(240, 240, 240, 0.08);
 }
