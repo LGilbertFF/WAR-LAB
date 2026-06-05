@@ -758,7 +758,7 @@ function adpSettings() {
     rounds: "all",
     startDate: el("adpStartDate")?.value || "",
     endDate: el("adpEndDate")?.value || "",
-    minDrafts: number(el("adpMinDrafts")?.value, 1),
+    minDrafts: number(el("adpMinDrafts")?.value, 5),
     query: String(el("adpSearch")?.value || "").trim().toLowerCase(),
     slots: cfg.slots,
     scoringValues: cfg.scoring
