@@ -14,7 +14,7 @@ DEFAULT_OUT = Path("data/custom_adp_board.csv")
 
 PLAYER_POSITIONS = ["QB", "RB", "WR", "TE", "K"]
 KEEP_DRAFT_TYPES = ["snake", "linear"]
-KEEP_TEAMS = [8, 10, 12, 14, 16]
+KEEP_TEAMS = list(range(4, 33))
 
 
 def safe_ms_datetime(ms: pd.Series) -> pd.Series:
@@ -52,6 +52,14 @@ def draft_class(row: pd.Series) -> str:
     return "redraft"
 
 
+def rookie_pick_label(pick_no: pd.Series, teams: pd.Series) -> pd.Series:
+    pick_no = pd.to_numeric(pick_no, errors="coerce").fillna(0).astype(int)
+    teams = pd.to_numeric(teams, errors="coerce").fillna(12).astype(int).clip(lower=1)
+    rookie_round = ((pick_no - 1) // teams) + 1
+    rookie_slot = ((pick_no - 1) % teams) + 1
+    return rookie_round.astype(str) + "." + rookie_slot.astype(str).str.zfill(2)
+
+
 def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     drafts_path = raw_dir / "drafts" / f"drafts_{season}.parquet"
     picks_path = raw_dir / "picks" / f"picks_{season}.parquet"
@@ -65,7 +73,7 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     drafts = drafts[drafts["draft_status"].astype(str).str.lower().eq("complete")].copy()
     drafts = drafts[drafts["type"].isin(KEEP_DRAFT_TYPES)].copy()
     drafts = drafts[drafts["st_teams"].isin(KEEP_TEAMS)].copy()
-    drafts = drafts[drafts["st_rounds"].between(4, 35)].copy()
+    drafts = drafts[drafts["st_rounds"].between(1, 60)].copy()
 
     drafts["start_dt"] = safe_ms_datetime(drafts["start_time"])
     drafts = drafts[drafts["start_dt"].notna()].copy()
@@ -147,7 +155,20 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
         *defaults.keys(),
     ]
     merged = picks.merge(drafts[draft_cols], on="draft_id", how="inner")
-    merged = merged[merged["md_pos"].isin(PLAYER_POSITIONS)].copy()
+    is_early_kicker_placeholder = (
+        (merged["league_format"] == "dynasty")
+        & (merged["board_class"] == "startup")
+        & (merged["md_pos"] == "K")
+        & (pd.to_numeric(merged["round"], errors="coerce") < 4)
+    )
+    labels = rookie_pick_label(merged.loc[is_early_kicker_placeholder, "pick_no"], merged.loc[is_early_kicker_placeholder, "st_teams"])
+    merged.loc[is_early_kicker_placeholder, "player_id"] = "ROOKIE_PICK_" + labels
+    merged.loc[is_early_kicker_placeholder, "md_first_name"] = "Rookie Pick"
+    merged.loc[is_early_kicker_placeholder, "md_last_name"] = labels
+    merged.loc[is_early_kicker_placeholder, "md_team"] = "PICK"
+    merged.loc[is_early_kicker_placeholder, "md_pos"] = "RDP"
+
+    merged = merged[merged["md_pos"].isin(PLAYER_POSITIONS + ["RDP"])].copy()
     merged["md_team"] = merged["md_team"].replace("", pd.NA)
     merged = merged.merge(players, on="player_id", how="left")
     merged["full_name"] = merged["full_name"].fillna(
@@ -155,6 +176,11 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     )
     merged["position"] = merged["position"].fillna(merged["md_pos"])
     merged["team"] = merged["team"].fillna(merged["md_team"])
+    rdp_mask = merged["md_pos"] == "RDP"
+    rdp_labels = merged.loc[rdp_mask, "player_id"].str.replace("ROOKIE_PICK_", "", regex=False)
+    merged.loc[rdp_mask, "full_name"] = "Rookie Pick " + rdp_labels
+    merged.loc[rdp_mask, "position"] = "RDP"
+    merged.loc[rdp_mask, "team"] = "PICK"
     player_team = (
         merged[merged["team"].notna()]
         .groupby("player_id")["team"]
@@ -162,6 +188,31 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     )
     merged["team"] = merged["team"].fillna(merged["player_id"].map(player_team)).fillna("FA")
     merged["headshot_url"] = "https://sleepercdn.com/content/nfl/players/" + merged["player_id"].astype(str) + ".jpg"
+    merged.loc[rdp_mask, "headshot_url"] = ""
+
+    rookie_player_mask = (
+        (merged["league_format"] == "dynasty")
+        & (merged["board_class"] == "startup")
+        & (merged["position"] != "RDP")
+        & pd.to_numeric(merged.get("years_exp", 99), errors="coerce").fillna(99).eq(0)
+    )
+    rookie_pick_mask = (merged["league_format"] == "dynasty") & (merged["board_class"] == "startup") & (merged["position"] == "RDP")
+    draft_flags = (
+        pd.DataFrame({
+            "draft_id": merged["draft_id"],
+            "has_rookie_players": rookie_player_mask,
+            "has_rookie_picks": rookie_pick_mask,
+        })
+        .groupby("draft_id", dropna=False)
+        .agg(has_rookie_players=("has_rookie_players", "max"), has_rookie_picks=("has_rookie_picks", "max"))
+        .reset_index()
+    )
+    draft_flags["rookie_inclusion"] = "neither"
+    draft_flags.loc[draft_flags["has_rookie_players"] & ~draft_flags["has_rookie_picks"], "rookie_inclusion"] = "rookie players"
+    draft_flags.loc[~draft_flags["has_rookie_players"] & draft_flags["has_rookie_picks"], "rookie_inclusion"] = "rookie picks"
+    draft_flags.loc[draft_flags["has_rookie_players"] & draft_flags["has_rookie_picks"], "rookie_inclusion"] = "rookies + picks"
+    merged = merged.merge(draft_flags[["draft_id", "rookie_inclusion"]], on="draft_id", how="left")
+    merged["rookie_inclusion"] = merged["rookie_inclusion"].fillna("n/a")
 
     group_cols = [
         "season",
@@ -173,6 +224,7 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
         "headshot_url",
         "league_format",
         "board_class",
+        "rookie_inclusion",
         "type",
         "md_scoring_type",
         "scoring_bucket",
@@ -236,6 +288,7 @@ def export_adp_board(raw_dir: Path, players_path: Path, out_path: Path, season: 
         "headshot_url",
         "league_format",
         "board_class",
+        "rookie_inclusion",
         "type",
         "md_scoring_type",
         "scoring_bucket",
