@@ -798,6 +798,22 @@ summary::marker {
   min-width: 940px;
 }
 
+.adp-player-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.adp-row-headshot {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  object-fit: cover;
+  object-position: 50% 12%;
+  border: 1px solid var(--line);
+  background: rgba(240, 240, 240, 0.08);
+}
+
 .position-filter {
   display: flex;
   align-items: center;

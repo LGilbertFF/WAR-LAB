@@ -1191,7 +1191,12 @@ function renderAdpTable(rows) {
   body.innerHTML = limited.map((row) => `
     <tr data-adp-player="${escapeHtml(row.player_id)}" class="${row.player_id === state.selectedAdpPlayer ? "selected-row" : ""}">
       <td>${fmt(row.rank, 0)}</td>
-      <td><strong>${escapeHtml(row.full_name)}</strong></td>
+      <td>
+        <div class="adp-player-cell">
+          <img class="adp-row-headshot" src="${escapeHtml(row.headshot_url)}" alt="" loading="lazy" onerror="this.style.display='none'">
+          <strong>${escapeHtml(row.full_name)}</strong>
+        </div>
+      </td>
       <td><span class="pos-pill pos-${row.position}">${escapeHtml(row.position)}</span></td>
       <td>${escapeHtml(row.team || "-")}</td>
       <td>${fmt(row.adp, 1)}</td>
