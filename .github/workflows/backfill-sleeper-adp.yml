@@ -22,7 +22,15 @@ on:
       max_drafts_per_season:
         description: "Maximum eligible completed drafts to fetch picks for per season"
         required: true
-        default: "15000"
+        default: "5000"
+      draft_start_date:
+        description: "Optional draft date window start, YYYY-MM-DD"
+        required: false
+        default: ""
+      draft_end_date:
+        description: "Optional draft date window end, YYYY-MM-DD"
+        required: false
+        default: ""
       max_output_rows:
         description: "Fair cap for committed ADP CSV rows; 0 means no cap"
         required: true
@@ -57,6 +65,8 @@ jobs:
           --max-users-per-step 2500
           --max-leagues-per-season "${{ inputs.max_leagues_per_season }}"
           --max-drafts-per-season "${{ inputs.max_drafts_per_season }}"
+          --draft-start-date "${{ inputs.draft_start_date }}"
+          --draft-end-date "${{ inputs.draft_end_date }}"
           --workers 16
 
       - name: Export historical ADP Lab data
@@ -69,6 +79,8 @@ jobs:
           --out data/custom_adp_board.csv
           --append-existing
           --max-output-rows "${{ inputs.max_output_rows }}"
+          --replace-start-date "${{ inputs.draft_start_date }}"
+          --replace-end-date "${{ inputs.draft_end_date }}"
 
       - name: Commit historical Sleeper ADP data
         uses: stefanzweifel/git-auto-commit-action@v5

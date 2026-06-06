@@ -37,7 +37,20 @@ def numeric_column(df: pd.DataFrame, cols: list[str], default=0) -> pd.Series:
     return pd.to_numeric(first_existing_column(df, cols, default), errors="coerce").fillna(default)
 
 
-def eligible_drafts(drafts: pd.DataFrame, max_drafts: int = 0) -> pd.DataFrame:
+def draft_datetime(drafts: pd.DataFrame) -> pd.Series:
+    values = numeric_column(drafts, ["start_time", "created", "last_picked"], pd.NA)
+    lower = pd.Timestamp("2010-01-01", tz="UTC").value // 1_000_000
+    upper = pd.Timestamp("2036-12-31", tz="UTC").value // 1_000_000
+    values = values.mask((values < lower) | (values > upper))
+    return pd.to_datetime(values, unit="ms", utc=True, errors="coerce")
+
+
+def eligible_drafts(
+    drafts: pd.DataFrame,
+    max_drafts: int = 0,
+    draft_start_date: str = "",
+    draft_end_date: str = "",
+) -> pd.DataFrame:
     if drafts.empty:
         return drafts
     out = drafts.copy()
@@ -45,6 +58,7 @@ def eligible_drafts(drafts: pd.DataFrame, max_drafts: int = 0) -> pd.DataFrame:
     draft_type = first_existing_column(out, ["type", "draft_type"], "").astype(str).str.lower()
     teams = numeric_column(out, ["st_teams", "settings.teams", "metadata.teams"], 0)
     rounds = numeric_column(out, ["st_rounds", "settings.rounds", "metadata.rounds"], 0)
+    dates = draft_datetime(out)
 
     mask = (
         status.eq("complete")
@@ -52,6 +66,10 @@ def eligible_drafts(drafts: pd.DataFrame, max_drafts: int = 0) -> pd.DataFrame:
         & teams.between(4, 32)
         & rounds.between(1, 60)
     )
+    if draft_start_date:
+        mask &= dates.ge(pd.Timestamp(draft_start_date, tz="UTC"))
+    if draft_end_date:
+        mask &= dates.lt(pd.Timestamp(draft_end_date, tz="UTC") + pd.Timedelta(days=1))
     out = out[mask].copy()
     if max_drafts > 0 and len(out) > max_drafts:
         sort_col = "start_time" if "start_time" in out.columns else "created" if "created" in out.columns else None
@@ -258,6 +276,8 @@ def main():
     parser.add_argument("--max-users-per-step", type=int, default=2500)
     parser.add_argument("--max-leagues", type=int, default=60000)
     parser.add_argument("--max-drafts", type=int, default=0)
+    parser.add_argument("--draft-start-date", default="")
+    parser.add_argument("--draft-end-date", default="")
     parser.add_argument("--seed-user", action="append", default=[])
     args = parser.parse_args()
 
@@ -283,7 +303,7 @@ def main():
     drafts = fetch_drafts(session, leagues["league_id"].astype(str).tolist(), args.season, args.workers)
     if drafts.empty:
         raise RuntimeError("No Sleeper drafts discovered.")
-    eligible = eligible_drafts(drafts, args.max_drafts)
+    eligible = eligible_drafts(drafts, args.max_drafts, args.draft_start_date, args.draft_end_date)
     log(f"season {args.season}: eligible completed snake/linear drafts={len(eligible):,}/{len(drafts):,}")
     if eligible.empty:
         raise RuntimeError("No eligible Sleeper drafts discovered.")

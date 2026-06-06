@@ -335,6 +335,8 @@ def export_adp_board(
     seasons: list[int],
     append_existing: bool = False,
     max_output_rows: int = 0,
+    replace_start_date: str = "",
+    replace_end_date: str = "",
 ) -> pd.DataFrame:
     frames = []
     for season in seasons:
@@ -419,9 +421,16 @@ def export_adp_board(
         existing = pd.read_csv(out_path)
         if "season" in existing.columns:
             refresh_seasons = set(pd.to_numeric(out["season"], errors="coerce").dropna().astype(int).tolist())
-            existing = existing[
-                ~pd.to_numeric(existing["season"], errors="coerce").isin(refresh_seasons)
-            ].copy()
+            existing_season = pd.to_numeric(existing["season"], errors="coerce").isin(refresh_seasons)
+            replace_mask = existing_season
+            if replace_start_date or replace_end_date:
+                existing_dates = pd.to_datetime(existing.get("start_date"), errors="coerce")
+                replace_mask = existing_season
+                if replace_start_date:
+                    replace_mask &= existing_dates.ge(pd.Timestamp(replace_start_date))
+                if replace_end_date:
+                    replace_mask &= existing_dates.le(pd.Timestamp(replace_end_date))
+            existing = existing[~replace_mask].copy()
             out = pd.concat([existing, out], ignore_index=True)
 
     out = fair_limit_rows(out, max_output_rows)
@@ -445,6 +454,8 @@ def main() -> None:
     parser.add_argument("--end-season", type=int)
     parser.add_argument("--append-existing", action="store_true", help="Keep other seasons already in the output CSV.")
     parser.add_argument("--max-output-rows", type=int, default=0, help="Fairly cap rows across season and league-type groups.")
+    parser.add_argument("--replace-start-date", default="", help="When appending, replace only existing rows on/after this draft date.")
+    parser.add_argument("--replace-end-date", default="", help="When appending, replace only existing rows on/before this draft date.")
     args = parser.parse_args()
 
     seasons = season_range(args.season, args.start_season, args.end_season)
@@ -455,6 +466,8 @@ def main() -> None:
         seasons,
         append_existing=args.append_existing,
         max_output_rows=args.max_output_rows,
+        replace_start_date=args.replace_start_date,
+        replace_end_date=args.replace_end_date,
     )
     print(f"wrote {args.out} rows={len(out):,} cols={len(out.columns)}")
 
