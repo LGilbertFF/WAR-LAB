@@ -14,7 +14,7 @@ on:
       expansion_steps:
         description: "League discovery expansion steps"
         required: true
-        default: "2"
+        default: "1"
       max_leagues_per_season:
         description: "Maximum leagues to discover per season"
         required: true

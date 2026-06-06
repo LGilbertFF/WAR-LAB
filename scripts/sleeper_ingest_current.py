@@ -185,7 +185,7 @@ def discover_leagues(session, seed_users, season, workers, expansion_steps, max_
         all_leagues.append(new_leagues)
         seen_leagues.update(new_leagues["league_id"].astype(str).tolist())
         log(f"season {season}: found {len(new_leagues):,} new leagues, total={len(seen_leagues):,}")
-        if len(seen_leagues) >= max_leagues:
+        if len(seen_leagues) >= max_leagues or _step >= expansion_steps:
             break
 
         users = fetch_users_for_leagues(session, new_leagues["league_id"].astype(str).tolist(), workers)
@@ -210,12 +210,32 @@ def fetch_drafts(session, league_ids, season, workers):
             continue
         league_id = url.split("/league/")[1].split("/drafts")[0]
         for draft in data:
-            draft["league_id"] = draft.get("league_id") or league_id
-            draft["season"] = draft.get("season") or str(season)
-            rows.append(draft)
+            settings = draft.get("settings") or {}
+            metadata = draft.get("metadata") or {}
+            rows.append({
+                "draft_id": draft.get("draft_id"),
+                "league_id": draft.get("league_id") or league_id,
+                "season": draft.get("season") or str(season),
+                "status": draft.get("status"),
+                "type": draft.get("type"),
+                "start_time": draft.get("start_time"),
+                "created": draft.get("created"),
+                "last_picked": draft.get("last_picked"),
+                "settings.teams": settings.get("teams"),
+                "settings.rounds": settings.get("rounds"),
+                "settings.slots_qb": settings.get("slots_qb"),
+                "settings.slots_rb": settings.get("slots_rb"),
+                "settings.slots_wr": settings.get("slots_wr"),
+                "settings.slots_te": settings.get("slots_te"),
+                "settings.slots_flex": settings.get("slots_flex"),
+                "settings.slots_super_flex": settings.get("slots_super_flex"),
+                "metadata.scoring_type": metadata.get("scoring_type"),
+            })
     if not rows:
         return pd.DataFrame()
-    return pd.json_normalize(rows).drop_duplicates(subset=["draft_id"])
+    out = pd.DataFrame(rows)
+    log(f"season {season}: normalized {len(out):,} draft rows")
+    return out.drop_duplicates(subset=["draft_id"])
 
 
 def fetch_picks(session, draft_ids, workers):
