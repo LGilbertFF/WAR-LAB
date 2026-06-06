@@ -32,7 +32,7 @@ jobs:
           --expansion-steps 1
           --max-users-per-step 1500
           --max-leagues 25000
-          --max-drafts 15000
+          --max-drafts 20000
           --workers 16
 
       - name: Export ADP Lab data

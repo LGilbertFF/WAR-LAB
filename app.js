@@ -796,6 +796,32 @@ function updateAdpScoringOptions() {
   else select.value = format === "dynasty" ? "dynasty_2qb" : "ppr";
 }
 
+function updateAdpDateControlsForSeason(force = false) {
+  const season = number(el("adpSeason")?.value, settings().year);
+  const dates = uniqueSorted(state.customAdpRows
+    .filter((row) => number(row.season) === season)
+    .map((row) => row.start_date));
+  const start = el("adpStartDate");
+  const end = el("adpEndDate");
+  if (!dates.length) {
+    if (start) start.value = "";
+    if (end) end.value = "";
+    return;
+  }
+  const defaultStart = dates[Math.max(0, dates.length - 31)] || dates[0];
+  const defaultEnd = dates[dates.length - 1];
+  if (start) {
+    start.min = dates[0];
+    start.max = defaultEnd;
+    if (force || !start.value || start.value < dates[0] || start.value > defaultEnd) start.value = defaultStart;
+  }
+  if (end) {
+    end.min = dates[0];
+    end.max = defaultEnd;
+    if (force || !end.value || end.value < dates[0] || end.value > defaultEnd) end.value = defaultEnd;
+  }
+}
+
 function syncAdpFromWarSettings() {
   const cfg = settings();
   const isTwoQb = cfg.slots.SUPERFLEX > 0 || cfg.slots.QB > 1;
@@ -929,6 +955,31 @@ function adpLeaguePresets(limit = 10) {
       players: item.playerIds.size,
       dateCount: item.dates.size
     }));
+}
+
+function renderAdpSeasonSummary() {
+  const box = el("adpSeasonSummary");
+  if (!box) return;
+  const season = number(el("adpSeason")?.value, settings().year);
+  const rows = state.customAdpRows.filter((row) => number(row.season) === season);
+  if (!rows.length) {
+    box.textContent = `No Sleeper ADP rows loaded for ${season}.`;
+    return;
+  }
+  const dates = uniqueSorted(rows.map((row) => row.start_date));
+  const formats = rows.reduce((acc, row) => {
+    const key = row.league_format || "unknown";
+    if (!acc[key]) acc[key] = { rows: 0, drafts: 0, players: new Set() };
+    acc[key].rows += 1;
+    acc[key].drafts += number(row.drafts, 0);
+    acc[key].players.add(row.player_id);
+    return acc;
+  }, {});
+  const formatText = Object.entries(formats)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([format, item]) => `${format}: ${fmt(item.drafts, 0)} observations, ${fmt(item.players.size, 0)} players`)
+    .join(" | ");
+  box.textContent = `${season} dataset: ${dates[0] || "unknown"} to ${dates[dates.length - 1] || "unknown"} | ${formatText}`;
 }
 
 function scoringLabelFromType(type) {
@@ -1148,6 +1199,7 @@ function renderAdpLab() {
   const copy = adpTitle(rows);
   if (el("adpChartTitle")) el("adpChartTitle").textContent = copy.title;
   if (el("adpChartSubtitle")) el("adpChartSubtitle").textContent = copy.subtitle;
+  renderAdpSeasonSummary();
   renderAdpLeaguePresets();
   renderAdpSummary(rows);
   renderAdpTrendChart(rows, copy);
@@ -1914,6 +1966,10 @@ function bindEvents() {
     syncAdpFromWarSettings();
     scheduleRender(0);
   });
+  el("adpSeason")?.addEventListener("change", () => {
+    updateAdpDateControlsForSeason(true);
+    scheduleRender(0);
+  });
   el("adpScoring")?.addEventListener("change", () => {
     applyAdpTwoQbHint();
     scheduleRender(0);
@@ -2023,19 +2079,9 @@ function populateAdpControls() {
   updateAdpScoringOptions();
   const rows = state.customAdpRows;
   const seasons = uniqueSorted(rows.map((row) => row.season), true);
-  const dates = uniqueSorted(rows.map((row) => row.start_date));
   const currentYear = settings().year;
   selectOptions("adpSeason", seasons.length ? seasons : [currentYear], seasons.includes(String(currentYear)) || seasons.includes(currentYear) ? currentYear : seasons[seasons.length - 1] || currentYear);
-  if (el("adpStartDate") && dates.length) {
-    el("adpStartDate").min = dates[0];
-    el("adpStartDate").max = dates[dates.length - 1];
-    el("adpStartDate").value = dates[Math.max(0, dates.length - 31)] || dates[0];
-  }
-  if (el("adpEndDate") && dates.length) {
-    el("adpEndDate").min = dates[0];
-    el("adpEndDate").max = dates[dates.length - 1];
-    el("adpEndDate").value = dates[dates.length - 1];
-  }
+  updateAdpDateControlsForSeason(true);
 }
 
 initControls();

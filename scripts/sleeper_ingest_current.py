@@ -72,10 +72,25 @@ def eligible_drafts(
         mask &= dates.lt(pd.Timestamp(draft_end_date, tz="UTC") + pd.Timedelta(days=1))
     out = out[mask].copy()
     if max_drafts > 0 and len(out) > max_drafts:
+        scoring_type = first_existing_column(out, ["md_scoring_type", "metadata.scoring_type", "metadata.scoring"], "").astype(str)
+        out["_league_format"] = scoring_type.str.startswith("dynasty").map({True: "dynasty", False: "redraft"})
         sort_col = "start_time" if "start_time" in out.columns else "created" if "created" in out.columns else None
         if sort_col:
             out = out.sort_values(sort_col, ascending=False)
-        out = out.head(max_drafts).copy()
+        capped = []
+        groups = list(out["_league_format"].dropna().unique())
+        quota = max(1, max_drafts // max(1, len(groups)))
+        for _format, group in out.groupby("_league_format", sort=False):
+            capped.append(group.head(quota))
+        selected = pd.concat(capped, ignore_index=True) if capped else out.head(0)
+        if len(selected) < max_drafts:
+            remaining_ids = set(selected["draft_id"].astype(str))
+            extra = out[~out["draft_id"].astype(str).isin(remaining_ids)].head(max_drafts - len(selected))
+            selected = pd.concat([selected, extra], ignore_index=True)
+        out = selected.drop(columns=["_league_format"], errors="ignore").copy()
+    scoring_type = first_existing_column(out, ["md_scoring_type", "metadata.scoring_type", "metadata.scoring"], "").astype(str)
+    format_counts = scoring_type.str.startswith("dynasty").map({True: "dynasty", False: "redraft"}).value_counts().to_dict()
+    log(f"eligible draft format mix after cap: {format_counts}")
     return out
 
 

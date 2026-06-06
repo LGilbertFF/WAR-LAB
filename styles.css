@@ -745,6 +745,28 @@ summary::marker {
   text-transform: uppercase;
 }
 
+.adp-season-bar {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+  margin: 12px 0;
+  padding: 12px;
+  background: rgba(240, 240, 240, 0.08);
+  border: 1px solid var(--line);
+}
+
+.adp-season-bar label {
+  margin: 0;
+}
+
+.adp-season-bar p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
 .adp-workspace {
   display: grid;
   gap: 14px;
