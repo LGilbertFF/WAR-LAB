@@ -26,6 +26,41 @@ def chunks(items, size: int):
         yield items[start:start + size]
 
 
+def first_existing_column(df: pd.DataFrame, cols: list[str], default=None) -> pd.Series:
+    for col in cols:
+        if col in df.columns:
+            return df[col]
+    return pd.Series(default, index=df.index)
+
+
+def numeric_column(df: pd.DataFrame, cols: list[str], default=0) -> pd.Series:
+    return pd.to_numeric(first_existing_column(df, cols, default), errors="coerce").fillna(default)
+
+
+def eligible_drafts(drafts: pd.DataFrame, max_drafts: int = 0) -> pd.DataFrame:
+    if drafts.empty:
+        return drafts
+    out = drafts.copy()
+    status = first_existing_column(out, ["draft_status", "status"], "").astype(str).str.lower()
+    draft_type = first_existing_column(out, ["type", "draft_type"], "").astype(str).str.lower()
+    teams = numeric_column(out, ["st_teams", "settings.teams", "metadata.teams"], 0)
+    rounds = numeric_column(out, ["st_rounds", "settings.rounds", "metadata.rounds"], 0)
+
+    mask = (
+        status.eq("complete")
+        & draft_type.isin(["snake", "linear"])
+        & teams.between(4, 32)
+        & rounds.between(1, 60)
+    )
+    out = out[mask].copy()
+    if max_drafts > 0 and len(out) > max_drafts:
+        sort_col = "start_time" if "start_time" in out.columns else "created" if "created" in out.columns else None
+        if sort_col:
+            out = out.sort_values(sort_col, ascending=False)
+        out = out.head(max_drafts).copy()
+    return out
+
+
 def get_json(session: requests.Session, url: str, retries: int = 4):
     last_error = None
     for attempt in range(retries):
@@ -222,6 +257,7 @@ def main():
     parser.add_argument("--expansion-steps", type=int, default=2)
     parser.add_argument("--max-users-per-step", type=int, default=2500)
     parser.add_argument("--max-leagues", type=int, default=60000)
+    parser.add_argument("--max-drafts", type=int, default=0)
     parser.add_argument("--seed-user", action="append", default=[])
     args = parser.parse_args()
 
@@ -247,9 +283,13 @@ def main():
     drafts = fetch_drafts(session, leagues["league_id"].astype(str).tolist(), args.season, args.workers)
     if drafts.empty:
         raise RuntimeError("No Sleeper drafts discovered.")
+    eligible = eligible_drafts(drafts, args.max_drafts)
+    log(f"season {args.season}: eligible completed snake/linear drafts={len(eligible):,}/{len(drafts):,}")
+    if eligible.empty:
+        raise RuntimeError("No eligible Sleeper drafts discovered.")
 
-    log(f"season {args.season}: fetching picks from {len(drafts):,} drafts")
-    picks = fetch_picks(session, drafts["draft_id"].astype(str).tolist(), args.workers)
+    log(f"season {args.season}: fetching picks from {len(eligible):,} eligible drafts")
+    picks = fetch_picks(session, eligible["draft_id"].astype(str).tolist(), args.workers)
     if picks.empty:
         raise RuntimeError("No Sleeper draft picks discovered.")
 
@@ -257,10 +297,10 @@ def main():
     cache = args.out_dir / "cache"
     write_parquet(leagues, raw / "leagues" / f"leagues_{args.season}.parquet")
     write_parquet(league_users, raw / "league_users" / f"league_users_{args.season}.parquet")
-    write_parquet(drafts, raw / "drafts" / f"drafts_{args.season}.parquet")
+    write_parquet(eligible, raw / "drafts" / f"drafts_{args.season}.parquet")
     write_parquet(picks, raw / "picks" / f"picks_{args.season}.parquet")
     write_parquet(players, cache / "players_nfl.parquet")
-    log(f"wrote leagues={len(leagues):,} drafts={len(drafts):,} picks={len(picks):,} players={len(players):,}")
+    log(f"wrote leagues={len(leagues):,} eligible_drafts={len(eligible):,} picks={len(picks):,} players={len(players):,}")
 
 
 if __name__ == "__main__":

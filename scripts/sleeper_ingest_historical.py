@@ -6,6 +6,7 @@ import requests
 from sleeper_ingest_current import (
     DEFAULT_SEED_USERS,
     discover_leagues,
+    eligible_drafts,
     fetch_drafts,
     fetch_picks,
     fetch_players,
@@ -40,9 +41,14 @@ def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
     if drafts.empty:
         log(f"season {season}: no drafts discovered")
         return
+    eligible = eligible_drafts(drafts, args.max_drafts_per_season)
+    log(f"season {season}: eligible completed snake/linear drafts={len(eligible):,}/{len(drafts):,}")
+    if eligible.empty:
+        log(f"season {season}: no eligible drafts discovered")
+        return
 
-    log(f"season {season}: fetching picks from {len(drafts):,} drafts")
-    picks = fetch_picks(session, drafts["draft_id"].astype(str).tolist(), args.workers)
+    log(f"season {season}: fetching picks from {len(eligible):,} eligible drafts")
+    picks = fetch_picks(session, eligible["draft_id"].astype(str).tolist(), args.workers)
     if picks.empty:
         log(f"season {season}: no draft picks discovered")
         return
@@ -50,7 +56,7 @@ def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
     raw = args.out_dir / "raw"
     write_parquet(leagues, raw / "leagues" / f"leagues_{season}.parquet")
     write_parquet(league_users, raw / "league_users" / f"league_users_{season}.parquet")
-    write_parquet(drafts, raw / "drafts" / f"drafts_{season}.parquet")
+    write_parquet(eligible, raw / "drafts" / f"drafts_{season}.parquet")
     write_parquet(picks, raw / "picks" / f"picks_{season}.parquet")
     log(f"season {season}: wrote leagues={len(leagues):,} drafts={len(drafts):,} picks={len(picks):,}")
 
@@ -64,6 +70,7 @@ def main() -> None:
     parser.add_argument("--expansion-steps", type=int, default=2)
     parser.add_argument("--max-users-per-step", type=int, default=2500)
     parser.add_argument("--max-leagues-per-season", type=int, default=60000)
+    parser.add_argument("--max-drafts-per-season", type=int, default=25000)
     parser.add_argument("--seed-user", action="append", default=[])
     args = parser.parse_args()
 

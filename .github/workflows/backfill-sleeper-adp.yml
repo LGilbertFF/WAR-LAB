@@ -18,7 +18,11 @@ on:
       max_leagues_per_season:
         description: "Maximum leagues to discover per season"
         required: true
-        default: "60000"
+        default: "30000"
+      max_drafts_per_season:
+        description: "Maximum eligible completed drafts to fetch picks for per season"
+        required: true
+        default: "15000"
       max_output_rows:
         description: "Fair cap for committed ADP CSV rows; 0 means no cap"
         required: true
@@ -52,7 +56,8 @@ jobs:
           --expansion-steps "${{ inputs.expansion_steps }}"
           --max-users-per-step 2500
           --max-leagues-per-season "${{ inputs.max_leagues_per_season }}"
-          --workers 20
+          --max-drafts-per-season "${{ inputs.max_drafts_per_season }}"
+          --workers 16
 
       - name: Export historical ADP Lab data
         run: >
