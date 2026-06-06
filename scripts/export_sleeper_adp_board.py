@@ -42,6 +42,42 @@ def numeric_column(df: pd.DataFrame, col: str, default=0) -> pd.Series:
     return pd.to_numeric(df[col], errors="coerce").fillna(default)
 
 
+def first_existing_column(df: pd.DataFrame, cols: list[str], default=None) -> pd.Series:
+    for col in cols:
+        if col in df.columns:
+            return df[col]
+    return pd.Series(default, index=df.index)
+
+
+def ensure_column(df: pd.DataFrame, target: str, sources: list[str], default=None) -> None:
+    if target in df.columns:
+        return
+    df[target] = first_existing_column(df, sources, default)
+
+
+def normalize_draft_columns(drafts: pd.DataFrame, season: int) -> pd.DataFrame:
+    drafts = drafts.copy()
+    ensure_column(drafts, "draft_status", ["status"], "unknown")
+    ensure_column(drafts, "type", ["draft_type"], "")
+    ensure_column(drafts, "st_teams", ["settings.teams", "metadata.teams"], 0)
+    ensure_column(drafts, "st_rounds", ["settings.rounds", "metadata.rounds"], 0)
+    ensure_column(drafts, "st_slots_qb", ["settings.slots_qb"], 0)
+    ensure_column(drafts, "st_slots_rb", ["settings.slots_rb"], 0)
+    ensure_column(drafts, "st_slots_wr", ["settings.slots_wr"], 0)
+    ensure_column(drafts, "st_slots_te", ["settings.slots_te"], 0)
+    ensure_column(drafts, "st_slots_flex", ["settings.slots_flex"], 0)
+    ensure_column(drafts, "st_slots_super_flex", ["settings.slots_super_flex"], 0)
+    ensure_column(drafts, "md_scoring_type", ["metadata.scoring_type", "metadata.scoring"], "")
+    ensure_column(drafts, "start_time", ["created", "last_picked"], pd.NA)
+    ensure_column(drafts, "season", ["season"], season)
+
+    drafts["st_teams"] = numeric_column(drafts, "st_teams", 0).astype(int)
+    drafts["st_rounds"] = numeric_column(drafts, "st_rounds", 0).astype(int)
+    for col in ["st_slots_qb", "st_slots_rb", "st_slots_wr", "st_slots_te", "st_slots_flex", "st_slots_super_flex"]:
+        drafts[col] = numeric_column(drafts, col, 0).astype(int)
+    return drafts
+
+
 def draft_class(row: pd.Series) -> str:
     league_format = row.get("league_format")
     rounds = row.get("st_rounds")
@@ -65,7 +101,7 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     picks_path = raw_dir / "picks" / f"picks_{season}.parquet"
     leagues_path = raw_dir / "leagues" / f"leagues_{season}.parquet"
 
-    drafts = pd.read_parquet(drafts_path)
+    drafts = normalize_draft_columns(pd.read_parquet(drafts_path), season)
     picks = pd.read_parquet(picks_path)
     players = pd.read_parquet(players_path)
     leagues = pd.read_parquet(leagues_path) if leagues_path.exists() else pd.DataFrame()
