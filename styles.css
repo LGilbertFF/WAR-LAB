@@ -939,6 +939,22 @@ tbody tr.selected-row {
   font-weight: 900;
 }
 
+.adp-draft-cell {
+  display: grid;
+  gap: 2px;
+}
+
+.adp-draft-cell strong {
+  color: var(--white);
+}
+
+.adp-draft-cell span {
+  color: rgba(240, 240, 240, 0.68);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .pos-QB {
   background: #7aa6c2;
   border-color: #7aa6c2;

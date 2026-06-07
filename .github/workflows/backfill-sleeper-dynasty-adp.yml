@@ -1,4 +1,4 @@
-name: Backfill Historical Sleeper ADP
+name: Backfill Historical Sleeper Dynasty ADP
 
 on:
   workflow_dispatch:
@@ -16,22 +16,13 @@ on:
         required: true
         default: "1"
       max_leagues_per_season:
-        description: "Maximum leagues to discover per season"
+        description: "Maximum dynasty leagues to discover per season"
         required: true
         default: "30000"
       max_drafts_per_season:
-        description: "Maximum eligible completed drafts to fetch picks for per season"
+        description: "Maximum eligible completed dynasty drafts to fetch picks for per season"
         required: true
         default: "5000"
-      league_format:
-        description: "League format to backfill: all, redraft, or dynasty"
-        required: true
-        default: "all"
-        type: choice
-        options:
-          - all
-          - redraft
-          - dynasty
       draft_start_date:
         description: "Optional draft date window start, YYYY-MM-DD. Blank uses Jan 1 of each season."
         required: false
@@ -49,7 +40,7 @@ permissions:
   contents: write
 
 jobs:
-  backfill-sleeper-adp:
+  backfill-sleeper-dynasty-adp:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     env:
@@ -64,37 +55,35 @@ jobs:
       - name: Install ADP dependencies
         run: pip install -r scripts/requirements.txt
 
-      - name: Fetch historical Sleeper drafts
+      - name: Fetch historical dynasty Sleeper drafts
         run: >
           python scripts/sleeper_ingest_historical.py
           --start-season "${{ inputs.start_season }}"
           --end-season "${{ inputs.end_season }}"
-          --out-dir sleeper_work
+          --out-dir sleeper_dynasty_work
           --expansion-steps "${{ inputs.expansion_steps }}"
           --max-users-per-step 2500
           --max-leagues-per-season "${{ inputs.max_leagues_per_season }}"
           --max-drafts-per-season "${{ inputs.max_drafts_per_season }}"
-          --league-format "${{ inputs.league_format }}"
+          --league-format dynasty
           --draft-start-date "${{ inputs.draft_start_date }}"
           --draft-end-date "${{ inputs.draft_end_date }}"
           --workers 16
 
-      - name: Export historical ADP Lab data
+      - name: Export historical dynasty ADP Lab data
         run: >
           python scripts/export_sleeper_adp_board.py
           --start-season "${{ inputs.start_season }}"
           --end-season "${{ inputs.end_season }}"
-          --raw-dir sleeper_work/raw
-          --players sleeper_work/cache/players_nfl.parquet
+          --raw-dir sleeper_dynasty_work/raw
+          --players sleeper_dynasty_work/cache/players_nfl.parquet
           --out data/custom_adp_board.csv
           --append-existing
           --merge-existing
           --max-output-rows "${{ inputs.max_output_rows }}"
-          --replace-start-date "${{ inputs.draft_start_date }}"
-          --replace-end-date "${{ inputs.draft_end_date }}"
 
-      - name: Commit historical Sleeper ADP data
+      - name: Commit historical dynasty Sleeper ADP data
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Backfill historical Sleeper ADP data"
+          commit_message: "Backfill historical Sleeper dynasty ADP data"
           file_pattern: data/custom_adp_board.csv

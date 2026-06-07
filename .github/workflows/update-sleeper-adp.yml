@@ -1,4 +1,4 @@
-name: Update Sleeper ADP Lab Data
+name: Update Sleeper Dynasty ADP Lab Data
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  update-sleeper-adp:
+  update-sleeper-dynasty-adp:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -24,11 +24,13 @@ jobs:
       - name: Install ADP dependencies
         run: pip install -r scripts/requirements.txt
 
-      - name: Fetch current Sleeper drafts
+      - name: Fetch current dynasty Sleeper drafts
         run: >
           python scripts/sleeper_ingest_current.py
           --season 2026
-          --out-dir sleeper_work
+          --out-dir sleeper_dynasty_work
+          --league-format dynasty
+          --seen-leagues data/sleeper_seen_dynasty_leagues.csv
           --expansion-steps 1
           --max-users-per-step 1500
           --max-leagues 25000
@@ -39,13 +41,14 @@ jobs:
         run: >
           python scripts/export_sleeper_adp_board.py
           --season 2026
-          --raw-dir sleeper_work/raw
-          --players sleeper_work/cache/players_nfl.parquet
+          --raw-dir sleeper_dynasty_work/raw
+          --players sleeper_dynasty_work/cache/players_nfl.parquet
           --out data/custom_adp_board.csv
           --append-existing
+          --merge-existing
 
-      - name: Commit updated Sleeper ADP data
+      - name: Commit updated Sleeper dynasty ADP data
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Update Sleeper ADP data"
-          file_pattern: data/custom_adp_board.csv
+          commit_message: "Update Sleeper dynasty ADP data"
+          file_pattern: data/custom_adp_board.csv data/sleeper_seen_dynasty_leagues.csv

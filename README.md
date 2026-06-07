@@ -59,15 +59,17 @@ The repository includes three GitHub Actions workflows:
 .github/workflows/update-sleeper-adp.yml
 .github/workflows/update-sleeper-redraft-adp.yml
 .github/workflows/backfill-sleeper-adp.yml
+.github/workflows/backfill-sleeper-redraft-adp.yml
+.github/workflows/backfill-sleeper-dynasty-adp.yml
 ```
 
 `deploy-pages.yml` publishes the static app to GitHub Pages whenever `main` changes. `update-current-data.yml` refreshes 2026 FantasyPros projections and ADP hourly and commits the generated CSVs. `build-historical-data.yml` is a manual one-time historical weekly scoring scrape that commits the historical export.
 
-`update-sleeper-adp.yml` refreshes current-season Sleeper ADP once per day. It preserves other seasons already in `data/custom_adp_board.csv`, so historical backfills do not get erased by the daily 2026 scrape.
+`update-sleeper-adp.yml` refreshes current-season Sleeper dynasty ADP once per day. It tracks `data/sleeper_seen_dynasty_leagues.csv`, skips leagues already included, and merges new rows into `data/custom_adp_board.csv`.
 
 `update-sleeper-redraft-adp.yml` runs a separate redraft-only expansion. It uses a tracked `data/sleeper_seen_redraft_leagues.csv` cache so repeat runs can skip leagues already included and spend more time looking for new redraft leagues. It also merges new redraft rows into `data/custom_adp_board.csv` instead of replacing the season.
 
-`backfill-sleeper-adp.yml` is a manual historical Sleeper ADP pull. In GitHub, open `Actions` -> `Backfill Historical Sleeper ADP` -> `Run workflow`, then choose the start season, end season, discovery size, and max committed output rows. The workflow scrapes broad raw Sleeper league/draft/pick data by season, exports ADP rows, and commits them into `data/custom_adp_board.csv`. The default output cap is deterministic and fair across season and league-type groups to keep the GitHub Pages payload practical.
+`backfill-sleeper-adp.yml` is a manual historical Sleeper ADP pull with a league-format selector. Blank date inputs use January 1 through December 31 of each season, so early-year drafts are included by default. `backfill-sleeper-redraft-adp.yml` and `backfill-sleeper-dynasty-adp.yml` are separate fixed-format historical searches for when you want to build those pools independently. The default output cap is deterministic and fair across season and league-type groups to keep the GitHub Pages payload practical.
 
 ## Generated Inputs
 

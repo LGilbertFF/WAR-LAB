@@ -41,11 +41,14 @@ def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
     if drafts.empty:
         log(f"season {season}: no drafts discovered")
         return
+    draft_start_date = args.draft_start_date or f"{season}-01-01"
+    draft_end_date = args.draft_end_date or f"{season}-12-31"
     eligible = eligible_drafts(
         drafts,
         args.max_drafts_per_season,
-        args.draft_start_date,
-        args.draft_end_date,
+        draft_start_date,
+        draft_end_date,
+        args.league_format,
     )
     log(f"season {season}: eligible completed snake/linear drafts={len(eligible):,}/{len(drafts):,}")
     if eligible.empty:
@@ -78,6 +81,7 @@ def main() -> None:
     parser.add_argument("--max-drafts-per-season", type=int, default=5000)
     parser.add_argument("--draft-start-date", default="")
     parser.add_argument("--draft-end-date", default="")
+    parser.add_argument("--league-format", choices=["all", "redraft", "dynasty"], default="all")
     parser.add_argument("--seed-user", action="append", default=[])
     args = parser.parse_args()
 

@@ -1266,15 +1266,19 @@ function renderAdpTable(rows) {
       </td>
       <td><span class="pos-pill pos-${row.position}">${escapeHtml(row.position)}</span></td>
       <td>${escapeHtml(row.team || "-")}</td>
-      <td>${row.bestball === "true" ? "Yes" : "No"}</td>
       <td>${fmt(row.adp, 1)}</td>
-      <td>${fmt(row.drafts, 0)}</td>
+      <td>
+        <div class="adp-draft-cell">
+          <strong>${fmt(row.drafts, 0)}</strong>
+          <span>${row.bestball === "true" ? "Bestball" : "Managed"}</span>
+        </div>
+      </td>
       <td>${fmt(row.picks, 0)}</td>
       <td>${fmt(row.min_pick, 0)}</td>
       <td>${fmt(row.max_pick, 0)}</td>
       <td class="${row.trend === null ? "" : row.trend <= 0 ? "value-pos" : "value-neg"}">${row.trend === null ? "-" : `${row.trend > 0 ? "+" : ""}${fmt(row.trend, 1)}`}</td>
     </tr>
-    ${row.player_id === state.selectedAdpPlayer ? `<tr class="player-detail-row"><td colspan="11">${renderAdpPlayerDetail(row)}</td></tr>` : ""}
+    ${row.player_id === state.selectedAdpPlayer ? `<tr class="player-detail-row"><td colspan="10">${renderAdpPlayerDetail(row)}</td></tr>` : ""}
   `).join("");
 }
 
@@ -1286,13 +1290,13 @@ function renderAdpPlayerDetail(selected) {
         <div>
           <p class="eyebrow">ADP profile</p>
           <h2>${escapeHtml(selected.full_name)}</h2>
-          <p class="muted">${escapeHtml(selected.team || "-")} - <span class="pos-pill pos-${selected.position}">${escapeHtml(selected.position)}</span> - ${escapeHtml(selected.league_format)} ${escapeHtml(selected.board_class)}${selected.bestball === "true" ? " - bestball" : ""}</p>
+          <p class="muted">${escapeHtml(selected.team || "-")} - <span class="pos-pill pos-${selected.position}">${escapeHtml(selected.position)}</span> - ${escapeHtml(selected.league_format)} ${escapeHtml(selected.board_class)}</p>
         </div>
       </div>
       <div class="player-stats adp-card-stats">
         <div><span>Rank</span><strong>${fmt(selected.rank, 0)}</strong></div>
         <div><span>ADP</span><strong>${fmt(selected.adp, 1)}</strong></div>
-        <div><span>Drafts</span><strong>${fmt(selected.drafts, 0)}</strong></div>
+        <div><span>Drafts</span><strong>${fmt(selected.drafts, 0)} ${selected.bestball === "true" ? "BB" : "Managed"}</strong></div>
         <div><span>Picks</span><strong>${fmt(selected.picks, 0)}</strong></div>
         <div><span>Min pick</span><strong>${fmt(selected.min_pick, 0)}</strong></div>
         <div><span>Max pick</span><strong>${fmt(selected.max_pick, 0)}</strong></div>
