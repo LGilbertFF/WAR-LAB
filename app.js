@@ -912,6 +912,7 @@ function adpLeaguePresetKey(row) {
     row.slots_flex,
     row.slots_superflex,
     row.is_superflex,
+    row.bestball,
     row.score_rec,
     row.score_te_premium,
     row.score_rec_yd,
@@ -999,7 +1000,8 @@ function scoringLabelFromType(type) {
 }
 
 function presetLineupText(preset) {
-  return `${fmt(preset.st_teams, 0)} teams - ${fmt(preset.slots_qb, 0)}QB/${fmt(preset.slots_rb, 0)}RB/${fmt(preset.slots_wr, 0)}WR/${fmt(preset.slots_te, 0)}TE/${fmt(preset.slots_flex, 0)}Flex/${fmt(preset.slots_superflex, 0)}SF`;
+  const bestball = String(preset.bestball).toLowerCase() === "true" ? " - Bestball" : "";
+  return `${fmt(preset.st_teams, 0)} teams - ${fmt(preset.slots_qb, 0)}QB/${fmt(preset.slots_rb, 0)}RB/${fmt(preset.slots_wr, 0)}WR/${fmt(preset.slots_te, 0)}TE/${fmt(preset.slots_flex, 0)}Flex/${fmt(preset.slots_superflex, 0)}SF${bestball}`;
 }
 
 function rookieInclusionLabel(value) {
@@ -1106,6 +1108,7 @@ function customAdpBoard() {
         headshot_url: row.headshot_url || "",
         league_format: row.league_format || "",
         board_class: row.board_class || "",
+        bestball: String(row.bestball).toLowerCase() === "true" ? "true" : "false",
         rookieInclusions: new Set(),
         drafts: 0,
         picks: 0,
@@ -1263,6 +1266,7 @@ function renderAdpTable(rows) {
       </td>
       <td><span class="pos-pill pos-${row.position}">${escapeHtml(row.position)}</span></td>
       <td>${escapeHtml(row.team || "-")}</td>
+      <td>${row.bestball === "true" ? "Yes" : "No"}</td>
       <td>${fmt(row.adp, 1)}</td>
       <td>${fmt(row.drafts, 0)}</td>
       <td>${fmt(row.picks, 0)}</td>
@@ -1270,7 +1274,7 @@ function renderAdpTable(rows) {
       <td>${fmt(row.max_pick, 0)}</td>
       <td class="${row.trend === null ? "" : row.trend <= 0 ? "value-pos" : "value-neg"}">${row.trend === null ? "-" : `${row.trend > 0 ? "+" : ""}${fmt(row.trend, 1)}`}</td>
     </tr>
-    ${row.player_id === state.selectedAdpPlayer ? `<tr class="player-detail-row"><td colspan="10">${renderAdpPlayerDetail(row)}</td></tr>` : ""}
+    ${row.player_id === state.selectedAdpPlayer ? `<tr class="player-detail-row"><td colspan="11">${renderAdpPlayerDetail(row)}</td></tr>` : ""}
   `).join("");
 }
 
@@ -1282,7 +1286,7 @@ function renderAdpPlayerDetail(selected) {
         <div>
           <p class="eyebrow">ADP profile</p>
           <h2>${escapeHtml(selected.full_name)}</h2>
-          <p class="muted">${escapeHtml(selected.team || "-")} - <span class="pos-pill pos-${selected.position}">${escapeHtml(selected.position)}</span> - ${escapeHtml(selected.league_format)} ${escapeHtml(selected.board_class)}</p>
+          <p class="muted">${escapeHtml(selected.team || "-")} - <span class="pos-pill pos-${selected.position}">${escapeHtml(selected.position)}</span> - ${escapeHtml(selected.league_format)} ${escapeHtml(selected.board_class)}${selected.bestball === "true" ? " - bestball" : ""}</p>
         </div>
       </div>
       <div class="player-stats adp-card-stats">
@@ -1303,7 +1307,7 @@ function renderAdpPlayerDetail(selected) {
 function exportAdpBoard() {
   const rows = customAdpBoard();
   if (!rows.length) return;
-  const cols = ["rank", "full_name", "position", "team", "adp", "drafts", "picks", "min_pick", "max_pick", "trend", "league_format", "board_class", "rookie_inclusion", "player_id"];
+  const cols = ["rank", "full_name", "position", "team", "bestball", "adp", "drafts", "picks", "min_pick", "max_pick", "trend", "league_format", "board_class", "rookie_inclusion", "player_id"];
   const csv = [
     cols.join(","),
     ...rows.map((row) => cols.map((col) => JSON.stringify(row[col] ?? "")).join(","))

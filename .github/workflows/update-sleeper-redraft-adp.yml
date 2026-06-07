@@ -1,0 +1,63 @@
+name: Update Sleeper Redraft ADP Expansion
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_leagues:
+        description: "Maximum newly discovered leagues to inspect"
+        required: true
+        default: "75000"
+      max_drafts:
+        description: "Maximum eligible redraft drafts to fetch picks for"
+        required: true
+        default: "30000"
+  schedule:
+    - cron: "17 10 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  update-sleeper-redraft-adp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ADP dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Fetch redraft-only Sleeper drafts
+        run: >
+          python scripts/sleeper_ingest_current.py
+          --season 2026
+          --out-dir sleeper_redraft_work
+          --league-format redraft
+          --seen-leagues data/sleeper_seen_redraft_leagues.csv
+          --expansion-steps 2
+          --max-users-per-step 3000
+          --max-leagues "${{ inputs.max_leagues || '75000' }}"
+          --max-drafts "${{ inputs.max_drafts || '30000' }}"
+          --workers 16
+
+      - name: Merge redraft ADP Lab data
+        run: >
+          python scripts/export_sleeper_adp_board.py
+          --season 2026
+          --raw-dir sleeper_redraft_work/raw
+          --players sleeper_redraft_work/cache/players_nfl.parquet
+          --out data/custom_adp_board.csv
+          --append-existing
+          --merge-existing
+
+      - name: Commit expanded redraft Sleeper ADP data
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Expand Sleeper redraft ADP data"
+          file_pattern: data/custom_adp_board.csv data/sleeper_seen_redraft_leagues.csv

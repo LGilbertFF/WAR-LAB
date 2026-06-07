@@ -68,6 +68,7 @@ def normalize_draft_columns(drafts: pd.DataFrame, season: int) -> pd.DataFrame:
     ensure_column(drafts, "st_slots_flex", ["settings.slots_flex"], 0)
     ensure_column(drafts, "st_slots_super_flex", ["settings.slots_super_flex"], 0)
     ensure_column(drafts, "md_scoring_type", ["metadata.scoring_type", "metadata.scoring"], "")
+    ensure_column(drafts, "bestball", ["metadata.best_ball", "settings.best_ball", "metadata.bestball", "settings.bestball"], False)
     ensure_column(drafts, "start_time", ["created", "last_picked"], pd.NA)
     ensure_column(drafts, "season", ["season"], season)
 
@@ -119,6 +120,7 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     )
     drafts["board_class"] = drafts.apply(draft_class, axis=1)
     drafts["scoring_bucket"] = drafts["md_scoring_type"].map(scoring_bucket)
+    drafts["bestball"] = drafts["bestball"].astype(str).str.lower().isin(["true", "1", "yes"])
     drafts["is_superflex"] = (
         numeric_column(drafts, "st_slots_super_flex", 0).gt(0)
         | drafts["md_scoring_type"].astype(str).str.contains("2qb|superflex", case=False, na=False)
@@ -188,6 +190,7 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
         "st_slots_flex",
         "st_slots_super_flex",
         "is_superflex",
+        "bestball",
         *defaults.keys(),
     ]
     merged = picks.merge(drafts[draft_cols], on="draft_id", how="inner")
@@ -274,6 +277,7 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
         "st_slots_flex",
         "st_slots_super_flex",
         "is_superflex",
+        "bestball",
         *defaults.keys(),
     ]
     out = (
@@ -337,6 +341,7 @@ def export_adp_board(
     max_output_rows: int = 0,
     replace_start_date: str = "",
     replace_end_date: str = "",
+    merge_existing: bool = False,
 ) -> pd.DataFrame:
     frames = []
     for season in seasons:
@@ -375,6 +380,8 @@ def export_adp_board(
         out[col] = pd.to_numeric(out[col], errors="coerce").fillna(0).astype(int)
     out["adp"] = pd.to_numeric(out["adp"], errors="coerce").round(2)
     out["is_superflex"] = out["is_superflex"].astype(str).str.lower()
+    if "bestball" in out.columns:
+        out["bestball"] = out["bestball"].astype(str).str.lower()
 
     cols = [
         "season",
@@ -399,6 +406,7 @@ def export_adp_board(
         "slots_flex",
         "slots_superflex",
         "is_superflex",
+        "bestball",
         "score_rec",
         "score_te_premium",
         "score_rec_yd",
@@ -420,18 +428,26 @@ def export_adp_board(
     if append_existing and out_path.exists():
         existing = pd.read_csv(out_path)
         if "season" in existing.columns:
-            refresh_seasons = set(pd.to_numeric(out["season"], errors="coerce").dropna().astype(int).tolist())
-            existing_season = pd.to_numeric(existing["season"], errors="coerce").isin(refresh_seasons)
-            replace_mask = existing_season
-            if replace_start_date or replace_end_date:
-                existing_dates = pd.to_datetime(existing.get("start_date"), errors="coerce")
+            if not merge_existing:
+                refresh_seasons = set(pd.to_numeric(out["season"], errors="coerce").dropna().astype(int).tolist())
+                existing_season = pd.to_numeric(existing["season"], errors="coerce").isin(refresh_seasons)
                 replace_mask = existing_season
-                if replace_start_date:
-                    replace_mask &= existing_dates.ge(pd.Timestamp(replace_start_date))
-                if replace_end_date:
-                    replace_mask &= existing_dates.le(pd.Timestamp(replace_end_date))
-            existing = existing[~replace_mask].copy()
+                if replace_start_date or replace_end_date:
+                    existing_dates = pd.to_datetime(existing.get("start_date"), errors="coerce")
+                    replace_mask = existing_season
+                    if replace_start_date:
+                        replace_mask &= existing_dates.ge(pd.Timestamp(replace_start_date))
+                    if replace_end_date:
+                        replace_mask &= existing_dates.le(pd.Timestamp(replace_end_date))
+                existing = existing[~replace_mask].copy()
             out = pd.concat([existing, out], ignore_index=True)
+            dedupe_cols = [col for col in [
+                "season", "start_date", "player_id", "league_format", "board_class", "rookie_inclusion",
+                "type", "md_scoring_type", "st_teams", "st_rounds", "slots_qb", "slots_rb",
+                "slots_wr", "slots_te", "slots_flex", "slots_superflex", "is_superflex", "bestball"
+            ] if col in out.columns]
+            if dedupe_cols:
+                out = out.drop_duplicates(subset=dedupe_cols, keep="last")
 
     out = fair_limit_rows(out, max_output_rows)
 
@@ -456,6 +472,7 @@ def main() -> None:
     parser.add_argument("--max-output-rows", type=int, default=0, help="Fairly cap rows across season and league-type groups.")
     parser.add_argument("--replace-start-date", default="", help="When appending, replace only existing rows on/after this draft date.")
     parser.add_argument("--replace-end-date", default="", help="When appending, replace only existing rows on/before this draft date.")
+    parser.add_argument("--merge-existing", action="store_true", help="Append/merge new rows without replacing existing season rows.")
     args = parser.parse_args()
 
     seasons = season_range(args.season, args.start_season, args.end_season)
@@ -468,6 +485,7 @@ def main() -> None:
         max_output_rows=args.max_output_rows,
         replace_start_date=args.replace_start_date,
         replace_end_date=args.replace_end_date,
+        merge_existing=args.merge_existing,
     )
     print(f"wrote {args.out} rows={len(out):,} cols={len(out.columns)}")
 

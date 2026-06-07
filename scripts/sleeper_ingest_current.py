@@ -26,6 +26,27 @@ def chunks(items, size: int):
         yield items[start:start + size]
 
 
+def read_seen_ids(path: Path) -> set[str]:
+    if not path or not path.exists():
+        return set()
+    try:
+        df = pd.read_csv(path, dtype=str)
+    except Exception:
+        return set()
+    if "league_id" not in df.columns:
+        return set()
+    return set(df["league_id"].dropna().astype(str))
+
+
+def write_seen_ids(path: Path, league_ids) -> None:
+    if not path:
+        return
+    existing = read_seen_ids(path)
+    combined = sorted(existing | set(pd.Series(league_ids, dtype="object").dropna().astype(str)))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame({"league_id": combined}).to_csv(path, index=False)
+
+
 def first_existing_column(df: pd.DataFrame, cols: list[str], default=None) -> pd.Series:
     for col in cols:
         if col in df.columns:
@@ -50,6 +71,7 @@ def eligible_drafts(
     max_drafts: int = 0,
     draft_start_date: str = "",
     draft_end_date: str = "",
+    league_format: str = "all",
 ) -> pd.DataFrame:
     if drafts.empty:
         return drafts
@@ -59,6 +81,8 @@ def eligible_drafts(
     teams = numeric_column(out, ["st_teams", "settings.teams", "metadata.teams"], 0)
     rounds = numeric_column(out, ["st_rounds", "settings.rounds", "metadata.rounds"], 0)
     dates = draft_datetime(out)
+    scoring_type = first_existing_column(out, ["md_scoring_type", "metadata.scoring_type", "metadata.scoring"], "").astype(str)
+    formats = scoring_type.str.startswith("dynasty").map({True: "dynasty", False: "redraft"})
 
     mask = (
         status.eq("complete")
@@ -66,6 +90,8 @@ def eligible_drafts(
         & teams.between(4, 32)
         & rounds.between(1, 60)
     )
+    if league_format != "all":
+        mask &= formats.eq(league_format)
     if draft_start_date:
         mask &= dates.ge(pd.Timestamp(draft_start_date, tz="UTC"))
     if draft_end_date:
@@ -245,6 +271,8 @@ def fetch_drafts(session, league_ids, season, workers):
                 "settings.slots_flex": settings.get("slots_flex"),
                 "settings.slots_super_flex": settings.get("slots_super_flex"),
                 "metadata.scoring_type": metadata.get("scoring_type"),
+                "metadata.best_ball": metadata.get("best_ball"),
+                "settings.best_ball": settings.get("best_ball"),
             })
     if not rows:
         return pd.DataFrame()
@@ -313,6 +341,8 @@ def main():
     parser.add_argument("--max-drafts", type=int, default=0)
     parser.add_argument("--draft-start-date", default="")
     parser.add_argument("--draft-end-date", default="")
+    parser.add_argument("--league-format", choices=["all", "redraft", "dynasty"], default="all")
+    parser.add_argument("--seen-leagues", type=Path)
     parser.add_argument("--seed-user", action="append", default=[])
     args = parser.parse_args()
 
@@ -333,12 +363,19 @@ def main():
     )
     if leagues.empty:
         raise RuntimeError("No Sleeper leagues discovered.")
+    seen_ids = read_seen_ids(args.seen_leagues) if args.seen_leagues else set()
+    if seen_ids and "league_id" in leagues.columns:
+        before = len(leagues)
+        leagues = leagues[~leagues["league_id"].astype(str).isin(seen_ids)].copy()
+        log(f"season {args.season}: skipped {before - len(leagues):,} previously included leagues, remaining={len(leagues):,}")
+    if leagues.empty:
+        raise RuntimeError("No new Sleeper leagues left after seen-league filtering.")
 
     log(f"season {args.season}: fetching drafts from {len(leagues):,} leagues")
     drafts = fetch_drafts(session, leagues["league_id"].astype(str).tolist(), args.season, args.workers)
     if drafts.empty:
         raise RuntimeError("No Sleeper drafts discovered.")
-    eligible = eligible_drafts(drafts, args.max_drafts, args.draft_start_date, args.draft_end_date)
+    eligible = eligible_drafts(drafts, args.max_drafts, args.draft_start_date, args.draft_end_date, args.league_format)
     log(f"season {args.season}: eligible completed snake/linear drafts={len(eligible):,}/{len(drafts):,}")
     if eligible.empty:
         raise RuntimeError("No eligible Sleeper drafts discovered.")
@@ -355,6 +392,8 @@ def main():
     write_parquet(eligible, raw / "drafts" / f"drafts_{args.season}.parquet")
     write_parquet(picks, raw / "picks" / f"picks_{args.season}.parquet")
     write_parquet(players, cache / "players_nfl.parquet")
+    if args.seen_leagues and "league_id" in eligible.columns:
+        write_seen_ids(args.seen_leagues, eligible["league_id"])
     log(f"wrote leagues={len(leagues):,} eligible_drafts={len(eligible):,} picks={len(picks):,} players={len(players):,}")
 
 
