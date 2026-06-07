@@ -46,6 +46,7 @@ jobs:
           --out data/custom_adp_board.csv
           --append-existing
           --merge-existing
+          --max-output-mb 90
 
       - name: Commit updated Sleeper dynasty ADP data
         uses: stefanzweifel/git-auto-commit-action@v5

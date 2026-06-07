@@ -34,7 +34,11 @@ on:
       max_output_rows:
         description: "Fair cap for committed ADP CSV rows; 0 means no cap"
         required: true
-        default: "750000"
+        default: "500000"
+      max_output_mb:
+        description: "Hard safety cap for committed ADP CSV size in MB"
+        required: true
+        default: "90"
 
 permissions:
   contents: write
@@ -81,6 +85,7 @@ jobs:
           --append-existing
           --merge-existing
           --max-output-rows "${{ inputs.max_output_rows }}"
+          --max-output-mb "${{ inputs.max_output_mb }}"
 
       - name: Commit historical dynasty Sleeper ADP data
         uses: stefanzweifel/git-auto-commit-action@v5

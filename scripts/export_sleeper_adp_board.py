@@ -332,6 +332,44 @@ def fair_limit_rows(df: pd.DataFrame, max_rows: int) -> pd.DataFrame:
     return limited
 
 
+def sort_output(df: pd.DataFrame) -> pd.DataFrame:
+    sort_cols = [
+        "season",
+        "start_date",
+        "league_format",
+        "board_class",
+        "type",
+        "md_scoring_type",
+        "st_teams",
+        "st_rounds",
+        "adp",
+    ]
+    return df.sort_values([col for col in sort_cols if col in df.columns])
+
+
+def fit_csv_size(df: pd.DataFrame, max_output_mb: float) -> tuple[pd.DataFrame, str]:
+    if max_output_mb <= 0:
+        return df, df.to_csv(index=False)
+
+    max_bytes = int(max_output_mb * 1024 * 1024)
+    current = df
+    while True:
+        csv_text = current.to_csv(index=False)
+        size = len(csv_text.encode("utf-8"))
+        if size <= max_bytes or len(current) <= 1:
+            return current, csv_text
+
+        ratio = max_bytes / max(1, size)
+        target_rows = max(1, int(len(current) * ratio * 0.97))
+        if target_rows >= len(current):
+            target_rows = len(current) - 1
+        print(
+            f"CSV is {size / 1024 / 1024:.2f} MB; trimming from {len(current):,} to {target_rows:,} rows "
+            f"to stay under {max_output_mb:.1f} MB"
+        )
+        current = sort_output(fair_limit_rows(current, target_rows))
+
+
 def export_adp_board(
     raw_dir: Path,
     players_path: Path,
@@ -342,6 +380,7 @@ def export_adp_board(
     replace_start_date: str = "",
     replace_end_date: str = "",
     merge_existing: bool = False,
+    max_output_mb: float = 0,
 ) -> pd.DataFrame:
     frames = []
     for season in seasons:
@@ -451,12 +490,11 @@ def export_adp_board(
 
     out = fair_limit_rows(out, max_output_rows)
 
-    out = out.sort_values(
-        ["season", "start_date", "league_format", "board_class", "type", "md_scoring_type", "st_teams", "st_rounds", "adp"]
-    )
+    out = sort_output(out)
+    out, csv_text = fit_csv_size(out, max_output_mb)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out.to_csv(out_path, index=False)
+    out_path.write_text(csv_text, encoding="utf-8")
     return out
 
 
@@ -473,6 +511,7 @@ def main() -> None:
     parser.add_argument("--replace-start-date", default="", help="When appending, replace only existing rows on/after this draft date.")
     parser.add_argument("--replace-end-date", default="", help="When appending, replace only existing rows on/before this draft date.")
     parser.add_argument("--merge-existing", action="store_true", help="Append/merge new rows without replacing existing season rows.")
+    parser.add_argument("--max-output-mb", type=float, default=0, help="Trim rows fairly until the output CSV stays below this many MB; 0 disables.")
     args = parser.parse_args()
 
     seasons = season_range(args.season, args.start_season, args.end_season)
@@ -486,6 +525,7 @@ def main() -> None:
         replace_start_date=args.replace_start_date,
         replace_end_date=args.replace_end_date,
         merge_existing=args.merge_existing,
+        max_output_mb=args.max_output_mb,
     )
     print(f"wrote {args.out} rows={len(out):,} cols={len(out.columns)}")
 

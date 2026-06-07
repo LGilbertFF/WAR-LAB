@@ -69,7 +69,7 @@ The repository includes three GitHub Actions workflows:
 
 `update-sleeper-redraft-adp.yml` runs a separate redraft-only expansion. It uses a tracked `data/sleeper_seen_redraft_leagues.csv` cache so repeat runs can skip leagues already included and spend more time looking for new redraft leagues. It also merges new redraft rows into `data/custom_adp_board.csv` instead of replacing the season.
 
-`backfill-sleeper-adp.yml` is a manual historical Sleeper ADP pull with a league-format selector. Blank date inputs use January 1 through December 31 of each season, so early-year drafts are included by default. `backfill-sleeper-redraft-adp.yml` and `backfill-sleeper-dynasty-adp.yml` are separate fixed-format historical searches for when you want to build those pools independently. The default output cap is deterministic and fair across season and league-type groups to keep the GitHub Pages payload practical.
+`backfill-sleeper-adp.yml` is a manual historical Sleeper ADP pull with a league-format selector. Blank date inputs use January 1 through December 31 of each season, so early-year drafts are included by default. `backfill-sleeper-redraft-adp.yml` and `backfill-sleeper-dynasty-adp.yml` are separate fixed-format historical searches for when you want to build those pools independently. The default output caps are deterministic and fair across season and league-type groups, with a 90 MB CSV safety cap so GitHub does not reject the commit.
 
 ## Generated Inputs
 
