@@ -267,6 +267,14 @@
               </select>
             </label>
             <label>
+              Bestball
+              <select id="adpBestball">
+                <option value="all">All drafts</option>
+                <option value="false">Managed</option>
+                <option value="true">Bestball</option>
+              </select>
+            </label>
+            <label>
               Scoring
               <select id="adpScoring">
                 <option value="ppr">PPR</option>
@@ -314,6 +322,7 @@
           </div>
           <div class="adp-workspace">
             <div class="chart-panel">
+              <div id="adpDraftDistributionChart"></div>
               <div id="adpTrendChart"></div>
             </div>
             <div class="table-wrap adp-table-wrap">

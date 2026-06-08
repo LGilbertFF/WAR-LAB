@@ -777,6 +777,12 @@ summary::marker {
   height: 560px;
 }
 
+#adpDraftDistributionChart {
+  width: 100%;
+  height: 280px;
+  margin-bottom: 18px;
+}
+
 .adp-player-card {
   padding: 16px;
   background:

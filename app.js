@@ -752,6 +752,7 @@ function adpSettings() {
     leagueFormat: el("adpLeagueFormat")?.value || "redraft",
     boardType: el("adpBoardType")?.value || "all",
     draftType: el("adpDraftType")?.value || "snake",
+    bestball: el("adpBestball")?.value || "all",
     scoring: el("adpScoring")?.value || "ppr",
     superflex: isTwoQb ? "true" : "false",
     teams: String(cfg.teams),
@@ -808,7 +809,7 @@ function updateAdpDateControlsForSeason(force = false) {
     if (end) end.value = "";
     return;
   }
-  const defaultStart = dates[Math.max(0, dates.length - 31)] || dates[0];
+  const defaultStart = dates[0];
   const defaultEnd = dates[dates.length - 1];
   if (start) {
     start.min = dates[0];
@@ -1039,6 +1040,7 @@ function applyAdpLeaguePreset(key) {
   applyAdpFormatDefaults();
   if (el("adpBoardType")) el("adpBoardType").value = preset.board_class;
   if (el("adpDraftType")) el("adpDraftType").value = preset.type;
+  if (el("adpBestball")) el("adpBestball").value = String(preset.bestball).toLowerCase() === "true" ? "true" : "false";
   if (el("adpScoring")) el("adpScoring").value = preset.md_scoring_type;
 
   const assignments = {
@@ -1072,19 +1074,21 @@ function adpCompatibility(row, config) {
   return Math.max(0.25, 1 - slotPenalty - scoringPenalty);
 }
 
-function filteredAdpRows() {
+function filteredAdpRows(options = {}) {
   const config = adpSettings();
+  const ignoreDate = Boolean(options.ignoreDate);
   return state.customAdpRows.filter((row) => {
     if (number(row.season) !== config.season) return false;
     if (String(row.position || row.md_pos || "").toUpperCase() === "K") return false;
     if (config.leagueFormat !== "all" && row.league_format !== config.leagueFormat) return false;
     if (config.boardType !== "all" && row.board_class !== config.boardType) return false;
     if (config.draftType !== "all" && row.type !== config.draftType) return false;
+    if (config.bestball !== "all" && String(row.bestball).toLowerCase() !== config.bestball) return false;
     if (config.scoring !== "all" && row.md_scoring_type !== config.scoring) return false;
     if (config.superflex !== "all" && String(row.is_superflex).toLowerCase() !== config.superflex) return false;
     if (config.teams !== "all" && String(row.st_teams) !== config.teams) return false;
     if (config.rounds !== "all" && String(row.st_rounds) !== config.rounds) return false;
-    if (!dateInWindow(row.start_date, config.startDate, config.endDate)) return false;
+    if (!ignoreDate && !dateInWindow(row.start_date, config.startDate, config.endDate)) return false;
     return true;
   });
 }
@@ -1184,11 +1188,12 @@ function adpTitle(rows) {
   const format = config.leagueFormat === "all" ? "All Leagues" : config.leagueFormat === "dynasty" ? "Dynasty" : "Redraft";
   const board = config.boardType === "all" ? "ADP" : config.boardType === "rookie" ? "Rookie ADP" : config.boardType === "startup" ? "Startup ADP" : "Redraft ADP";
   const draftType = config.draftType === "all" ? "all draft types" : `${config.draftType} drafts`;
+  const bestball = config.bestball === "all" ? "managed and bestball" : config.bestball === "true" ? "bestball" : "managed";
   const dateText = `${config.startDate || "first available"} to ${config.endDate || "latest available"}`;
   const lineup = `${config.slots.QB}QB/${config.slots.RB}RB/${config.slots.WR}WR/${config.slots.TE}TE/${config.slots.FLEX}Flex/${config.slots.SUPERFLEX}SF`;
   return {
     title: `${config.season} Sleeper ${format} ${board}: ${qb}, ${scoring}`,
-    subtitle: `${draftType} - ${config.teams === "all" ? "all league sizes" : `${config.teams} teams`} - ${lineup} - ${config.rounds === "all" ? "all round counts" : `${config.rounds} rounds`} - ${dateText} - min ${config.minDrafts} drafts - ${rows.length} players`
+    subtitle: `${draftType} - ${bestball} - ${config.teams === "all" ? "all league sizes" : `${config.teams} teams`} - ${lineup} - ${config.rounds === "all" ? "all round counts" : `${config.rounds} rounds`} - ${dateText} - min ${config.minDrafts} drafts - ${rows.length} players`
   };
 }
 
@@ -1205,6 +1210,7 @@ function renderAdpLab() {
   renderAdpSeasonSummary();
   renderAdpLeaguePresets();
   renderAdpSummary(rows);
+  renderAdpDraftDistributionChart();
   renderAdpTrendChart(rows, copy);
   renderAdpTable(rows);
 }
@@ -1251,6 +1257,42 @@ function renderAdpTrendChart(rows, copy) {
   }, { responsive: true });
 }
 
+function renderAdpDraftDistributionChart() {
+  const chart = el("adpDraftDistributionChart");
+  if (!chart) return;
+  const config = adpSettings();
+  const rows = filteredAdpRows({ ignoreDate: true });
+  const byMonth = new Map();
+  for (const row of rows) {
+    const date = String(row.start_date || "");
+    if (date.length < 7) continue;
+    const month = date.slice(0, 7);
+    if (!byMonth.has(month)) byMonth.set(month, { drafts: 0, rows: 0 });
+    const item = byMonth.get(month);
+    item.drafts += number(row.drafts, 0);
+    item.rows += 1;
+  }
+  const months = [...byMonth.keys()].sort();
+  Plotly.react(chart, [{
+    type: "bar",
+    name: "Draft observations",
+    x: months,
+    y: months.map((month) => byMonth.get(month).drafts),
+    customdata: months.map((month) => byMonth.get(month).rows),
+    marker: { color: "#cc3333" },
+    hovertemplate: "%{x}<br>%{y:,} draft observations<br>%{customdata:,} ADP rows<extra></extra>"
+  }], {
+    title: { text: `${config.season} Draft Timing Distribution`, font: { color: "#f0f0f0", size: 16 } },
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0.18)",
+    font: { color: "#f0f0f0", family: "Mulish, sans-serif" },
+    margin: { t: 54, r: 18, b: 56, l: 62 },
+    xaxis: { title: "Draft month", gridcolor: "rgba(240,240,240,0.14)", color: "#f0f0f0" },
+    yaxis: { title: "Draft observations", gridcolor: "rgba(240,240,240,0.14)", color: "#f0f0f0" },
+    showlegend: false
+  }, { responsive: true });
+}
+
 function renderAdpTable(rows) {
   const body = el("adpBody");
   if (!body) return;
@@ -1267,12 +1309,7 @@ function renderAdpTable(rows) {
       <td><span class="pos-pill pos-${row.position}">${escapeHtml(row.position)}</span></td>
       <td>${escapeHtml(row.team || "-")}</td>
       <td>${fmt(row.adp, 1)}</td>
-      <td>
-        <div class="adp-draft-cell">
-          <strong>${fmt(row.drafts, 0)}</strong>
-          <span>${row.bestball === "true" ? "Bestball" : "Managed"}</span>
-        </div>
-      </td>
+      <td>${fmt(row.drafts, 0)}</td>
       <td>${fmt(row.picks, 0)}</td>
       <td>${fmt(row.min_pick, 0)}</td>
       <td>${fmt(row.max_pick, 0)}</td>
@@ -1296,7 +1333,7 @@ function renderAdpPlayerDetail(selected) {
       <div class="player-stats adp-card-stats">
         <div><span>Rank</span><strong>${fmt(selected.rank, 0)}</strong></div>
         <div><span>ADP</span><strong>${fmt(selected.adp, 1)}</strong></div>
-        <div><span>Drafts</span><strong>${fmt(selected.drafts, 0)} ${selected.bestball === "true" ? "BB" : "Managed"}</strong></div>
+        <div><span>Drafts</span><strong>${fmt(selected.drafts, 0)}</strong></div>
         <div><span>Picks</span><strong>${fmt(selected.picks, 0)}</strong></div>
         <div><span>Min pick</span><strong>${fmt(selected.min_pick, 0)}</strong></div>
         <div><span>Max pick</span><strong>${fmt(selected.max_pick, 0)}</strong></div>
