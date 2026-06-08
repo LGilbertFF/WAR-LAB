@@ -14,15 +14,15 @@ on:
       expansion_steps:
         description: "League discovery expansion steps"
         required: true
-        default: "1"
+        default: "3"
       max_leagues_per_season:
         description: "Maximum leagues to discover per season"
         required: true
-        default: "30000"
+        default: "300000"
       max_drafts_per_season:
         description: "Maximum eligible completed drafts to fetch picks for per season"
         required: true
-        default: "5000"
+        default: "500000"
       league_format:
         description: "League format to backfill: all, redraft, or dynasty"
         required: true
@@ -43,7 +43,7 @@ on:
       max_output_rows:
         description: "Fair cap for committed ADP CSV rows; 0 means no cap"
         required: true
-        default: "500000"
+        default: "0"
       max_output_mb:
         description: "Hard safety cap for committed ADP CSV size in MB"
         required: true

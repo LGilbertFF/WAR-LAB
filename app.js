@@ -979,7 +979,7 @@ function renderAdpSeasonSummary() {
   }, {});
   const formatText = Object.entries(formats)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([format, item]) => `${format}: ${fmt(item.drafts, 0)} observations, ${fmt(item.players.size, 0)} players`)
+    .map(([format, item]) => `${format}: ${fmt(item.drafts, 0)} drafts, ${fmt(item.players.size, 0)} players`)
     .join(" | ");
   box.textContent = `${season} dataset: ${dates[0] || "unknown"} to ${dates[dates.length - 1] || "unknown"} | ${formatText}`;
 }
@@ -1028,7 +1028,7 @@ function renderAdpLeaguePresets() {
       <span>${escapeHtml(presetLineupText(preset))}</span>
       <span>${escapeHtml(preset.league_format === "dynasty" && rookieInclusionLabel(preset.rookie_inclusion) ? `${preset.board_class} - ${rookieInclusionLabel(preset.rookie_inclusion)}` : preset.board_class)}</span>
       <span>${escapeHtml(presetScoringText(preset))}</span>
-      <em>${fmt(preset.players, 0)} players - ${fmt(preset.draftObs, 0)} observations</em>
+      <em>${fmt(preset.draftObs, 0)} drafts - ${fmt(preset.players, 0)} players</em>
     </button>
   `).join("");
 }
@@ -1267,20 +1267,20 @@ function renderAdpDraftDistributionChart() {
     const date = String(row.start_date || "");
     if (date.length < 7) continue;
     const month = date.slice(0, 7);
-    if (!byMonth.has(month)) byMonth.set(month, { drafts: 0, rows: 0 });
+    if (!byMonth.has(month)) byMonth.set(month, { drafts: 0, players: new Set() });
     const item = byMonth.get(month);
     item.drafts += number(row.drafts, 0);
-    item.rows += 1;
+    if (row.player_id) item.players.add(row.player_id);
   }
   const months = [...byMonth.keys()].sort();
   Plotly.react(chart, [{
     type: "bar",
-    name: "Draft observations",
+    name: "Drafts",
     x: months,
     y: months.map((month) => byMonth.get(month).drafts),
-    customdata: months.map((month) => byMonth.get(month).rows),
+    customdata: months.map((month) => byMonth.get(month).players.size),
     marker: { color: "#cc3333" },
-    hovertemplate: "%{x}<br>%{y:,} draft observations<br>%{customdata:,} ADP rows<extra></extra>"
+    hovertemplate: "%{x}<br>%{y:,} drafts<br>%{customdata:,} players<extra></extra>"
   }], {
     title: { text: `${config.season} Draft Timing Distribution`, font: { color: "#f0f0f0", size: 16 } },
     paper_bgcolor: "rgba(0,0,0,0)",
@@ -1288,7 +1288,7 @@ function renderAdpDraftDistributionChart() {
     font: { color: "#f0f0f0", family: "Mulish, sans-serif" },
     margin: { t: 54, r: 18, b: 56, l: 62 },
     xaxis: { title: "Draft month", gridcolor: "rgba(240,240,240,0.14)", color: "#f0f0f0" },
-    yaxis: { title: "Draft observations", gridcolor: "rgba(240,240,240,0.14)", color: "#f0f0f0" },
+    yaxis: { title: "Drafts", gridcolor: "rgba(240,240,240,0.14)", color: "#f0f0f0" },
     showlegend: false
   }, { responsive: true });
 }

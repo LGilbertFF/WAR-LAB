@@ -6,11 +6,11 @@ on:
       max_leagues:
         description: "Maximum newly discovered leagues to inspect"
         required: true
-        default: "75000"
+        default: "300000"
       max_drafts:
         description: "Maximum eligible redraft drafts to fetch picks for"
         required: true
-        default: "30000"
+        default: "500000"
   schedule:
     - cron: "17 10 * * *"
 
@@ -20,7 +20,7 @@ permissions:
 jobs:
   update-sleeper-redraft-adp:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 360
     env:
       PYTHONUNBUFFERED: "1"
     steps:
@@ -40,10 +40,10 @@ jobs:
           --out-dir sleeper_redraft_work
           --league-format redraft
           --seen-leagues data/sleeper_seen_redraft_leagues.csv
-          --expansion-steps 2
+          --expansion-steps 3
           --max-users-per-step 3000
-          --max-leagues "${{ inputs.max_leagues || '75000' }}"
-          --max-drafts "${{ inputs.max_drafts || '30000' }}"
+          --max-leagues "${{ inputs.max_leagues || '300000' }}"
+          --max-drafts "${{ inputs.max_drafts || '500000' }}"
           --workers 16
 
       - name: Merge redraft ADP Lab data

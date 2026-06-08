@@ -14,15 +14,15 @@ on:
       expansion_steps:
         description: "League discovery expansion steps"
         required: true
-        default: "1"
+        default: "3"
       max_leagues_per_season:
         description: "Maximum dynasty leagues to discover per season"
         required: true
-        default: "30000"
+        default: "300000"
       max_drafts_per_season:
         description: "Maximum eligible completed dynasty drafts to fetch picks for per season"
         required: true
-        default: "5000"
+        default: "500000"
       draft_start_date:
         description: "Optional draft date window start, YYYY-MM-DD. Blank uses Jan 1 of each season."
         required: false
@@ -34,7 +34,7 @@ on:
       max_output_rows:
         description: "Fair cap for committed ADP CSV rows; 0 means no cap"
         required: true
-        default: "500000"
+        default: "0"
       max_output_mb:
         description: "Hard safety cap for committed ADP CSV size in MB"
         required: true

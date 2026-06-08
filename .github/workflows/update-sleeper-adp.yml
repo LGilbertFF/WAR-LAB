@@ -11,7 +11,7 @@ permissions:
 jobs:
   update-sleeper-dynasty-adp:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 360
     env:
       PYTHONUNBUFFERED: "1"
     steps:
@@ -31,10 +31,10 @@ jobs:
           --out-dir sleeper_dynasty_work
           --league-format dynasty
           --seen-leagues data/sleeper_seen_dynasty_leagues.csv
-          --expansion-steps 1
-          --max-users-per-step 1500
-          --max-leagues 25000
-          --max-drafts 20000
+          --expansion-steps 3
+          --max-users-per-step 3000
+          --max-leagues 300000
+          --max-drafts 500000
           --workers 16
 
       - name: Export ADP Lab data
