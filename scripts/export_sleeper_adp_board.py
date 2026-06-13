@@ -280,11 +280,19 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
         "bestball",
         *defaults.keys(),
     ]
+    draft_group_cols = [col for col in group_cols if col != "player_id"]
+    draft_counts = (
+        merged.groupby(draft_group_cols, dropna=False)
+        .agg(sample_drafts=("draft_id", "nunique"))
+        .reset_index()
+    )
+
     out = (
         merged.groupby(group_cols, dropna=False)
         .agg(drafts=("draft_id", "nunique"), picks=("pick_no", "size"), adp=("pick_no", "mean"), min_pick=("pick_no", "min"), max_pick=("pick_no", "max"))
         .reset_index()
     )
+    out = out.merge(draft_counts, on=draft_group_cols, how="left")
     out = out[out["drafts"] >= 2].copy()
     return out
 
@@ -413,7 +421,7 @@ def export_adp_board(
     }
     out = out.rename(columns=rename)
 
-    int_cols = ["season", "st_teams", "st_rounds", "drafts", "picks", "min_pick", "max_pick"]
+    int_cols = ["season", "st_teams", "st_rounds", "drafts", "sample_drafts", "picks", "min_pick", "max_pick"]
     slot_cols = ["slots_qb", "slots_rb", "slots_wr", "slots_te", "slots_flex", "slots_superflex"]
     for col in int_cols + slot_cols:
         out[col] = pd.to_numeric(out[col], errors="coerce").fillna(0).astype(int)
@@ -457,6 +465,7 @@ def export_adp_board(
         "score_pass_int",
         "score_fum_lost",
         "drafts",
+        "sample_drafts",
         "picks",
         "adp",
         "min_pick",

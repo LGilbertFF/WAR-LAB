@@ -927,6 +927,51 @@ function adpLeaguePresetKey(row) {
   ].join("|");
 }
 
+function adpGroupKey(row, includeDate = true) {
+  const parts = [
+    row.season,
+    includeDate ? row.start_date : "",
+    row.league_format,
+    row.board_class,
+    row.rookie_inclusion,
+    row.type,
+    row.md_scoring_type,
+    row.st_teams,
+    row.st_rounds,
+    row.slots_qb,
+    row.slots_rb,
+    row.slots_wr,
+    row.slots_te,
+    row.slots_flex,
+    row.slots_superflex,
+    row.is_superflex,
+    row.bestball,
+    row.score_rec,
+    row.score_te_premium,
+    row.score_rec_yd,
+    row.score_rec_td,
+    row.score_rush_yd,
+    row.score_rush_td,
+    row.score_pass_yd,
+    row.score_pass_td,
+    row.score_pass_int,
+    row.score_fum_lost
+  ];
+  return parts.join("|");
+}
+
+function addDraftGroup(groups, row) {
+  const key = adpGroupKey(row, true);
+  const sampleDrafts = number(row.sample_drafts, null);
+  const playerDrafts = number(row.drafts, 0);
+  const value = sampleDrafts === null ? playerDrafts : sampleDrafts;
+  groups.set(key, Math.max(groups.get(key) || 0, value));
+}
+
+function draftGroupTotal(groups) {
+  return [...groups.values()].reduce((sum, value) => sum + number(value, 0), 0);
+}
+
 function adpLeaguePresets(limit = 10) {
   const config = adpSettings();
   const groups = new Map();
@@ -937,23 +982,24 @@ function adpLeaguePresets(limit = 10) {
     if (!groups.has(key)) {
       groups.set(key, {
         ...row,
-        draftObs: 0,
+        draftGroups: new Map(),
         playerIds: new Set(),
         dates: new Set()
       });
     }
     const item = groups.get(key);
-    item.draftObs += number(row.drafts, 0);
+    addDraftGroup(item.draftGroups, row);
     item.playerIds.add(row.player_id);
     item.dates.add(row.start_date);
   }
   return [...groups.values()]
     .filter((item) => item.playerIds.size >= 24)
-    .sort((a, b) => b.draftObs - a.draftObs)
+    .sort((a, b) => draftGroupTotal(b.draftGroups) - draftGroupTotal(a.draftGroups))
     .slice(0, limit)
     .map((item, index) => ({
       ...item,
       presetId: `preset-${index}`,
+      drafts: draftGroupTotal(item.draftGroups),
       players: item.playerIds.size,
       dateCount: item.dates.size
     }));
@@ -971,15 +1017,15 @@ function renderAdpSeasonSummary() {
   const dates = uniqueSorted(rows.map((row) => row.start_date));
   const formats = rows.reduce((acc, row) => {
     const key = row.league_format || "unknown";
-    if (!acc[key]) acc[key] = { rows: 0, drafts: 0, players: new Set() };
+    if (!acc[key]) acc[key] = { rows: 0, draftGroups: new Map(), players: new Set() };
     acc[key].rows += 1;
-    acc[key].drafts += number(row.drafts, 0);
+    addDraftGroup(acc[key].draftGroups, row);
     acc[key].players.add(row.player_id);
     return acc;
   }, {});
   const formatText = Object.entries(formats)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([format, item]) => `${format}: ${fmt(item.drafts, 0)} drafts, ${fmt(item.players.size, 0)} players`)
+    .map(([format, item]) => `${format}: ${fmt(draftGroupTotal(item.draftGroups), 0)} drafts, ${fmt(item.players.size, 0)} players`)
     .join(" | ");
   box.textContent = `${season} dataset: ${dates[0] || "unknown"} to ${dates[dates.length - 1] || "unknown"} | ${formatText}`;
 }
@@ -1028,7 +1074,7 @@ function renderAdpLeaguePresets() {
       <span>${escapeHtml(presetLineupText(preset))}</span>
       <span>${escapeHtml(preset.league_format === "dynasty" && rookieInclusionLabel(preset.rookie_inclusion) ? `${preset.board_class} - ${rookieInclusionLabel(preset.rookie_inclusion)}` : preset.board_class)}</span>
       <span>${escapeHtml(presetScoringText(preset))}</span>
-      <em>${fmt(preset.draftObs, 0)} drafts - ${fmt(preset.players, 0)} players</em>
+      <em>${fmt(preset.drafts, 0)} drafts - ${fmt(preset.players, 0)} players</em>
     </button>
   `).join("");
 }
@@ -1098,11 +1144,13 @@ function customAdpBoard() {
   const filtered = filteredAdpRows();
   const grouped = new Map();
   const trendRows = new Map();
+  const draftGroups = new Map();
   for (const row of filtered) {
     const key = row.player_id;
     if (!key) continue;
     if (!trendRows.has(key)) trendRows.set(key, []);
     trendRows.get(key).push(row);
+    addDraftGroup(draftGroups, row);
     if (!grouped.has(key)) {
       grouped.set(key, {
         player_id: row.player_id,
@@ -1162,6 +1210,7 @@ function customAdpBoard() {
     item.pos_rank = posCounts[item.position];
     item.trend = adpTrendValue(trendRows.get(item.player_id) || []);
   });
+  rows.sampleDrafts = draftGroupTotal(draftGroups);
   return rows;
 }
 
@@ -1216,7 +1265,7 @@ function renderAdpLab() {
 }
 
 function renderAdpSummary(rows) {
-  const drafts = rows.reduce((sum, row) => sum + number(row.drafts, 0), 0);
+  const drafts = rows.sampleDrafts ?? rows.reduce((sum, row) => sum + number(row.drafts, 0), 0);
   const config = adpSettings();
   const top = rows[0];
   el("adpPlayerCount").textContent = rows.length;
@@ -1267,9 +1316,9 @@ function renderAdpDraftDistributionChart() {
     const date = String(row.start_date || "");
     if (date.length < 7) continue;
     const month = date.slice(0, 7);
-    if (!byMonth.has(month)) byMonth.set(month, { drafts: 0, players: new Set() });
+    if (!byMonth.has(month)) byMonth.set(month, { draftGroups: new Map(), players: new Set() });
     const item = byMonth.get(month);
-    item.drafts += number(row.drafts, 0);
+    addDraftGroup(item.draftGroups, row);
     if (row.player_id) item.players.add(row.player_id);
   }
   const months = [...byMonth.keys()].sort();
@@ -1277,7 +1326,7 @@ function renderAdpDraftDistributionChart() {
     type: "bar",
     name: "Drafts",
     x: months,
-    y: months.map((month) => byMonth.get(month).drafts),
+    y: months.map((month) => draftGroupTotal(byMonth.get(month).draftGroups)),
     customdata: months.map((month) => byMonth.get(month).players.size),
     marker: { color: "#cc3333" },
     hovertemplate: "%{x}<br>%{y:,} drafts<br>%{customdata:,} players<extra></extra>"
