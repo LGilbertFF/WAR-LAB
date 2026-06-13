@@ -360,6 +360,10 @@ def sort_output(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def dedupe_rows(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    for col in ["player_id", "league_format", "board_class", "rookie_inclusion", "type", "md_scoring_type", "is_superflex", "bestball"]:
+        if col in df.columns:
+            df[col] = df[col].astype(str)
     dedupe_cols = [col for col in [
         "season", "start_date", "player_id", "league_format", "board_class", "rookie_inclusion",
         "type", "md_scoring_type", "st_teams", "st_rounds", "slots_qb", "slots_rb",

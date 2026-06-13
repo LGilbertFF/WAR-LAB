@@ -963,6 +963,37 @@ function adpGroupKey(row, includeDate = true) {
   return parts.join("|");
 }
 
+function normalizedPlayerName(name) {
+  return String(name || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function adpPlayerKey(row) {
+  const nameKey = normalizedPlayerName(row.full_name);
+  const pos = String(row.position || "").toUpperCase();
+  return nameKey ? `${nameKey}|${pos}` : String(row.player_id || "");
+}
+
+function adpRowIdentity(row) {
+  return [
+    adpPlayerKey(row),
+    adpGroupKey(row, true),
+    row.adp,
+    row.min_pick,
+    row.max_pick,
+    row.drafts,
+    row.picks
+  ].join("|");
+}
+
+function dedupeAdpRows(rows) {
+  return [...new Map(rows.map((row) => [adpRowIdentity(row), row])).values()];
+}
+
 function addDraftGroup(groups, row) {
   const key = adpGroupKey(row, true);
   const sampleDrafts = number(row.sample_drafts, null);
@@ -1126,7 +1157,7 @@ function adpCompatibility(row, config) {
 function filteredAdpRows(options = {}) {
   const config = adpSettings();
   const ignoreDate = Boolean(options.ignoreDate);
-  return state.customAdpRows.filter((row) => {
+  return dedupeAdpRows(state.customAdpRows.filter((row) => {
     if (number(row.season) !== config.season) return false;
     if (String(row.position || row.md_pos || "").toUpperCase() === "K") return false;
     if (config.leagueFormat !== "all" && row.league_format !== config.leagueFormat) return false;
@@ -1139,7 +1170,7 @@ function filteredAdpRows(options = {}) {
     if (config.rounds !== "all" && String(row.st_rounds) !== config.rounds) return false;
     if (!ignoreDate && !dateInWindow(row.start_date, config.startDate, config.endDate)) return false;
     return true;
-  });
+  }));
 }
 
 function customAdpBoard() {
@@ -1149,14 +1180,14 @@ function customAdpBoard() {
   const trendRows = new Map();
   const draftGroups = new Map();
   for (const row of filtered) {
-    const key = row.player_id;
+    const key = adpPlayerKey(row);
     if (!key) continue;
     if (!trendRows.has(key)) trendRows.set(key, []);
     trendRows.get(key).push(row);
     addDraftGroup(draftGroups, row);
     if (!grouped.has(key)) {
       grouped.set(key, {
-        player_id: row.player_id,
+        player_id: key,
         full_name: row.full_name || row.player_id,
         position: row.position || "UNK",
         team: row.team || "",
@@ -1164,6 +1195,8 @@ function customAdpBoard() {
         league_format: row.league_format || "",
         board_class: row.board_class || "",
         bestball: String(row.bestball).toLowerCase() === "true" ? "true" : "false",
+        sourcePlayerIds: new Set(),
+        playerDraftGroups: new Map(),
         rookieInclusions: new Set(),
         drafts: 0,
         picks: 0,
@@ -1181,7 +1214,8 @@ function customAdpBoard() {
     const adp = number(row.adp, null);
     const fit = adpCompatibility(row, config);
     const weight = Math.max(picks, drafts, 1) * fit;
-    item.drafts += drafts;
+    item.sourcePlayerIds.add(String(row.player_id || ""));
+    item.playerDraftGroups.set(adpGroupKey(row, true), Math.max(item.playerDraftGroups.get(adpGroupKey(row, true)) || 0, drafts));
     item.picks += picks;
     item.weight += weight;
     item.compatibilityTotal += fit * Math.max(picks, drafts, 1);
@@ -1195,6 +1229,7 @@ function customAdpBoard() {
   const rows = [...grouped.values()]
     .map((item) => ({
       ...item,
+      drafts: draftGroupTotal(item.playerDraftGroups),
       adp: item.weightedPickTotal / Math.max(item.weight, 1),
       compatibility: item.compatibilityTotal / Math.max(item.picks || item.drafts, 1),
       min_pick: item.min_pick === Number.POSITIVE_INFINITY ? null : item.min_pick,
