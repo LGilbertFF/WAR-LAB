@@ -257,6 +257,7 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     merged = merged.merge(draft_flags[["draft_id", "rookie_inclusion"]], on="draft_id", how="left")
     merged["rookie_inclusion"] = merged["rookie_inclusion"].fillna("n/a")
     merged.loc[merged["league_format"] != "dynasty", "rookie_inclusion"] = "n/a"
+    merged.loc[(merged["league_format"] == "dynasty") & (merged["board_class"] == "rookie"), "rookie_inclusion"] = "rookie draft"
 
     group_cols = [
         "season",
