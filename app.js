@@ -2265,7 +2265,13 @@ function populateAdpControls() {
   const rows = state.customAdpRows;
   const seasons = uniqueSorted(manifestShards.length ? manifestShards.map((row) => row.season) : rows.map((row) => row.season), true);
   const currentYear = settings().year;
-  selectOptions("adpSeason", seasons.length ? seasons : [currentYear], seasons.includes(String(currentYear)) || seasons.includes(currentYear) ? currentYear : seasons[seasons.length - 1] || currentYear);
+  const selectedSeason = el("adpSeason")?.value;
+  const selected = seasons.includes(String(selectedSeason)) || seasons.includes(number(selectedSeason, null))
+    ? selectedSeason
+    : seasons.includes(String(currentYear)) || seasons.includes(currentYear)
+      ? currentYear
+      : seasons[seasons.length - 1] || currentYear;
+  selectOptions("adpSeason", seasons.length ? seasons : [currentYear], selected);
   updateAdpDateControlsForSeason(true);
 }
 
