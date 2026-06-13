@@ -71,6 +71,8 @@ The repository includes three GitHub Actions workflows:
 
 `backfill-sleeper-adp.yml` is a manual historical Sleeper ADP pull with a league-format selector. Blank date inputs use January 1 through December 31 of each season, so early-year drafts are included by default. `backfill-sleeper-redraft-adp.yml` and `backfill-sleeper-dynasty-adp.yml` are separate fixed-format historical searches for when you want to build those pools independently. The default scrape settings use 3 discovery expansion steps, up to 300,000 leagues per season, up to 500,000 eligible drafts per season, and no row-count cap. The 90 MB CSV safety cap still prevents GitHub from rejecting the commit.
 
+Historical backfills track already-included leagues by year and format in `data/historical_seen_leagues/`, so rerunning a backfill spends its time on newly discovered leagues instead of repeatedly processing the same ones.
+
 ## Generated Inputs
 
 The app does not require user uploads. It reads generated files from `data/`.

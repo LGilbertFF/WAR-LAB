@@ -11,6 +11,8 @@ from sleeper_ingest_current import (
     fetch_picks,
     fetch_players,
     log,
+    read_seen_ids,
+    write_seen_ids,
     write_parquet,
 )
 
@@ -35,6 +37,18 @@ def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
     if leagues.empty:
         log(f"season {season}: no leagues discovered")
         return
+    seen_path = None
+    if args.seen_leagues_dir:
+        seen_format = args.league_format if args.league_format != "all" else "all"
+        seen_path = args.seen_leagues_dir / f"sleeper_seen_{seen_format}_{season}.csv"
+        seen_ids = read_seen_ids(seen_path)
+        if seen_ids and "league_id" in leagues.columns:
+            before = len(leagues)
+            leagues = leagues[~leagues["league_id"].astype(str).isin(seen_ids)].copy()
+            log(f"season {season}: skipped {before - len(leagues):,} previously included {seen_format} leagues, remaining={len(leagues):,}")
+        if leagues.empty:
+            log(f"season {season}: no new leagues left after seen-league filtering")
+            return
 
     log(f"season {season}: fetching drafts from {len(leagues):,} leagues")
     drafts = fetch_drafts(session, leagues["league_id"].astype(str).tolist(), season, args.workers)
@@ -66,6 +80,8 @@ def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
     write_parquet(league_users, raw / "league_users" / f"league_users_{season}.parquet")
     write_parquet(eligible, raw / "drafts" / f"drafts_{season}.parquet")
     write_parquet(picks, raw / "picks" / f"picks_{season}.parquet")
+    if seen_path and "league_id" in eligible.columns:
+        write_seen_ids(seen_path, eligible["league_id"])
     log(f"season {season}: wrote leagues={len(leagues):,} drafts={len(drafts):,} picks={len(picks):,}")
 
 
@@ -82,6 +98,7 @@ def main() -> None:
     parser.add_argument("--draft-start-date", default="")
     parser.add_argument("--draft-end-date", default="")
     parser.add_argument("--league-format", choices=["all", "redraft", "dynasty"], default="all")
+    parser.add_argument("--seen-leagues-dir", type=Path)
     parser.add_argument("--seed-user", action="append", default=[])
     args = parser.parse_args()
 

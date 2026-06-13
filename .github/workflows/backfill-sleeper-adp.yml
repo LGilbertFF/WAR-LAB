@@ -81,6 +81,7 @@ jobs:
           --league-format "${{ inputs.league_format }}"
           --draft-start-date "${{ inputs.draft_start_date }}"
           --draft-end-date "${{ inputs.draft_end_date }}"
+          --seen-leagues-dir data/historical_seen_leagues
           --workers 16
 
       - name: Export historical ADP Lab data
@@ -105,4 +106,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Backfill historical Sleeper ADP data"
-          file_pattern: data/adp/*.json.gz data/adp/manifest.json
+          file_pattern: data/adp/*.json.gz data/adp/manifest.json data/historical_seen_leagues/*.csv
