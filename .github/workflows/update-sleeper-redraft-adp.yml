@@ -56,9 +56,12 @@ jobs:
           --append-existing
           --merge-existing
           --max-output-mb 90
+          --shard-dir data/adp
+          --shard-manifest data/adp/manifest.json
+          --skip-csv
 
       - name: Commit expanded redraft Sleeper ADP data
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Expand Sleeper redraft ADP data"
-          file_pattern: data/custom_adp_board.csv data/sleeper_seen_redraft_leagues.csv
+          file_pattern: data/adp/*.json.gz data/adp/manifest.json data/sleeper_seen_redraft_leagues.csv

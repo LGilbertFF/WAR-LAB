@@ -1,4 +1,6 @@
 import argparse
+import gzip
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -11,6 +13,8 @@ ROOT = Path(
 DEFAULT_RAW = ROOT / "raw"
 DEFAULT_PLAYERS = ROOT / "cache" / "players_nfl.parquet"
 DEFAULT_OUT = Path("data/custom_adp_board.csv")
+DEFAULT_SHARD_DIR = Path("data/adp")
+DEFAULT_SHARD_MANIFEST = DEFAULT_SHARD_DIR / "manifest.json"
 
 PLAYER_POSITIONS = ["QB", "RB", "WR", "TE"]
 KEEP_DRAFT_TYPES = ["snake", "linear"]
@@ -355,6 +359,15 @@ def sort_output(df: pd.DataFrame) -> pd.DataFrame:
     return df.sort_values([col for col in sort_cols if col in df.columns])
 
 
+def dedupe_rows(df: pd.DataFrame) -> pd.DataFrame:
+    dedupe_cols = [col for col in [
+        "season", "start_date", "player_id", "league_format", "board_class", "rookie_inclusion",
+        "type", "md_scoring_type", "st_teams", "st_rounds", "slots_qb", "slots_rb",
+        "slots_wr", "slots_te", "slots_flex", "slots_superflex", "is_superflex", "bestball"
+    ] if col in df.columns]
+    return df.drop_duplicates(subset=dedupe_cols, keep="last") if dedupe_cols else df
+
+
 def fit_csv_size(df: pd.DataFrame, max_output_mb: float) -> tuple[pd.DataFrame, str]:
     if max_output_mb <= 0:
         return df, df.to_csv(index=False)
@@ -378,6 +391,76 @@ def fit_csv_size(df: pd.DataFrame, max_output_mb: float) -> tuple[pd.DataFrame, 
         current = sort_output(fair_limit_rows(current, target_rows))
 
 
+def shard_name(season, league_format: str) -> str:
+    safe_format = str(league_format or "unknown").replace("/", "-").replace("\\", "-")
+    return f"{int(season)}-{safe_format}.json.gz"
+
+
+def read_json_gz(path: Path) -> pd.DataFrame:
+    with gzip.open(path, "rt", encoding="utf-8") as handle:
+        data = json.load(handle)
+    return pd.DataFrame(data)
+
+
+def write_json_gz(path: Path, df: pd.DataFrame) -> int:
+    records = json.loads(df.to_json(orient="records", date_format="iso"))
+    payload = json.dumps(records, separators=(",", ":")).encode("utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(path, "wb", compresslevel=9) as handle:
+        handle.write(payload)
+    return path.stat().st_size
+
+
+def write_shards(out: pd.DataFrame, shard_dir: Path, manifest_path: Path, max_output_mb: float, merge_existing: bool) -> dict:
+    shard_dir.mkdir(parents=True, exist_ok=True)
+    entries = []
+    for (season, league_format), shard in out.groupby(["season", "league_format"], dropna=False):
+        rel_path = shard_name(season, league_format)
+        path = shard_dir / rel_path
+        shard = sort_output(shard.copy())
+        if merge_existing and path.exists():
+            existing = read_json_gz(path)
+            shard = dedupe_rows(pd.concat([existing, shard], ignore_index=True))
+            shard = sort_output(shard)
+        shard, _ = fit_csv_size(shard, max_output_mb)
+        size = write_json_gz(path, shard)
+        draft_groups = shard.groupby([
+            col for col in [
+                "season", "start_date", "league_format", "board_class", "rookie_inclusion", "type",
+                "md_scoring_type", "st_teams", "st_rounds", "slots_qb", "slots_rb", "slots_wr",
+                "slots_te", "slots_flex", "slots_superflex", "is_superflex", "bestball"
+            ] if col in shard.columns
+        ], dropna=False)["sample_drafts"].max()
+        entries.append({
+            "season": int(season),
+            "league_format": str(league_format),
+            "path": f"{shard_dir.as_posix().rstrip('/')}/{rel_path}",
+            "rows": int(len(shard)),
+            "players": int(shard["player_id"].nunique()) if "player_id" in shard.columns else 0,
+            "drafts": int(draft_groups.sum()) if len(draft_groups) else int(shard.get("drafts", pd.Series(dtype=int)).sum()),
+            "start_date": str(shard["start_date"].min()) if "start_date" in shard.columns and len(shard) else "",
+            "end_date": str(shard["start_date"].max()) if "start_date" in shard.columns and len(shard) else "",
+            "bytes": int(size),
+        })
+
+    existing_entries = []
+    if manifest_path.exists():
+        try:
+            existing_entries = json.loads(manifest_path.read_text(encoding="utf-8")).get("shards", [])
+        except Exception:
+            existing_entries = []
+    replaced = {(entry["season"], entry["league_format"]) for entry in entries}
+    kept = [entry for entry in existing_entries if (entry.get("season"), entry.get("league_format")) not in replaced]
+    manifest = {
+        "version": 1,
+        "updated_at": pd.Timestamp.utcnow().isoformat(),
+        "shards": sorted(kept + entries, key=lambda item: (item["season"], item["league_format"])),
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return manifest
+
+
 def export_adp_board(
     raw_dir: Path,
     players_path: Path,
@@ -389,6 +472,9 @@ def export_adp_board(
     replace_end_date: str = "",
     merge_existing: bool = False,
     max_output_mb: float = 0,
+    shard_dir: Path | None = None,
+    shard_manifest: Path | None = None,
+    skip_csv: bool = False,
 ) -> pd.DataFrame:
     frames = []
     for season in seasons:
@@ -489,21 +575,17 @@ def export_adp_board(
                         replace_mask &= existing_dates.le(pd.Timestamp(replace_end_date))
                 existing = existing[~replace_mask].copy()
             out = pd.concat([existing, out], ignore_index=True)
-            dedupe_cols = [col for col in [
-                "season", "start_date", "player_id", "league_format", "board_class", "rookie_inclusion",
-                "type", "md_scoring_type", "st_teams", "st_rounds", "slots_qb", "slots_rb",
-                "slots_wr", "slots_te", "slots_flex", "slots_superflex", "is_superflex", "bestball"
-            ] if col in out.columns]
-            if dedupe_cols:
-                out = out.drop_duplicates(subset=dedupe_cols, keep="last")
+            out = dedupe_rows(out)
 
     out = fair_limit_rows(out, max_output_rows)
 
     out = sort_output(out)
-    out, csv_text = fit_csv_size(out, max_output_mb)
-
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(csv_text, encoding="utf-8")
+    if shard_dir:
+        write_shards(out, shard_dir, shard_manifest or shard_dir / "manifest.json", max_output_mb, merge_existing)
+    if not skip_csv:
+        out, csv_text = fit_csv_size(out, max_output_mb)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(csv_text, encoding="utf-8")
     return out
 
 
@@ -521,6 +603,9 @@ def main() -> None:
     parser.add_argument("--replace-end-date", default="", help="When appending, replace only existing rows on/before this draft date.")
     parser.add_argument("--merge-existing", action="store_true", help="Append/merge new rows without replacing existing season rows.")
     parser.add_argument("--max-output-mb", type=float, default=0, help="Trim rows fairly until the output CSV stays below this many MB; 0 disables.")
+    parser.add_argument("--shard-dir", type=Path, help="Write browser-ready gzip JSON shards into this directory.")
+    parser.add_argument("--shard-manifest", type=Path, help="Path to the shard manifest JSON.")
+    parser.add_argument("--skip-csv", action="store_true", help="Write shards only and leave the legacy CSV untouched.")
     args = parser.parse_args()
 
     seasons = season_range(args.season, args.start_season, args.end_season)
@@ -535,6 +620,9 @@ def main() -> None:
         replace_end_date=args.replace_end_date,
         merge_existing=args.merge_existing,
         max_output_mb=args.max_output_mb,
+        shard_dir=args.shard_dir,
+        shard_manifest=args.shard_manifest,
+        skip_csv=args.skip_csv,
     )
     print(f"wrote {args.out} rows={len(out):,} cols={len(out.columns)}")
 

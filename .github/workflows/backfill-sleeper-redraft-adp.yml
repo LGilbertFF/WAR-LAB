@@ -86,9 +86,12 @@ jobs:
           --merge-existing
           --max-output-rows "${{ inputs.max_output_rows }}"
           --max-output-mb "${{ inputs.max_output_mb }}"
+          --shard-dir data/adp
+          --shard-manifest data/adp/manifest.json
+          --skip-csv
 
       - name: Commit historical redraft Sleeper ADP data
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Backfill historical Sleeper redraft ADP data"
-          file_pattern: data/custom_adp_board.csv
+          file_pattern: data/adp/*.json.gz data/adp/manifest.json

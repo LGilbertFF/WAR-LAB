@@ -97,9 +97,12 @@ jobs:
           --max-output-mb "${{ inputs.max_output_mb }}"
           --replace-start-date "${{ inputs.draft_start_date }}"
           --replace-end-date "${{ inputs.draft_end_date }}"
+          --shard-dir data/adp
+          --shard-manifest data/adp/manifest.json
+          --skip-csv
 
       - name: Commit historical Sleeper ADP data
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Backfill historical Sleeper ADP data"
-          file_pattern: data/custom_adp_board.csv
+          file_pattern: data/adp/*.json.gz data/adp/manifest.json

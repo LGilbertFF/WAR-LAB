@@ -65,15 +65,17 @@ The repository includes three GitHub Actions workflows:
 
 `deploy-pages.yml` publishes the static app to GitHub Pages whenever `main` changes. `update-current-data.yml` refreshes 2026 FantasyPros projections and ADP hourly and commits the generated CSVs. `build-historical-data.yml` is a manual one-time historical weekly scoring scrape that commits the historical export.
 
-`update-sleeper-adp.yml` refreshes current-season Sleeper dynasty ADP once per day. It tracks `data/sleeper_seen_dynasty_leagues.csv`, skips leagues already included, and merges new rows into `data/custom_adp_board.csv`.
+`update-sleeper-adp.yml` refreshes current-season Sleeper dynasty ADP once per day. It tracks `data/sleeper_seen_dynasty_leagues.csv`, skips leagues already included, and merges new rows into browser-ready ADP shards under `data/adp/`.
 
-`update-sleeper-redraft-adp.yml` runs a separate redraft-only expansion. It uses a tracked `data/sleeper_seen_redraft_leagues.csv` cache so repeat runs can skip leagues already included and spend more time looking for new redraft leagues. It also merges new redraft rows into `data/custom_adp_board.csv` instead of replacing the season.
+`update-sleeper-redraft-adp.yml` runs a separate redraft-only expansion. It uses a tracked `data/sleeper_seen_redraft_leagues.csv` cache so repeat runs can skip leagues already included and spend more time looking for new redraft leagues. It also merges new redraft rows into the ADP shards instead of replacing unrelated seasons or formats.
 
 `backfill-sleeper-adp.yml` is a manual historical Sleeper ADP pull with a league-format selector. Blank date inputs use January 1 through December 31 of each season, so early-year drafts are included by default. `backfill-sleeper-redraft-adp.yml` and `backfill-sleeper-dynasty-adp.yml` are separate fixed-format historical searches for when you want to build those pools independently. The default scrape settings use 3 discovery expansion steps, up to 300,000 leagues per season, up to 500,000 eligible drafts per season, and no row-count cap. The 90 MB CSV safety cap still prevents GitHub from rejecting the commit.
 
 ## Generated Inputs
 
 The app does not require user uploads. It reads generated files from `data/`.
+
+Sleeper ADP is stored as gzip-compressed JSON shards listed in `data/adp/manifest.json`, such as `data/adp/2026-redraft.json.gz` and `data/adp/2026-dynasty.json.gz`. The legacy `data/custom_adp_board.csv` remains as a browser fallback, but workflows now commit the smaller shards so the site does not depend on one giant CSV.
 
 Generated projection CSVs can use either existing projection fields or scored fantasy-point fields.
 

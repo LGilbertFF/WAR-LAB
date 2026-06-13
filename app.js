@@ -1,6 +1,7 @@
 const CURRENT_PROJECTIONS_PATH = "data/current_projections.csv";
 const CURRENT_ADP_PATH = "data/current_adp.csv";
 const CUSTOM_ADP_PATH = "data/custom_adp_board.csv";
+const CUSTOM_ADP_MANIFEST_PATH = "data/adp/manifest.json";
 const FALLBACK_PROJECTIONS_PATH = "data/WARProjections2024_PPR2WR.csv";
 const HISTORICAL_WEEKLY_PATH = "data/fantasypros_weekly_2015_2025.csv";
 
@@ -9,6 +10,8 @@ const state = {
   adpRows: [],
   customAdpRows: [],
   customAdpLoaded: false,
+  customAdpManifest: null,
+  customAdpLoadedKey: "",
   adpSortKey: "rank",
   adpSortDir: "asc",
   selectedAdpPlayer: null,
@@ -1953,6 +1956,17 @@ async function loadCsv(path) {
   return Papa.parse(await response.text(), { header: true, skipEmptyLines: true }).data;
 }
 
+async function loadJsonMaybeGzip(path) {
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(`Could not load ${path}`);
+  if (path.endsWith(".gz")) {
+    if (!("DecompressionStream" in window)) throw new Error("This browser cannot decompress ADP shards.");
+    const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
+    return JSON.parse(await new Response(stream).text());
+  }
+  return response.json();
+}
+
 async function setProjectionRows(rows) {
   state.rawProjections = rows;
   state.selectedId = null;
@@ -1995,11 +2009,29 @@ async function loadHistoricalData() {
 }
 
 async function loadCustomAdpData() {
-  if (state.customAdpLoaded) return;
+  const season = number(el("adpSeason")?.value, settings().year);
+  const format = el("adpLeagueFormat")?.value || "redraft";
+  const loadKey = `${season}|${format}`;
+  if (state.customAdpLoaded && state.customAdpLoadedKey === loadKey) return;
   try {
-    state.customAdpRows = await loadCsv(CUSTOM_ADP_PATH);
+    if (!state.customAdpManifest) {
+      state.customAdpManifest = await loadJsonMaybeGzip(CUSTOM_ADP_MANIFEST_PATH);
+      populateAdpControls();
+    }
+    const shards = state.customAdpManifest?.shards || [];
+    const wanted = shards.filter((shard) => Number(shard.season) === season && (format === "all" || shard.league_format === format));
+    if (!wanted.length) throw new Error(`No ADP shard found for ${season} ${format}`);
+    const frames = await Promise.all(wanted.map((shard) => loadJsonMaybeGzip(shard.path)));
+    state.customAdpRows = frames.flat();
+    state.customAdpLoadedKey = loadKey;
   } catch {
-    state.customAdpRows = [];
+    try {
+      state.customAdpRows = await loadCsv(CUSTOM_ADP_PATH);
+      state.customAdpLoadedKey = "legacy-csv";
+    } catch {
+      state.customAdpRows = [];
+      state.customAdpLoadedKey = "";
+    }
   }
   state.customAdpLoaded = true;
   populateAdpControls();
@@ -2058,9 +2090,11 @@ function bindEvents() {
   el("adpLeagueFormat")?.addEventListener("change", () => {
     applyAdpFormatDefaults();
     syncAdpFromWarSettings();
+    state.customAdpLoaded = false;
     scheduleRender(0);
   });
   el("adpSeason")?.addEventListener("change", () => {
+    state.customAdpLoaded = false;
     updateAdpDateControlsForSeason(true);
     scheduleRender(0);
   });
@@ -2171,8 +2205,9 @@ function populateEmptyAdpControls() {
 
 function populateAdpControls() {
   updateAdpScoringOptions();
+  const manifestShards = state.customAdpManifest?.shards || [];
   const rows = state.customAdpRows;
-  const seasons = uniqueSorted(rows.map((row) => row.season), true);
+  const seasons = uniqueSorted(manifestShards.length ? manifestShards.map((row) => row.season) : rows.map((row) => row.season), true);
   const currentYear = settings().year;
   selectOptions("adpSeason", seasons.length ? seasons : [currentYear], seasons.includes(String(currentYear)) || seasons.includes(currentYear) ? currentYear : seasons[seasons.length - 1] || currentYear);
   updateAdpDateControlsForSeason(true);

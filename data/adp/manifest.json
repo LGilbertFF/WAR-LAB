@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "updated_at": "2026-06-13T01:02:56.342081+00:00",
+  "shards": [
+    {
+      "season": 2019,
+      "league_format": "dynasty",
+      "path": "data/adp/2019-dynasty.json.gz",
+      "rows": 11640,
+      "players": 394,
+      "drafts": 25475,
+      "start_date": "2019-04-12",
+      "end_date": "2019-11-09",
+      "bytes": 280503
+    },
+    {
+      "season": 2019,
+      "league_format": "redraft",
+      "path": "data/adp/2019-redraft.json.gz",
+      "rows": 9254,
+      "players": 293,
+      "drafts": 260384,
+      "start_date": "2019-06-30",
+      "end_date": "2019-09-08",
+      "bytes": 222683
+    },
+    {
+      "season": 2020,
+      "league_format": "dynasty",
+      "path": "data/adp/2020-dynasty.json.gz",
+      "rows": 16029,
+      "players": 429,
+      "drafts": 37542,
+      "start_date": "2020-01-05",
+      "end_date": "2020-10-09",
+      "bytes": 409947
+    },
+    {
+      "season": 2020,
+      "league_format": "redraft",
+      "path": "data/adp/2020-redraft.json.gz",
+      "rows": 9254,
+      "players": 262,
+      "drafts": 301527,
+      "start_date": "2020-07-19",
+      "end_date": "2020-09-10",
+      "bytes": 275265
+    },
+    {
+      "season": 2021,
+      "league_format": "dynasty",
+      "path": "data/adp/2021-dynasty.json.gz",
+      "rows": 22116,
+      "players": 397,
+      "drafts": 55753,
+      "start_date": "2021-01-16",
+      "end_date": "2021-11-28",
+      "bytes": 552896
+    },
+    {
+      "season": 2021,
+      "league_format": "redraft",
+      "path": "data/adp/2021-redraft.json.gz",
+      "rows": 13938,
+      "players": 356,
+      "drafts": 552170,
+      "start_date": "2021-05-01",
+      "end_date": "2021-10-05",
+      "bytes": 401970
+    },
+    {
+      "season": 2022,
+      "league_format": "dynasty",
+      "path": "data/adp/2022-dynasty.json.gz",
+      "rows": 14807,
+      "players": 517,
+      "drafts": 43359,
+      "start_date": "2022-01-08",
+      "end_date": "2022-11-09",
+      "bytes": 387408
+    },
+    {
+      "season": 2022,
+      "league_format": "redraft",
+      "path": "data/adp/2022-redraft.json.gz",
+      "rows": 27935,
+      "players": 344,
+      "drafts": 490372,
+      "start_date": "2022-04-24",
+      "end_date": "2022-09-11",
+      "bytes": 756102
+    },
+    {
+      "season": 2023,
+      "league_format": "dynasty",
+      "path": "data/adp/2023-dynasty.json.gz",
+      "rows": 26279,
+      "players": 652,
+      "drafts": 89676,
+      "start_date": "2023-01-03",
+      "end_date": "2023-09-04",
+      "bytes": 746787
+    },
+    {
+      "season": 2023,
+      "league_format": "redraft",
+      "path": "data/adp/2023-redraft.json.gz",
+      "rows": 40053,
+      "players": 443,
+      "drafts": 550318,
+      "start_date": "2023-02-12",
+      "end_date": "2023-11-19",
+      "bytes": 1107908
+    },
+    {
+      "season": 2024,
+      "league_format": "dynasty",
+      "path": "data/adp/2024-dynasty.json.gz",
+      "rows": 17823,
+      "players": 519,
+      "drafts": 59450,
+      "start_date": "2024-01-02",
+      "end_date": "2024-12-27",
+      "bytes": 443312
+    },
+    {
+      "season": 2024,
+      "league_format": "redraft",
+      "path": "data/adp/2024-redraft.json.gz",
+      "rows": 65634,
+      "players": 470,
+      "drafts": 728639,
+      "start_date": "2024-02-18",
+      "end_date": "2024-10-11",
+      "bytes": 1847834
+    },
+    {
+      "season": 2025,
+      "league_format": "dynasty",
+      "path": "data/adp/2025-dynasty.json.gz",
+      "rows": 17378,
+      "players": 463,
+      "drafts": 61613,
+      "start_date": "2025-01-05",
+      "end_date": "2025-12-31",
+      "bytes": 427944
+    },
+    {
+      "season": 2025,
+      "league_format": "redraft",
+      "path": "data/adp/2025-redraft.json.gz",
+      "rows": 77571,
+      "players": 459,
+      "drafts": 494517,
+      "start_date": "2025-03-14",
+      "end_date": "2025-11-12",
+      "bytes": 2187667
+    },
+    {
+      "season": 2026,
+      "league_format": "dynasty",
+      "path": "data/adp/2026-dynasty.json.gz",
+      "rows": 32152,
+      "players": 465,
+      "drafts": 100179,
+      "start_date": "2025-12-31",
+      "end_date": "2026-06-08",
+      "bytes": 698417
+    },
+    {
+      "season": 2026,
+      "league_format": "redraft",
+      "path": "data/adp/2026-redraft.json.gz",
+      "rows": 18617,
+      "players": 454,
+      "drafts": 66434,
+      "start_date": "2026-01-05",
+      "end_date": "2026-06-12",
+      "bytes": 545310
+    }
+  ]
+}
