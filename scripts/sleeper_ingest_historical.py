@@ -41,14 +41,6 @@ def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
     if args.seen_leagues_dir:
         seen_format = args.league_format if args.league_format != "all" else "all"
         seen_path = args.seen_leagues_dir / f"sleeper_seen_{seen_format}_{season}.csv"
-        seen_ids = read_seen_ids(seen_path)
-        if seen_ids and "league_id" in leagues.columns:
-            before = len(leagues)
-            leagues = leagues[~leagues["league_id"].astype(str).isin(seen_ids)].copy()
-            log(f"season {season}: skipped {before - len(leagues):,} previously included {seen_format} leagues, remaining={len(leagues):,}")
-        if leagues.empty:
-            log(f"season {season}: no new leagues left after seen-league filtering")
-            return
 
     log(f"season {season}: fetching drafts from {len(leagues):,} leagues")
     drafts = fetch_drafts(session, leagues["league_id"].astype(str).tolist(), season, args.workers)
@@ -64,9 +56,14 @@ def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
         draft_end_date,
         args.league_format,
     )
+    seen_ids = read_seen_ids(seen_path) if seen_path else set()
+    if seen_ids and "draft_id" in eligible.columns:
+        before = len(eligible)
+        eligible = eligible[~eligible["draft_id"].astype(str).isin(seen_ids)].copy()
+        log(f"season {season}: skipped {before - len(eligible):,} previously harvested {seen_format} drafts, remaining={len(eligible):,}")
     log(f"season {season}: eligible completed snake/linear drafts={len(eligible):,}/{len(drafts):,}")
     if eligible.empty:
-        log(f"season {season}: no eligible drafts discovered")
+        log(f"season {season}: no new eligible drafts discovered")
         return
 
     log(f"season {season}: fetching picks from {len(eligible):,} eligible drafts")
@@ -80,8 +77,8 @@ def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
     write_parquet(league_users, raw / "league_users" / f"league_users_{season}.parquet")
     write_parquet(eligible, raw / "drafts" / f"drafts_{season}.parquet")
     write_parquet(picks, raw / "picks" / f"picks_{season}.parquet")
-    if seen_path and "league_id" in eligible.columns:
-        write_seen_ids(seen_path, eligible["league_id"])
+    if seen_path and "draft_id" in eligible.columns:
+        write_seen_ids(seen_path, eligible["draft_id"])
     log(f"season {season}: wrote leagues={len(leagues):,} drafts={len(drafts):,} picks={len(picks):,}")
 
 

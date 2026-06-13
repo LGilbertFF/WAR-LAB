@@ -65,13 +65,13 @@ The repository includes three GitHub Actions workflows:
 
 `deploy-pages.yml` publishes the static app to GitHub Pages whenever `main` changes. `update-current-data.yml` refreshes 2026 FantasyPros projections and ADP hourly and commits the generated CSVs. `build-historical-data.yml` is a manual one-time historical weekly scoring scrape that commits the historical export.
 
-`update-sleeper-adp.yml` refreshes current-season Sleeper dynasty ADP once per day. It tracks `data/sleeper_seen_dynasty_leagues.csv`, skips leagues already included, and merges new rows into browser-ready ADP shards under `data/adp/`.
+`update-sleeper-adp.yml` refreshes current-season Sleeper dynasty ADP once per day. It tracks harvested draft IDs in `data/sleeper_seen_dynasty_leagues.csv`, skips only drafts already included, and merges new rows into browser-ready ADP shards under `data/adp/`. This lets a dynasty league contribute multiple drafts in the same year, such as a startup and later rookie draft.
 
-`update-sleeper-redraft-adp.yml` runs a separate redraft-only expansion. It uses a tracked `data/sleeper_seen_redraft_leagues.csv` cache so repeat runs can skip leagues already included and spend more time looking for new redraft leagues. It also merges new redraft rows into the ADP shards instead of replacing unrelated seasons or formats.
+`update-sleeper-redraft-adp.yml` runs a separate redraft-only expansion. It uses a tracked `data/sleeper_seen_redraft_leagues.csv` cache of harvested draft IDs so repeat runs can skip completed drafts already included without permanently skipping leagues that had not drafted yet. It also merges new redraft rows into the ADP shards instead of replacing unrelated seasons or formats.
 
 `backfill-sleeper-adp.yml` is a manual historical Sleeper ADP pull with a league-format selector. Blank date inputs use January 1 through December 31 of each season, so early-year drafts are included by default. `backfill-sleeper-redraft-adp.yml` and `backfill-sleeper-dynasty-adp.yml` are separate fixed-format historical searches for when you want to build those pools independently. The default scrape settings use 3 discovery expansion steps, up to 300,000 leagues per season, up to 500,000 eligible drafts per season, and no row-count cap. The 90 MB CSV safety cap still prevents GitHub from rejecting the commit.
 
-Historical backfills track already-included leagues by year and format in `data/historical_seen_leagues/`, so rerunning a backfill spends its time on newly discovered leagues instead of repeatedly processing the same ones.
+Historical backfills track already-included draft IDs by year and format in `data/historical_seen_leagues/`, so rerunning a backfill can still pick up later drafts from the same league while avoiding draft IDs already harvested.
 
 ## Generated Inputs
 
