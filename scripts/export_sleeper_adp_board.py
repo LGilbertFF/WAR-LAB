@@ -108,6 +108,71 @@ def rookie_for_season_mask(years_exp: pd.Series, season: pd.Series | int) -> pd.
     return exp.le((current_year - season_values).clip(lower=0))
 
 
+def age_for_season_mask(age: pd.Series, season: pd.Series | int, max_rookie_age: int = 26) -> pd.Series:
+    current_year = pd.Timestamp.utcnow().year
+    current_age = pd.to_numeric(age, errors="coerce")
+    season_values = pd.to_numeric(season, errors="coerce").fillna(current_year)
+    season_age = current_age - (current_year - season_values)
+    return season_age.le(max_rookie_age).fillna(False)
+
+
+def drop_repeat_rookie_board_players(df: pd.DataFrame, initial_seen_player_ids: set[str] | None = None) -> pd.DataFrame:
+    if df.empty or not {"season", "player_id", "board_class", "position"}.issubset(df.columns):
+        return df
+    out = df.copy()
+    seen_player_ids: set[str] = set(initial_seen_player_ids or set())
+    drop_indexes = []
+    for season in sorted(pd.to_numeric(out["season"], errors="coerce").dropna().astype(int).unique()):
+        season_mask = pd.to_numeric(out["season"], errors="coerce").eq(season)
+        rookie_mask = (
+            season_mask
+            & out["board_class"].astype(str).eq("rookie")
+            & out["position"].astype(str).isin(PLAYER_POSITIONS)
+        )
+        repeat_mask = rookie_mask & out["player_id"].astype(str).isin(seen_player_ids)
+        drop_indexes.extend(out.index[repeat_mask].tolist())
+        season_players = out.loc[
+            season_mask & out["position"].astype(str).isin(PLAYER_POSITIONS),
+            "player_id",
+        ].dropna().astype(str)
+        seen_player_ids.update(season_players)
+    if drop_indexes:
+        print(f"dropped {len(drop_indexes):,} repeat-player rows from later dynasty rookie boards")
+        out = out.drop(index=drop_indexes)
+    return out
+
+
+def read_shard_records(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    try:
+        with gzip.open(path, "rt", encoding="utf-8") as handle:
+            return json.load(handle)
+    except Exception:
+        return []
+
+
+def prior_shard_player_ids(manifest_path: Path | None, seasons: list[int]) -> set[str]:
+    if not manifest_path or not manifest_path.exists() or not seasons:
+        return set()
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception:
+        return set()
+    first_season = min(seasons)
+    player_ids: set[str] = set()
+    for entry in manifest.get("shards", []):
+        if int(entry.get("season") or 0) >= first_season:
+            continue
+        path = Path(entry.get("path", ""))
+        if not path.is_absolute() and len(path.parts) == 1:
+            path = manifest_path.parent / path
+        for row in read_shard_records(path):
+            if str(row.get("position") or "") in PLAYER_POSITIONS and row.get("player_id"):
+                player_ids.add(str(row["player_id"]))
+    return player_ids
+
+
 def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     drafts_path = raw_dir / "drafts" / f"drafts_{season}.parquet"
     picks_path = raw_dir / "picks" / f"picks_{season}.parquet"
@@ -243,7 +308,10 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     merged.loc[rdp_mask, "headshot_url"] = ""
 
     years_exp = pd.to_numeric(merged.get("years_exp", 99), errors="coerce").fillna(99)
-    rookie_for_draft_season = rookie_for_season_mask(years_exp, merged["season"])
+    rookie_for_draft_season = (
+        rookie_for_season_mask(years_exp, merged["season"])
+        & age_for_season_mask(merged.get("age", pd.Series(pd.NA, index=merged.index)), merged["season"])
+    )
     rookie_board_mask = (merged["league_format"] == "dynasty") & (merged["board_class"] == "rookie")
     rookie_veteran_rows = int((rookie_board_mask & ~rookie_for_draft_season).sum())
     if rookie_veteran_rows:
@@ -254,7 +322,7 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
         (merged["league_format"] == "dynasty")
         & (merged["board_class"] == "startup")
         & (merged["position"] != "RDP")
-        & rookie_for_season_mask(merged.get("years_exp", 99), merged["season"])
+        & rookie_for_draft_season
     )
     rookie_pick_mask = (merged["league_format"] == "dynasty") & (merged["board_class"] == "startup") & (merged["position"] == "RDP")
     draft_flags = (
@@ -537,6 +605,7 @@ def export_adp_board(
     out["is_superflex"] = out["is_superflex"].astype(str).str.lower()
     if "bestball" in out.columns:
         out["bestball"] = out["bestball"].astype(str).str.lower()
+    out = drop_repeat_rookie_board_players(out, prior_shard_player_ids(shard_manifest, seasons))
 
     cols = [
         "season",
