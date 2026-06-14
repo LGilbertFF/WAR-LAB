@@ -11,6 +11,10 @@ on:
         description: "Maximum eligible redraft drafts to fetch picks for; 0 means uncapped"
         required: true
         default: "0"
+      max_users_per_step:
+        description: "Maximum user frontiers to inspect per discovery step; use 0 only for an intentionally uncapped stress run"
+        required: true
+        default: "10000"
   schedule:
     - cron: "17 10 * * *"
 
@@ -41,7 +45,7 @@ jobs:
           --league-format redraft
           --seen-leagues data/sleeper_seen_redraft_leagues.csv
           --expansion-steps 10
-          --max-users-per-step 0
+          --max-users-per-step "${{ inputs.max_users_per_step || '10000' }}"
           --max-leagues "${{ inputs.max_leagues || '0' }}"
           --max-drafts "${{ inputs.max_drafts || '0' }}"
           --workers 16

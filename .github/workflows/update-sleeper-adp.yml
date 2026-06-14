@@ -11,6 +11,10 @@ on:
         options:
           - "false"
           - "true"
+      max_users_per_step:
+        description: "Maximum user frontiers to inspect per discovery step; use 0 only for an intentionally uncapped stress run"
+        required: true
+        default: "10000"
   schedule:
     - cron: "42 8 * * *"
 
@@ -41,7 +45,7 @@ jobs:
           --league-format dynasty
           --seen-leagues data/sleeper_seen_dynasty_leagues.csv
           --expansion-steps 10
-          --max-users-per-step 0
+          --max-users-per-step "${{ inputs.max_users_per_step || '10000' }}"
           --max-leagues 0
           --max-drafts 0
           --seen-mode "${{ inputs.rebuild_existing == 'true' && 'ignore' || 'skip' }}"

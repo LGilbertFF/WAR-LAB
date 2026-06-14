@@ -89,7 +89,7 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, default=Path("sleeper_work"))
     parser.add_argument("--workers", type=int, default=20)
     parser.add_argument("--expansion-steps", type=int, default=10)
-    parser.add_argument("--max-users-per-step", type=int, default=0)
+    parser.add_argument("--max-users-per-step", type=int, default=10000)
     parser.add_argument("--max-leagues-per-season", type=int, default=0)
     parser.add_argument("--max-drafts-per-season", type=int, default=0)
     parser.add_argument("--draft-start-date", default="")
