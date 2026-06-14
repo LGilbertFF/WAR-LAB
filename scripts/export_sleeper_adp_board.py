@@ -113,7 +113,7 @@ def age_for_season_mask(age: pd.Series, season: pd.Series | int, max_rookie_age:
     current_age = pd.to_numeric(age, errors="coerce")
     season_values = pd.to_numeric(season, errors="coerce").fillna(current_year)
     season_age = current_age - (current_year - season_values)
-    return season_age.le(max_rookie_age).fillna(False)
+    return season_age.le(max_rookie_age) | current_age.isna()
 
 
 def drop_repeat_rookie_board_players(df: pd.DataFrame, initial_seen_player_ids: set[str] | None = None) -> pd.DataFrame:
@@ -335,6 +335,8 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
         .agg(has_rookie_players=("has_rookie_players", "max"), has_rookie_picks=("has_rookie_picks", "max"))
         .reset_index()
     )
+    for col in ["has_rookie_players", "has_rookie_picks"]:
+        draft_flags[col] = draft_flags[col].fillna(False).astype(bool)
     draft_flags["rookie_inclusion"] = "neither"
     draft_flags.loc[draft_flags["has_rookie_players"] & ~draft_flags["has_rookie_picks"], "rookie_inclusion"] = "rookie players"
     draft_flags.loc[~draft_flags["has_rookie_players"] & draft_flags["has_rookie_picks"], "rookie_inclusion"] = "rookie picks"
