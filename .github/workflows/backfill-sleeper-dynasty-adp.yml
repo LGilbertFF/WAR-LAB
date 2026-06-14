@@ -14,15 +14,15 @@ on:
       expansion_steps:
         description: "League discovery expansion steps"
         required: true
-        default: "4"
+        default: "10"
       max_leagues_per_season:
-        description: "Maximum dynasty leagues to discover per season"
+        description: "Maximum dynasty leagues to discover per season; 0 means uncapped"
         required: true
-        default: "500000"
+        default: "0"
       max_drafts_per_season:
-        description: "Maximum eligible completed dynasty drafts to fetch picks for per season"
+        description: "Maximum eligible completed dynasty drafts to fetch picks for per season; 0 means uncapped"
         required: true
-        default: "750000"
+        default: "0"
       draft_start_date:
         description: "Optional draft date window start, YYYY-MM-DD. Blank uses Jan 1 of each season."
         required: false
@@ -74,7 +74,7 @@ jobs:
           --end-season "${{ inputs.end_season }}"
           --out-dir sleeper_dynasty_work
           --expansion-steps "${{ inputs.expansion_steps }}"
-          --max-users-per-step 2500
+          --max-users-per-step 0
           --max-leagues-per-season "${{ inputs.max_leagues_per_season }}"
           --max-drafts-per-season "${{ inputs.max_drafts_per_season }}"
           --league-format dynasty

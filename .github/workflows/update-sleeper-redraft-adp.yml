@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       max_leagues:
-        description: "Maximum newly discovered leagues to inspect"
+        description: "Maximum newly discovered leagues to inspect; 0 means uncapped"
         required: true
-        default: "500000"
+        default: "0"
       max_drafts:
-        description: "Maximum eligible redraft drafts to fetch picks for"
+        description: "Maximum eligible redraft drafts to fetch picks for; 0 means uncapped"
         required: true
-        default: "750000"
+        default: "0"
   schedule:
     - cron: "17 10 * * *"
 
@@ -40,10 +40,10 @@ jobs:
           --out-dir sleeper_redraft_work
           --league-format redraft
           --seen-leagues data/sleeper_seen_redraft_leagues.csv
-          --expansion-steps 4
-          --max-users-per-step 3000
-          --max-leagues "${{ inputs.max_leagues || '500000' }}"
-          --max-drafts "${{ inputs.max_drafts || '750000' }}"
+          --expansion-steps 10
+          --max-users-per-step 0
+          --max-leagues "${{ inputs.max_leagues || '0' }}"
+          --max-drafts "${{ inputs.max_drafts || '0' }}"
           --workers 16
 
       - name: Merge redraft ADP Lab data

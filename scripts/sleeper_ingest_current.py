@@ -217,7 +217,8 @@ def discover_leagues(session, seed_users, season, workers, expansion_steps, max_
         if not frontier:
             break
         log(f"season {season}: discovery step {_step + 1}/{expansion_steps + 1}, frontier={len(frontier):,}, seen_leagues={len(seen_leagues):,}")
-        leagues = fetch_leagues_for_users(session, frontier[:max_users_per_step], season, workers)
+        step_frontier = frontier[:max_users_per_step] if max_users_per_step > 0 else frontier
+        leagues = fetch_leagues_for_users(session, step_frontier, season, workers)
         if leagues.empty:
             break
         new_leagues = leagues[~leagues["league_id"].astype(str).isin(seen_leagues)].copy()
@@ -226,7 +227,7 @@ def discover_leagues(session, seed_users, season, workers, expansion_steps, max_
         all_leagues.append(new_leagues)
         seen_leagues.update(new_leagues["league_id"].astype(str).tolist())
         log(f"season {season}: found {len(new_leagues):,} new leagues, total={len(seen_leagues):,}")
-        if len(seen_leagues) >= max_leagues or _step >= expansion_steps:
+        if (max_leagues > 0 and len(seen_leagues) >= max_leagues) or _step >= expansion_steps:
             break
 
         users = fetch_users_for_leagues(session, new_leagues["league_id"].astype(str).tolist(), workers)
@@ -236,7 +237,8 @@ def discover_leagues(session, seed_users, season, workers, expansion_steps, max_
         candidate_users = users.get("user_id", pd.Series(dtype="object")).dropna().astype(str).tolist()
         frontier = [user_id for user_id in candidate_users if user_id not in seen_users]
         seen_users.update(frontier)
-        frontier = frontier[:max_users_per_step]
+        if max_users_per_step > 0:
+            frontier = frontier[:max_users_per_step]
 
     leagues_out = pd.concat(all_leagues, ignore_index=True).drop_duplicates(subset=["league_id"]) if all_leagues else pd.DataFrame()
     users_out = pd.concat(all_users, ignore_index=True).drop_duplicates() if all_users else pd.DataFrame()
@@ -335,10 +337,10 @@ def main():
     parser.add_argument("--season", type=int, default=2026)
     parser.add_argument("--out-dir", type=Path, default=Path("sleeper_raw"))
     parser.add_argument("--workers", type=int, default=24)
-    parser.add_argument("--expansion-steps", type=int, default=4)
-    parser.add_argument("--max-users-per-step", type=int, default=2500)
-    parser.add_argument("--max-leagues", type=int, default=500000)
-    parser.add_argument("--max-drafts", type=int, default=750000)
+    parser.add_argument("--expansion-steps", type=int, default=10)
+    parser.add_argument("--max-users-per-step", type=int, default=0)
+    parser.add_argument("--max-leagues", type=int, default=0)
+    parser.add_argument("--max-drafts", type=int, default=0)
     parser.add_argument("--draft-start-date", default="")
     parser.add_argument("--draft-end-date", default="")
     parser.add_argument("--league-format", choices=["all", "redraft", "dynasty"], default="all")
