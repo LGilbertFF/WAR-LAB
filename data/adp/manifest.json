@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-06-14T02:01:03.053287+00:00",
+  "updated_at": "2026-06-14T02:11:54.441832+00:00",
   "shards": [
     {
       "season": 2019,
@@ -50,12 +50,12 @@
       "season": 2021,
       "league_format": "dynasty",
       "path": "data/adp/2021-dynasty.json.gz",
-      "rows": 23291,
-      "players": 501,
-      "drafts": 797,
+      "rows": 22116,
+      "players": 397,
+      "drafts": 0,
       "start_date": "2021-01-16",
-      "end_date": "2021-11-11",
-      "bytes": 665749
+      "end_date": "2021-11-28",
+      "bytes": 561659
     },
     {
       "season": 2021,
@@ -72,12 +72,12 @@
       "season": 2022,
       "league_format": "dynasty",
       "path": "data/adp/2022-dynasty.json.gz",
-      "rows": 14807,
-      "players": 517,
-      "drafts": 0,
+      "rows": 34108,
+      "players": 547,
+      "drafts": 1259,
       "start_date": "2022-01-08",
-      "end_date": "2022-11-09",
-      "bytes": 393193
+      "end_date": "2022-12-07",
+      "bytes": 942580
     },
     {
       "season": 2022,
