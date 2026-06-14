@@ -101,8 +101,11 @@ def rookie_pick_label(pick_no: pd.Series, teams: pd.Series) -> pd.Series:
     return rookie_round.astype(str) + "." + rookie_slot.astype(str).str.zfill(2)
 
 
-def rookie_years_exp_limit(season: int) -> int:
-    return max(0, pd.Timestamp.utcnow().year - int(season))
+def rookie_for_season_mask(years_exp: pd.Series, season: pd.Series | int) -> pd.Series:
+    current_year = pd.Timestamp.utcnow().year
+    exp = pd.to_numeric(years_exp, errors="coerce").fillna(99)
+    season_values = pd.to_numeric(season, errors="coerce").fillna(current_year)
+    return exp.le((current_year - season_values).clip(lower=0))
 
 
 def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
@@ -240,17 +243,18 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     merged.loc[rdp_mask, "headshot_url"] = ""
 
     years_exp = pd.to_numeric(merged.get("years_exp", 99), errors="coerce").fillna(99)
+    rookie_for_draft_season = rookie_for_season_mask(years_exp, merged["season"])
     rookie_board_mask = (merged["league_format"] == "dynasty") & (merged["board_class"] == "rookie")
-    rookie_veteran_rows = int((rookie_board_mask & ~years_exp.le(rookie_years_exp_limit(season))).sum())
+    rookie_veteran_rows = int((rookie_board_mask & ~rookie_for_draft_season).sum())
     if rookie_veteran_rows:
         print(f"season {season}: dropped {rookie_veteran_rows:,} veteran/player rows from dynasty rookie boards")
-    merged = merged[~rookie_board_mask | years_exp.le(rookie_years_exp_limit(season))].copy()
+    merged = merged[~rookie_board_mask | rookie_for_draft_season].copy()
 
     rookie_player_mask = (
         (merged["league_format"] == "dynasty")
         & (merged["board_class"] == "startup")
         & (merged["position"] != "RDP")
-        & pd.to_numeric(merged.get("years_exp", 99), errors="coerce").fillna(99).eq(0)
+        & rookie_for_season_mask(merged.get("years_exp", 99), merged["season"])
     )
     rookie_pick_mask = (merged["league_format"] == "dynasty") & (merged["board_class"] == "startup") & (merged["position"] == "RDP")
     draft_flags = (
