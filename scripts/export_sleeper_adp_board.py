@@ -101,6 +101,10 @@ def rookie_pick_label(pick_no: pd.Series, teams: pd.Series) -> pd.Series:
     return rookie_round.astype(str) + "." + rookie_slot.astype(str).str.zfill(2)
 
 
+def rookie_years_exp_limit(season: int) -> int:
+    return max(0, pd.Timestamp.utcnow().year - int(season))
+
+
 def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     drafts_path = raw_dir / "drafts" / f"drafts_{season}.parquet"
     picks_path = raw_dir / "picks" / f"picks_{season}.parquet"
@@ -204,12 +208,14 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
         & (merged["md_pos"] == "K")
         & (pd.to_numeric(merged["round"], errors="coerce") < 4)
     )
-    labels = rookie_pick_label(merged.loc[is_early_kicker_placeholder, "pick_no"], merged.loc[is_early_kicker_placeholder, "st_teams"])
-    merged.loc[is_early_kicker_placeholder, "player_id"] = "ROOKIE_PICK_" + labels
-    merged.loc[is_early_kicker_placeholder, "md_first_name"] = "Rookie Pick"
-    merged.loc[is_early_kicker_placeholder, "md_last_name"] = labels
-    merged.loc[is_early_kicker_placeholder, "md_team"] = "PICK"
-    merged.loc[is_early_kicker_placeholder, "md_pos"] = "RDP"
+    placeholder_rows = merged.loc[is_early_kicker_placeholder].copy().sort_values(["draft_id", "pick_no"])
+    placeholder_rank = placeholder_rows.groupby("draft_id").cumcount() + 1
+    labels = rookie_pick_label(placeholder_rank, placeholder_rows["st_teams"])
+    merged.loc[placeholder_rows.index, "player_id"] = "ROOKIE_PICK_" + labels.to_numpy()
+    merged.loc[placeholder_rows.index, "md_first_name"] = "Rookie Pick"
+    merged.loc[placeholder_rows.index, "md_last_name"] = labels.to_numpy()
+    merged.loc[placeholder_rows.index, "md_team"] = "PICK"
+    merged.loc[placeholder_rows.index, "md_pos"] = "RDP"
 
     merged = merged[merged["md_pos"].isin(PLAYER_POSITIONS + ["RDP"])].copy()
     merged["md_team"] = merged["md_team"].replace("", pd.NA)
@@ -232,6 +238,13 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     merged["team"] = merged["team"].fillna(merged["player_id"].map(player_team)).fillna("FA")
     merged["headshot_url"] = "https://sleepercdn.com/content/nfl/players/" + merged["player_id"].astype(str) + ".jpg"
     merged.loc[rdp_mask, "headshot_url"] = ""
+
+    years_exp = pd.to_numeric(merged.get("years_exp", 99), errors="coerce").fillna(99)
+    rookie_board_mask = (merged["league_format"] == "dynasty") & (merged["board_class"] == "rookie")
+    rookie_veteran_rows = int((rookie_board_mask & ~years_exp.le(rookie_years_exp_limit(season))).sum())
+    if rookie_veteran_rows:
+        print(f"season {season}: dropped {rookie_veteran_rows:,} veteran/player rows from dynasty rookie boards")
+    merged = merged[~rookie_board_mask | years_exp.le(rookie_years_exp_limit(season))].copy()
 
     rookie_player_mask = (
         (merged["league_format"] == "dynasty")
