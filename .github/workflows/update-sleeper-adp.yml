@@ -2,6 +2,15 @@ name: Update Sleeper Dynasty ADP Lab Data
 
 on:
   workflow_dispatch:
+    inputs:
+      rebuild_existing:
+        description: "Ignore seen draft cache and replace the current dynasty shard"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
   schedule:
     - cron: "42 8 * * *"
 
@@ -35,21 +44,27 @@ jobs:
           --max-users-per-step 3000
           --max-leagues 300000
           --max-drafts 500000
+          --seen-mode "${{ inputs.rebuild_existing == 'true' && 'ignore' || 'skip' }}"
           --workers 16
 
       - name: Export ADP Lab data
-        run: >
-          python scripts/export_sleeper_adp_board.py
-          --season 2026
-          --raw-dir sleeper_dynasty_work/raw
-          --players sleeper_dynasty_work/cache/players_nfl.parquet
-          --out data/custom_adp_board.csv
-          --append-existing
-          --merge-existing
-          --max-output-mb 90
-          --shard-dir data/adp
-          --shard-manifest data/adp/manifest.json
-          --skip-csv
+        shell: bash
+        run: |
+          args=(
+            --season 2026
+            --raw-dir sleeper_dynasty_work/raw
+            --players sleeper_dynasty_work/cache/players_nfl.parquet
+            --out data/custom_adp_board.csv
+            --append-existing
+            --max-output-mb 90
+            --shard-dir data/adp
+            --shard-manifest data/adp/manifest.json
+            --skip-csv
+          )
+          if [ "${{ inputs.rebuild_existing }}" != "true" ]; then
+            args+=(--merge-existing)
+          fi
+          python scripts/export_sleeper_adp_board.py "${args[@]}"
 
       - name: Commit updated Sleeper dynasty ADP data
         uses: stefanzweifel/git-auto-commit-action@v5

@@ -65,7 +65,7 @@ The repository includes three GitHub Actions workflows:
 
 `deploy-pages.yml` publishes the static app to GitHub Pages whenever `main` changes. `update-current-data.yml` refreshes 2026 FantasyPros projections and ADP hourly and commits the generated CSVs. `build-historical-data.yml` is a manual one-time historical weekly scoring scrape that commits the historical export.
 
-`update-sleeper-adp.yml` refreshes current-season Sleeper dynasty ADP once per day. It tracks harvested draft IDs in `data/sleeper_seen_dynasty_leagues.csv`, skips only drafts already included, and merges new rows into browser-ready ADP shards under `data/adp/`. This lets a dynasty league contribute multiple drafts in the same year, such as a startup and later rookie draft.
+`update-sleeper-adp.yml` refreshes current-season Sleeper dynasty ADP once per day. It tracks harvested draft IDs in `data/sleeper_seen_dynasty_leagues.csv`, skips only drafts already included, and merges new rows into browser-ready ADP shards under `data/adp/`. This lets a dynasty league contribute multiple drafts in the same year, such as a startup and later rookie draft. Manual current-season rebuild mode ignores the seen-draft cache and replaces the current dynasty shard.
 
 `update-sleeper-redraft-adp.yml` runs a separate redraft-only expansion. It uses a tracked `data/sleeper_seen_redraft_leagues.csv` cache of harvested draft IDs so repeat runs can skip completed drafts already included without permanently skipping leagues that had not drafted yet. It also merges new redraft rows into the ADP shards instead of replacing unrelated seasons or formats.
 

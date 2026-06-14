@@ -343,6 +343,7 @@ def main():
     parser.add_argument("--draft-end-date", default="")
     parser.add_argument("--league-format", choices=["all", "redraft", "dynasty"], default="all")
     parser.add_argument("--seen-leagues", type=Path)
+    parser.add_argument("--seen-mode", choices=["skip", "ignore"], default="skip")
     parser.add_argument("--seed-user", action="append", default=[])
     args = parser.parse_args()
 
@@ -368,7 +369,7 @@ def main():
     if drafts.empty:
         raise RuntimeError("No Sleeper drafts discovered.")
     eligible = eligible_drafts(drafts, args.max_drafts, args.draft_start_date, args.draft_end_date, args.league_format)
-    seen_ids = read_seen_ids(args.seen_leagues) if args.seen_leagues else set()
+    seen_ids = read_seen_ids(args.seen_leagues) if args.seen_leagues and args.seen_mode != "ignore" else set()
     if seen_ids and "draft_id" in eligible.columns:
         before = len(eligible)
         eligible = eligible[~eligible["draft_id"].astype(str).isin(seen_ids)].copy()
