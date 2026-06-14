@@ -14,15 +14,15 @@ on:
       expansion_steps:
         description: "League discovery expansion steps"
         required: true
-        default: "3"
+        default: "4"
       max_leagues_per_season:
         description: "Maximum leagues to discover per season"
         required: true
-        default: "300000"
+        default: "500000"
       max_drafts_per_season:
         description: "Maximum eligible completed drafts to fetch picks for per season"
         required: true
-        default: "500000"
+        default: "750000"
       league_format:
         description: "League format to backfill: all, redraft, or dynasty"
         required: true

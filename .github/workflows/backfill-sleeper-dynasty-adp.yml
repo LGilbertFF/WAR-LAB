@@ -14,15 +14,15 @@ on:
       expansion_steps:
         description: "League discovery expansion steps"
         required: true
-        default: "3"
+        default: "4"
       max_leagues_per_season:
         description: "Maximum dynasty leagues to discover per season"
         required: true
-        default: "300000"
+        default: "500000"
       max_drafts_per_season:
         description: "Maximum eligible completed dynasty drafts to fetch picks for per season"
         required: true
-        default: "500000"
+        default: "750000"
       draft_start_date:
         description: "Optional draft date window start, YYYY-MM-DD. Blank uses Jan 1 of each season."
         required: false

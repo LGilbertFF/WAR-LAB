@@ -40,10 +40,10 @@ jobs:
           --out-dir sleeper_dynasty_work
           --league-format dynasty
           --seen-leagues data/sleeper_seen_dynasty_leagues.csv
-          --expansion-steps 3
+          --expansion-steps 4
           --max-users-per-step 3000
-          --max-leagues 300000
-          --max-drafts 500000
+          --max-leagues 500000
+          --max-drafts 750000
           --seen-mode "${{ inputs.rebuild_existing == 'true' && 'ignore' || 'skip' }}"
           --workers 16
 
