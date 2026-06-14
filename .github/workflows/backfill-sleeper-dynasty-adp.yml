@@ -39,6 +39,14 @@ on:
         description: "Hard safety cap for committed ADP CSV size in MB"
         required: true
         default: "90"
+      rebuild_existing:
+        description: "Ignore seen draft cache and replace selected dynasty season shards"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 permissions:
   contents: write
@@ -73,23 +81,29 @@ jobs:
           --draft-start-date "${{ inputs.draft_start_date }}"
           --draft-end-date "${{ inputs.draft_end_date }}"
           --seen-leagues-dir data/historical_seen_leagues
+          --seen-mode "${{ inputs.rebuild_existing == 'true' && 'ignore' || 'skip' }}"
           --workers 16
 
       - name: Export historical dynasty ADP Lab data
-        run: >
-          python scripts/export_sleeper_adp_board.py
-          --start-season "${{ inputs.start_season }}"
-          --end-season "${{ inputs.end_season }}"
-          --raw-dir sleeper_dynasty_work/raw
-          --players sleeper_dynasty_work/cache/players_nfl.parquet
-          --out data/custom_adp_board.csv
-          --append-existing
-          --merge-existing
-          --max-output-rows "${{ inputs.max_output_rows }}"
-          --max-output-mb "${{ inputs.max_output_mb }}"
-          --shard-dir data/adp
-          --shard-manifest data/adp/manifest.json
-          --skip-csv
+        shell: bash
+        run: |
+          args=(
+            --start-season "${{ inputs.start_season }}"
+            --end-season "${{ inputs.end_season }}"
+            --raw-dir sleeper_dynasty_work/raw
+            --players sleeper_dynasty_work/cache/players_nfl.parquet
+            --out data/custom_adp_board.csv
+            --append-existing
+            --max-output-rows "${{ inputs.max_output_rows }}"
+            --max-output-mb "${{ inputs.max_output_mb }}"
+            --shard-dir data/adp
+            --shard-manifest data/adp/manifest.json
+            --skip-csv
+          )
+          if [ "${{ inputs.rebuild_existing }}" != "true" ]; then
+            args+=(--merge-existing)
+          fi
+          python scripts/export_sleeper_adp_board.py "${args[@]}"
 
       - name: Commit historical dynasty Sleeper ADP data
         uses: stefanzweifel/git-auto-commit-action@v5
