@@ -72,6 +72,7 @@ def eligible_drafts(
     draft_start_date: str = "",
     draft_end_date: str = "",
     league_format: str = "all",
+    exclude_draft_ids: set[str] | None = None,
 ) -> pd.DataFrame:
     if drafts.empty:
         return drafts
@@ -97,6 +98,10 @@ def eligible_drafts(
     if draft_end_date:
         mask &= dates.lt(pd.Timestamp(draft_end_date, tz="UTC") + pd.Timedelta(days=1))
     out = out[mask].copy()
+    if exclude_draft_ids and "draft_id" in out.columns:
+        before = len(out)
+        out = out[~out["draft_id"].astype(str).isin(exclude_draft_ids)].copy()
+        log(f"skipped {before - len(out):,} previously harvested drafts before cap, remaining={len(out):,}")
     if max_drafts > 0 and len(out) > max_drafts:
         scoring_type = first_existing_column(out, ["md_scoring_type", "metadata.scoring_type", "metadata.scoring"], "").astype(str)
         out["_league_format"] = scoring_type.str.startswith("dynasty").map({True: "dynasty", False: "redraft"})
@@ -370,12 +375,15 @@ def main():
     drafts = fetch_drafts(session, leagues["league_id"].astype(str).tolist(), args.season, args.workers)
     if drafts.empty:
         raise RuntimeError("No Sleeper drafts discovered.")
-    eligible = eligible_drafts(drafts, args.max_drafts, args.draft_start_date, args.draft_end_date, args.league_format)
     seen_ids = read_seen_ids(args.seen_leagues) if args.seen_leagues and args.seen_mode != "ignore" else set()
-    if seen_ids and "draft_id" in eligible.columns:
-        before = len(eligible)
-        eligible = eligible[~eligible["draft_id"].astype(str).isin(seen_ids)].copy()
-        log(f"season {args.season}: skipped {before - len(eligible):,} previously harvested drafts, remaining={len(eligible):,}")
+    eligible = eligible_drafts(
+        drafts,
+        args.max_drafts,
+        args.draft_start_date,
+        args.draft_end_date,
+        args.league_format,
+        seen_ids,
+    )
     log(f"season {args.season}: eligible completed snake/linear drafts={len(eligible):,}/{len(drafts):,}")
     if eligible.empty:
         raise RuntimeError("No new eligible Sleeper drafts discovered.")

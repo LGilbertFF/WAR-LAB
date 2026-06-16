@@ -71,6 +71,8 @@ The repository includes three GitHub Actions workflows:
 
 Sleeper ADP pulls now default to aggressive discovery: 10 expansion steps, up to 10,000 users per discovery wave, uncapped discovered leagues, and uncapped eligible drafts. In the cap inputs, `0` means uncapped; use it for intentional stress runs, but the default user-frontier cap keeps runs more likely to reach export/commit before GitHub shuts down the runner. GitHub Actions runtime, Sleeper API responsiveness, runner memory, and the 90 MB per-shard safety cap are the practical stops.
 
+Redraft pulls default to a 40,000-draft cap because very large redraft pick fetches can exceed practical runner time before export. Seen draft IDs are filtered before this cap, so rerunning the redraft workflow continues with the next unharvested draft slice.
+
 `backfill-sleeper-adp.yml` is a manual historical Sleeper ADP pull with a league-format selector. Blank date inputs use January 1 through December 31 of each season, so early-year drafts are included by default. `backfill-sleeper-redraft-adp.yml` and `backfill-sleeper-dynasty-adp.yml` are separate fixed-format historical searches for when you want to build those pools independently. Historical rebuild mode ignores the seen-draft cache while fetching and replaces the selected season/format shards, which is useful after exporter logic changes.
 
 Historical backfills track already-included draft IDs by year and format in `data/historical_seen_leagues/`, so rerunning a backfill can still pick up later drafts from the same league while avoiding draft IDs already harvested.

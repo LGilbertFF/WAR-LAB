@@ -49,18 +49,15 @@ def ingest_season(session, args, season: int, seed_users: list[str]) -> None:
         return
     draft_start_date = args.draft_start_date or f"{season}-01-01"
     draft_end_date = args.draft_end_date or f"{season}-12-31"
+    seen_ids = read_seen_ids(seen_path) if seen_path and args.seen_mode != "ignore" else set()
     eligible = eligible_drafts(
         drafts,
         args.max_drafts_per_season,
         draft_start_date,
         draft_end_date,
         args.league_format,
+        seen_ids,
     )
-    seen_ids = read_seen_ids(seen_path) if seen_path and args.seen_mode != "ignore" else set()
-    if seen_ids and "draft_id" in eligible.columns:
-        before = len(eligible)
-        eligible = eligible[~eligible["draft_id"].astype(str).isin(seen_ids)].copy()
-        log(f"season {season}: skipped {before - len(eligible):,} previously harvested {seen_format} drafts, remaining={len(eligible):,}")
     log(f"season {season}: eligible completed snake/linear drafts={len(eligible):,}/{len(drafts):,}")
     if eligible.empty:
         log(f"season {season}: no new eligible drafts discovered")
