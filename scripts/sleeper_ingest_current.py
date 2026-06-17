@@ -291,25 +291,42 @@ def fetch_drafts(session, league_ids, season, workers):
 def fetch_picks(session, draft_ids, workers):
     urls = [draft_picks_url(draft_id) for draft_id in draft_ids]
     rows = []
-    for url, data, err in fetch_many(session, urls, workers, "draft picks"):
-        if err or not data:
-            continue
-        draft_id = url.split("/draft/")[1].split("/picks")[0]
-        for pick in data:
-            metadata = pick.get("metadata") or {}
-            rows.append({
-                "draft_id": draft_id,
-                "player_id": pick.get("player_id"),
-                "pick_no": pick.get("pick_no"),
-                "round": pick.get("round"),
-                "draft_slot": pick.get("draft_slot"),
-                "is_keeper": pick.get("is_keeper"),
-                "md_first_name": metadata.get("first_name"),
-                "md_last_name": metadata.get("last_name"),
-                "md_team": metadata.get("team"),
-                "md_pos": metadata.get("position"),
-                "md_amount": metadata.get("amount"),
-            })
+    if not urls:
+        return pd.DataFrame(rows)
+    done = 0
+    batch_size = max(250, workers * 25)
+    log(f"draft picks: fetching {len(urls):,} urls with {workers} workers")
+    for batch_index, batch in enumerate(chunks(urls, batch_size), start=1):
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(get_json, session, url): url for url in batch}
+            for future in as_completed(futures):
+                url = futures[future]
+                done += 1
+                try:
+                    data = future.result()
+                except Exception:
+                    data = None
+                if data:
+                    draft_id = url.split("/draft/")[1].split("/picks")[0]
+                    for pick in data:
+                        metadata = pick.get("metadata") or {}
+                        rows.append({
+                            "draft_id": draft_id,
+                            "player_id": pick.get("player_id"),
+                            "pick_no": pick.get("pick_no"),
+                            "round": pick.get("round"),
+                            "draft_slot": pick.get("draft_slot"),
+                            "is_keeper": pick.get("is_keeper"),
+                            "md_first_name": metadata.get("first_name"),
+                            "md_last_name": metadata.get("last_name"),
+                            "md_team": metadata.get("team"),
+                            "md_pos": metadata.get("position"),
+                            "md_amount": metadata.get("amount"),
+                        })
+                if done % max(100, workers * 10) == 0 or done == len(urls):
+                    log(f"draft picks: {done:,}/{len(urls):,} urls complete; rows={len(rows):,}")
+        if batch_index % 4 == 0:
+            log(f"draft picks: finished batch {batch_index:,}; rows={len(rows):,}")
     return pd.DataFrame(rows)
 
 
