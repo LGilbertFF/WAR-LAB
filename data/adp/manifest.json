@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-06-17T14:27:30.840469+00:00",
+  "updated_at": "2026-06-17T23:20:54.293120+00:00",
   "shards": [
     {
       "season": 2019,
@@ -61,12 +61,12 @@
       "season": 2021,
       "league_format": "redraft",
       "path": "data/adp/2021-redraft.json.gz",
-      "rows": 13938,
-      "players": 356,
-      "drafts": 0,
+      "rows": 96285,
+      "players": 975,
+      "drafts": 3925,
       "start_date": "2021-05-01",
-      "end_date": "2021-10-05",
-      "bytes": 408375
+      "end_date": "2021-12-03",
+      "bytes": 2728032
     },
     {
       "season": 2022,
@@ -83,12 +83,12 @@
       "season": 2022,
       "league_format": "redraft",
       "path": "data/adp/2022-redraft.json.gz",
-      "rows": 129929,
-      "players": 1061,
-      "drafts": 3851,
-      "start_date": "2022-04-24",
+      "rows": 130835,
+      "players": 1185,
+      "drafts": 3867,
+      "start_date": "2021-12-06",
       "end_date": "2022-12-27",
-      "bytes": 3701112
+      "bytes": 3729333
     },
     {
       "season": 2023,
@@ -176,7 +176,7 @@
       "drafts": 647,
       "start_date": "2025-12-28",
       "end_date": "2026-06-17",
-      "bytes": 1520299
+      "bytes": 1520354
     }
   ]
 }
