@@ -516,20 +516,32 @@ def write_shards(out: pd.DataFrame, shard_dir: Path, manifest_path: Path, max_ou
             shard = sort_output(shard)
         shard, _ = fit_csv_size(shard, max_output_mb)
         size = write_json_gz(path, shard)
-        draft_groups = shard.groupby([
+        draft_group_cols = [
             col for col in [
                 "season", "start_date", "league_format", "board_class", "rookie_inclusion", "type",
                 "md_scoring_type", "st_teams", "st_rounds", "slots_qb", "slots_rb", "slots_wr",
                 "slots_te", "slots_flex", "slots_superflex", "is_superflex", "bestball"
             ] if col in shard.columns
-        ], dropna=False)["sample_drafts"].max()
+        ]
+        if draft_group_cols and "sample_drafts" in shard.columns:
+            draft_groups = shard.groupby(draft_group_cols, dropna=False).agg(
+                sample_drafts=("sample_drafts", "max"),
+                player_drafts=("drafts", "max"),
+            )
+            draft_values = draft_groups["sample_drafts"].where(
+                draft_groups["sample_drafts"].gt(0),
+                draft_groups["player_drafts"],
+            )
+            draft_total = int(draft_values.sum())
+        else:
+            draft_total = int(shard.get("drafts", pd.Series(dtype=int)).sum())
         entries.append({
             "season": int(season),
             "league_format": str(league_format),
             "path": f"{shard_dir.as_posix().rstrip('/')}/{rel_path}",
             "rows": int(len(shard)),
             "players": int(shard["player_id"].nunique()) if "player_id" in shard.columns else 0,
-            "drafts": int(draft_groups.sum()) if len(draft_groups) else int(shard.get("drafts", pd.Series(dtype=int)).sum()),
+            "drafts": draft_total,
             "start_date": str(shard["start_date"].min()) if "start_date" in shard.columns and len(shard) else "",
             "end_date": str(shard["start_date"].max()) if "start_date" in shard.columns and len(shard) else "",
             "bytes": int(size),

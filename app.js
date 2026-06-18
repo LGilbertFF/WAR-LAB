@@ -1000,12 +1000,22 @@ function addDraftGroup(groups, row) {
   const key = adpGroupKey(row, true);
   const sampleDrafts = number(row.sample_drafts, null);
   const playerDrafts = number(row.drafts, 0);
-  const value = sampleDrafts === null ? playerDrafts : sampleDrafts;
-  groups.set(key, Math.max(groups.get(key) || 0, value));
+  const current = groups.get(key);
+  const item = typeof current === "object" && current !== null
+    ? current
+    : { sample: number(current, 0), player: 0 };
+  item.sample = Math.max(item.sample || 0, sampleDrafts || 0);
+  item.player = Math.max(item.player || 0, playerDrafts || 0);
+  groups.set(key, item);
 }
 
 function draftGroupTotal(groups) {
-  return [...groups.values()].reduce((sum, value) => sum + number(value, 0), 0);
+  return [...groups.values()].reduce((sum, value) => {
+    if (typeof value === "object" && value !== null) {
+      return sum + (number(value.sample, 0) > 0 ? number(value.sample, 0) : number(value.player, 0));
+    }
+    return sum + number(value, 0);
+  }, 0);
 }
 
 function adpLeaguePresets(limit = 10) {
