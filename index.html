@@ -240,83 +240,108 @@
             </label>
             <p id="adpSeasonSummary">Season data is loading.</p>
           </div>
-          <div class="adp-controls">
-            <label>
-              League type
-              <select id="adpLeagueFormat">
-                <option value="redraft">Redraft</option>
-                <option value="dynasty">Dynasty</option>
-                <option value="all">All</option>
-              </select>
-            </label>
-            <label>
-              Board type
-              <select id="adpBoardType">
-                <option value="all">All boards</option>
-                <option value="startup">Dynasty startup</option>
-                <option value="rookie">Dynasty rookie</option>
-                <option value="redraft">Redraft</option>
-              </select>
-            </label>
-            <label>
-              Rookie setup
-              <select id="adpRookieInclusion">
-                <option value="all">All dynasty setups</option>
-                <option value="neither">No rookies/picks</option>
-                <option value="rookie players">Includes rookies</option>
-                <option value="rookie picks">Includes rookie picks</option>
-                <option value="rookies + picks">Rookies + picks</option>
-                <option value="rookie draft">Rookie drafts</option>
-              </select>
-            </label>
-            <label>
-              Draft type
-              <select id="adpDraftType">
-                <option value="snake">Snake</option>
-                <option value="linear">Linear</option>
-                <option value="all">All types</option>
-              </select>
-            </label>
-            <label>
-              Bestball
-              <select id="adpBestball">
-                <option value="all">All drafts</option>
-                <option value="false">Managed</option>
-                <option value="true">Bestball</option>
-              </select>
-            </label>
-            <label>
-              Scoring
-              <select id="adpScoring">
-                <option value="ppr">PPR</option>
-                <option value="half_ppr">Half PPR</option>
-                <option value="std">Standard</option>
-                <option value="2qb">2QB</option>
-                <option value="dynasty_2qb">Dynasty 2QB</option>
-                <option value="dynasty_ppr">Dynasty PPR</option>
-                <option value="dynasty_half_ppr">Dynasty half PPR</option>
-                <option value="dynasty_std">Dynasty standard</option>
-                <option value="idp">IDP</option>
-                <option value="idp_1qb">IDP 1QB</option>
-                <option value="all">All scoring</option>
-              </select>
-            </label>
-            <label>
-              Start date
-              <input id="adpStartDate" type="date">
-            </label>
-            <label>
-              End date
-              <input id="adpEndDate" type="date">
-            </label>
-            <label>
-              Min drafts
-              <input id="adpMinDrafts" type="number" min="1" max="500" value="5">
-            </label>
-            <label>
-              Search
-              <input id="adpSearch" type="search" placeholder="Player">
-            </label>
+          <div class="adp-filter-toolbar">
+            <button id="adpFilterToggle" class="secondary-button icon-button-text" type="button" aria-haspopup="dialog" aria-expanded="false">
+              <span aria-hidden="true">ADP</span>
+              Filters
+            </button>
+            <p id="adpFilterSummary">Using default ADP filters.</p>
+          </div>
+          <div id="adpFilterOverlay" class="modal-overlay" hidden>
+            <section class="adp-filter-modal" role="dialog" aria-modal="true" aria-labelledby="adpFilterTitle">
+              <div class="modal-titlebar">
+                <h2 id="adpFilterTitle">ADP Settings</h2>
+                <button id="adpFilterClose" class="ghost-icon-button" type="button" aria-label="Close ADP filters">X</button>
+              </div>
+              <div class="modal-tabs" aria-label="ADP settings tabs">
+                <button class="modal-tab" type="button">Display</button>
+                <button class="modal-tab active" type="button">Filters</button>
+              </div>
+              <div class="adp-controls">
+                <label class="wide-control">
+                  Date range
+                  <span class="date-range-inputs">
+                    <input id="adpStartDate" type="date">
+                    <input id="adpEndDate" type="date">
+                  </span>
+                </label>
+                <label>
+                  League type
+                  <select id="adpLeagueFormat">
+                    <option value="redraft">Redraft</option>
+                    <option value="dynasty">Dynasty</option>
+                    <option value="all">All</option>
+                  </select>
+                </label>
+                <label>
+                  Board type
+                  <select id="adpBoardType">
+                    <option value="all">All boards</option>
+                    <option value="startup">Dynasty startup</option>
+                    <option value="rookie">Dynasty rookie</option>
+                    <option value="redraft">Redraft</option>
+                  </select>
+                </label>
+                <label>
+                  Rookie setup
+                  <select id="adpRookieInclusion">
+                    <option value="all">All dynasty setups</option>
+                    <option value="neither">No rookies/picks</option>
+                    <option value="rookie players">Includes rookies</option>
+                    <option value="rookie picks">Includes rookie picks</option>
+                    <option value="rookies + picks">Rookies + picks</option>
+                    <option value="rookie draft">Rookie drafts</option>
+                  </select>
+                </label>
+                <label>
+                  Draft type
+                  <select id="adpDraftType">
+                    <option value="snake">Snake</option>
+                    <option value="linear">Linear</option>
+                    <option value="all">All types</option>
+                  </select>
+                </label>
+                <label>
+                  Bestball
+                  <select id="adpBestball">
+                    <option value="all">All drafts</option>
+                    <option value="false">Managed</option>
+                    <option value="true">Bestball</option>
+                  </select>
+                </label>
+                <label>
+                  Scoring
+                  <select id="adpScoring">
+                    <option value="ppr">PPR</option>
+                    <option value="half_ppr">Half PPR</option>
+                    <option value="std">Standard</option>
+                    <option value="2qb">2QB</option>
+                    <option value="dynasty_2qb">Dynasty 2QB</option>
+                    <option value="dynasty_ppr">Dynasty PPR</option>
+                    <option value="dynasty_half_ppr">Dynasty half PPR</option>
+                    <option value="dynasty_std">Dynasty standard</option>
+                    <option value="idp">IDP</option>
+                    <option value="idp_1qb">IDP 1QB</option>
+                    <option value="all">All scoring</option>
+                  </select>
+                </label>
+                <label>
+                  Min drafts
+                  <input id="adpMinDrafts" type="number" min="1" max="500" value="5">
+                </label>
+                <label class="wide-control">
+                  Search
+                  <input id="adpSearch" type="search" placeholder="Player">
+                </label>
+              </div>
+              <div class="modal-actions">
+                <span id="adpFilterSample">Sample: -</span>
+                <div>
+                  <button id="adpFilterApply" type="button">Apply</button>
+                  <button id="adpFilterReset" class="secondary-button" type="button">Reset</button>
+                </div>
+              </div>
+            </section>
           </div>
           <section class="adp-common-leagues" aria-label="Common ADP league presets">
             <div class="panel-header compact">

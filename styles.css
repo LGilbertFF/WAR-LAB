@@ -92,6 +92,28 @@ button:hover {
   color: var(--black);
 }
 
+.secondary-button {
+  border-color: var(--line-strong);
+  background: rgba(240, 240, 240, 0.08);
+  color: var(--white);
+}
+
+.secondary-button:hover {
+  border-color: var(--white);
+  background: var(--white);
+  color: var(--black);
+}
+
+.ghost-icon-button {
+  width: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--white);
+  font-size: 1.15rem;
+}
+
 select {
   color-scheme: dark;
 }
@@ -644,9 +666,159 @@ summary::marker {
 
 .adp-controls {
   display: grid;
-  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.adp-controls .wide-control {
+  grid-column: 1 / -1;
+}
+
+.adp-filter-toolbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
   margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: rgba(240, 240, 240, 0.06);
+}
+
+.adp-filter-toolbar p {
+  margin: 0;
+  color: var(--white);
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.icon-button-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.icon-button-text span {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.adp-filter-modal {
+  width: min(470px, 100%);
+  max-height: min(860px, calc(100vh - 36px));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(11, 16, 28, 0.98), rgba(12, 17, 29, 0.96)),
+    url("assets/brand/textures/Primary-Dots.png");
+  background-size: cover;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.72);
+}
+
+.modal-titlebar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 14px 0 22px;
+  border-bottom: 1px solid rgba(240, 240, 240, 0.1);
+}
+
+.modal-titlebar h2 {
+  margin: 0;
+  color: var(--white);
+  font-size: 1rem;
+  text-align: center;
+  text-transform: none;
+}
+
+.modal-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  padding: 12px 14px 0;
+  border-bottom: 1px solid rgba(240, 240, 240, 0.1);
+}
+
+.modal-tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: rgba(240, 240, 240, 0.78);
+  text-transform: none;
+}
+
+.modal-tab.active {
+  border-bottom-color: #8065a8;
+  color: var(--white);
+}
+
+.adp-filter-modal .adp-controls {
+  overflow: auto;
+  padding: 18px 20px;
+}
+
+.adp-filter-modal label {
+  margin: 0;
+  color: rgba(240, 240, 240, 0.62);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.adp-filter-modal input,
+.adp-filter-modal select {
+  width: 100%;
+  margin-top: 7px;
+  border-color: rgba(240, 240, 240, 0.12);
+  border-radius: 6px;
+  background: rgba(6, 11, 22, 0.82);
+}
+
+.date-range-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.modal-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(240, 240, 240, 0.13);
+}
+
+.modal-actions span {
+  color: rgba(240, 240, 240, 0.7);
+  font-size: 0.82rem;
+}
+
+.modal-actions div {
+  display: flex;
+  gap: 8px;
 }
 
 .adp-detail-controls {
@@ -1186,6 +1358,21 @@ tbody tr.selected-row {
 
   .adp-card-layout {
     grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .adp-filter-toolbar,
+  .modal-actions,
+  .date-range-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-actions div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .adp-filter-modal {
+    max-height: calc(100vh - 18px);
   }
 
   .adp-headshot {

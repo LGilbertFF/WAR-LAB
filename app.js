@@ -1316,6 +1316,7 @@ function renderAdpLab() {
   const copy = adpTitle(rows);
   if (el("adpChartTitle")) el("adpChartTitle").textContent = copy.title;
   if (el("adpChartSubtitle")) el("adpChartSubtitle").textContent = copy.subtitle;
+  updateAdpFilterChrome(rows);
   renderAdpSeasonSummary();
   renderAdpLeaguePresets();
   renderAdpSummary(rows);
@@ -1332,6 +1333,67 @@ function renderAdpSummary(rows) {
   el("adpDraftSample").textContent = drafts.toLocaleString();
   el("adpMonthWindow").textContent = `${config.startDate || "First"} to ${config.endDate || "latest"}`;
   el("adpTopPlayer").textContent = top ? `${top.full_name} ${fmt(top.adp, 1)}` : "-";
+}
+
+function adpFilterSummaryText(rows = null) {
+  const config = adpSettings();
+  const bits = [
+    `${config.season}`,
+    config.leagueFormat === "all" ? "all leagues" : config.leagueFormat,
+    config.boardType === "all" ? "all boards" : config.boardType,
+    config.scoring === "all" ? "all scoring" : scoringLabelFromType(config.scoring),
+    config.draftType === "all" ? "all draft types" : config.draftType,
+    config.bestball === "all" ? "managed + bestball" : config.bestball === "true" ? "bestball" : "managed",
+    `${config.teams} teams`,
+    config.superflex === "true" ? "SF/2QB" : "1QB",
+    `${config.startDate || "first"} to ${config.endDate || "latest"}`
+  ];
+  if (config.query) bits.push(`search: ${config.query}`);
+  if (rows) bits.push(`${rows.length} players`);
+  return bits.join(" | ");
+}
+
+function updateAdpFilterChrome(rows = null) {
+  const summary = el("adpFilterSummary");
+  if (summary) summary.textContent = adpFilterSummaryText(rows);
+  const sample = el("adpFilterSample");
+  if (sample) {
+    const drafts = rows?.sampleDrafts ?? rows?.reduce?.((sum, row) => sum + number(row.drafts, 0), 0) ?? "-";
+    sample.textContent = `Sample: ${typeof drafts === "number" ? drafts.toLocaleString() : drafts}`;
+  }
+}
+
+function openAdpFilters() {
+  const overlay = el("adpFilterOverlay");
+  const toggle = el("adpFilterToggle");
+  if (!overlay) return;
+  overlay.hidden = false;
+  toggle?.setAttribute("aria-expanded", "true");
+  requestAnimationFrame(() => el("adpStartDate")?.focus());
+}
+
+function closeAdpFilters() {
+  const overlay = el("adpFilterOverlay");
+  const toggle = el("adpFilterToggle");
+  if (!overlay) return;
+  overlay.hidden = true;
+  toggle?.setAttribute("aria-expanded", "false");
+}
+
+function resetAdpFilters() {
+  const cfg = settings();
+  if (el("adpLeagueFormat")) el("adpLeagueFormat").value = "redraft";
+  applyAdpFormatDefaults();
+  if (el("adpBoardType")) el("adpBoardType").value = "redraft";
+  if (el("adpRookieInclusion")) el("adpRookieInclusion").value = "all";
+  if (el("adpDraftType")) el("adpDraftType").value = "snake";
+  if (el("adpBestball")) el("adpBestball").value = "all";
+  if (el("adpScoring")) el("adpScoring").value = cfg.slots.SUPERFLEX > 0 || cfg.slots.QB > 1 ? "2qb" : cfg.scoring.rec >= 1 ? "ppr" : cfg.scoring.rec >= 0.5 ? "half_ppr" : "std";
+  if (el("adpMinDrafts")) el("adpMinDrafts").value = 5;
+  if (el("adpSearch")) el("adpSearch").value = "";
+  updateAdpDateControlsForSeason(true);
+  state.customAdpLoaded = false;
+  scheduleRender(0);
 }
 
 function renderAdpTrendChart(rows, copy) {
@@ -2167,6 +2229,19 @@ function bindEvents() {
   el("adpScoring")?.addEventListener("change", () => {
     applyAdpTwoQbHint();
     scheduleRender(0);
+  });
+  el("adpFilterToggle")?.addEventListener("click", openAdpFilters);
+  el("adpFilterClose")?.addEventListener("click", closeAdpFilters);
+  el("adpFilterApply")?.addEventListener("click", () => {
+    closeAdpFilters();
+    scheduleRender(0);
+  });
+  el("adpFilterReset")?.addEventListener("click", resetAdpFilters);
+  el("adpFilterOverlay")?.addEventListener("click", (event) => {
+    if (event.target === el("adpFilterOverlay")) closeAdpFilters();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !el("adpFilterOverlay")?.hidden) closeAdpFilters();
   });
   document.querySelectorAll("input[name='posFilter']").forEach((input) => input.addEventListener("change", () => scheduleRender(0)));
   document.querySelectorAll("[data-view]").forEach((button) => {
