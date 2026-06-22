@@ -1,0 +1,88 @@
+{
+  "current_projections": {
+    "path": "data/war/current_projections.json.gz",
+    "source": "data/current_projections.csv",
+    "rows": 516,
+    "bytes": 34846
+  },
+  "current_adp": {
+    "path": "data/war/current_adp.json.gz",
+    "source": "data/current_adp.csv",
+    "rows": 411,
+    "bytes": 7985
+  },
+  "historical_weekly": {
+    "source": "data/fantasypros_weekly_2015_2025.csv",
+    "rows": 82150,
+    "shards": [
+      {
+        "year": 2015,
+        "path": "data/war/historical_weekly_2015.json.gz",
+        "rows": 6776,
+        "bytes": 179662
+      },
+      {
+        "year": 2016,
+        "path": "data/war/historical_weekly_2016.json.gz",
+        "rows": 6736,
+        "bytes": 180716
+      },
+      {
+        "year": 2017,
+        "path": "data/war/historical_weekly_2017.json.gz",
+        "rows": 6875,
+        "bytes": 184001
+      },
+      {
+        "year": 2018,
+        "path": "data/war/historical_weekly_2018.json.gz",
+        "rows": 6754,
+        "bytes": 184626
+      },
+      {
+        "year": 2019,
+        "path": "data/war/historical_weekly_2019.json.gz",
+        "rows": 6876,
+        "bytes": 187117
+      },
+      {
+        "year": 2020,
+        "path": "data/war/historical_weekly_2020.json.gz",
+        "rows": 6958,
+        "bytes": 193612
+      },
+      {
+        "year": 2021,
+        "path": "data/war/historical_weekly_2021.json.gz",
+        "rows": 5810,
+        "bytes": 172237
+      },
+      {
+        "year": 2022,
+        "path": "data/war/historical_weekly_2022.json.gz",
+        "rows": 5799,
+        "bytes": 174409
+      },
+      {
+        "year": 2023,
+        "path": "data/war/historical_weekly_2023.json.gz",
+        "rows": 6026,
+        "bytes": 180132
+      },
+      {
+        "year": 2024,
+        "path": "data/war/historical_weekly_2024.json.gz",
+        "rows": 6300,
+        "bytes": 186443
+      },
+      {
+        "year": 2025,
+        "path": "data/war/historical_weekly_2025.json.gz",
+        "rows": 17240,
+        "bytes": 366568
+      }
+    ]
+  },
+  "version": 1,
+  "updated_at": "2026-06-22T23:24:57.066472+00:00"
+}

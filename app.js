@@ -2,6 +2,7 @@ const CURRENT_PROJECTIONS_PATH = "data/current_projections.csv";
 const CURRENT_ADP_PATH = "data/current_adp.csv";
 const CUSTOM_ADP_PATH = "data/custom_adp_board.csv";
 const CUSTOM_ADP_MANIFEST_PATH = "data/adp/manifest.json";
+const WAR_DATA_MANIFEST_PATH = "data/war/manifest.json";
 const FALLBACK_PROJECTIONS_PATH = "data/WARProjections2024_PPR2WR.csv";
 const HISTORICAL_WEEKLY_PATH = "data/fantasypros_weekly_2015_2025.csv";
 
@@ -22,6 +23,7 @@ const state = {
   historicalScoredRows: [],
   historicalScoredRowsKey: "",
   manifest: null,
+  warManifest: null,
   results: [],
   selectedId: null,
   selectedHistoryYear: null,
@@ -2088,7 +2090,7 @@ async function loadJsonMaybeGzip(path) {
   const response = await fetch(path);
   if (!response.ok) throw new Error(`Could not load ${path}`);
   if (path.endsWith(".gz")) {
-    if (!("DecompressionStream" in window)) throw new Error("This browser cannot decompress ADP shards.");
+    if (!("DecompressionStream" in window)) throw new Error("This browser cannot decompress data shards.");
     const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
     return JSON.parse(await new Response(stream).text());
   }
@@ -2108,10 +2110,17 @@ async function initData() {
     state.manifest = null;
   }
   try {
-    state.rawProjections = await loadCsv(CURRENT_PROJECTIONS_PATH);
-    state.adpRows = await loadCsv(CURRENT_ADP_PATH);
-    state.projectionSource = CURRENT_PROJECTIONS_PATH;
-    state.adpSource = CURRENT_ADP_PATH;
+    state.warManifest = await loadJson(WAR_DATA_MANIFEST_PATH);
+  } catch {
+    state.warManifest = null;
+  }
+  try {
+    const currentProjectionPath = state.warManifest?.current_projections?.path || CURRENT_PROJECTIONS_PATH;
+    const currentAdpPath = state.warManifest?.current_adp?.path || CURRENT_ADP_PATH;
+    state.rawProjections = currentProjectionPath.endsWith(".json.gz") ? await loadJsonMaybeGzip(currentProjectionPath) : await loadCsv(currentProjectionPath);
+    state.adpRows = currentAdpPath.endsWith(".json.gz") ? await loadJsonMaybeGzip(currentAdpPath) : await loadCsv(currentAdpPath);
+    state.projectionSource = currentProjectionPath;
+    state.adpSource = currentAdpPath;
     setDataStatus(state.projectionSource, state.adpSource, state.manifest);
   } catch {
     state.rawProjections = await loadCsv(FALLBACK_PROJECTIONS_PATH);
@@ -2126,7 +2135,13 @@ async function initData() {
 
 async function loadHistoricalData() {
   try {
-    state.historicalWeeklyRows = await loadCsv(HISTORICAL_WEEKLY_PATH);
+    const shards = state.warManifest?.historical_weekly?.shards || [];
+    if (shards.length) {
+      const frames = await Promise.all(shards.map((shard) => loadJsonMaybeGzip(shard.path)));
+      state.historicalWeeklyRows = frames.flat();
+    } else {
+      state.historicalWeeklyRows = await loadCsv(HISTORICAL_WEEKLY_PATH);
+    }
   } catch {
     state.historicalWeeklyRows = [];
   }

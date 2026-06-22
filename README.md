@@ -27,10 +27,13 @@ C:\Users\lgilb\anaconda3\python.exe scripts\fantasypros_scraper.py --current --s
 This writes:
 
 ```text
-data/current_projections.csv
-data/current_adp.csv
+data/war/current_projections.json.gz
+data/war/current_adp.json.gz
+data/war/manifest.json
 data/scrape_manifest.json
 ```
+
+The scraper still creates local CSV intermediates, but the site prefers the compressed JSON files in `data/war/`.
 
 One-time historical weekly stat scrape back to 2015:
 
@@ -44,10 +47,14 @@ To backfill one position without re-scraping everything:
 C:\Users\lgilb\anaconda3\python.exe scripts\fantasypros_scraper.py --historical --start-year 2015 --end-year 2025 --positions te
 ```
 
-That writes a raw weekly stat export such as:
+That writes a raw weekly stat export and browser-ready compressed year shards:
 
 ```text
 data/fantasypros_weekly_2015_2025.csv
+data/war/historical_weekly_2015.json.gz
+data/war/historical_weekly_2016.json.gz
+...
+data/war/manifest.json
 ```
 
 The repository includes three GitHub Actions workflows:
@@ -63,7 +70,7 @@ The repository includes three GitHub Actions workflows:
 .github/workflows/backfill-sleeper-dynasty-adp.yml
 ```
 
-`deploy-pages.yml` publishes the static app to GitHub Pages whenever `main` changes. `update-current-data.yml` refreshes 2026 FantasyPros projections and ADP hourly and commits the generated CSVs. `build-historical-data.yml` is a manual one-time historical weekly scoring scrape that commits the historical export.
+`deploy-pages.yml` publishes the static app to GitHub Pages whenever `main` changes. `update-current-data.yml` refreshes 2026 FantasyPros projections and ADP hourly, exports browser-ready WAR JSON shards, and commits those generated files. `build-historical-data.yml` is a manual one-time historical weekly scoring scrape that commits the historical WAR JSON shards.
 
 `update-sleeper-adp.yml` refreshes current-season Sleeper dynasty ADP once per day. It tracks harvested draft IDs in `data/sleeper_seen_dynasty_leagues.csv`, skips only drafts already included, and merges new rows into browser-ready ADP shards under `data/adp/`. This lets a dynasty league contribute multiple drafts in the same year, such as a startup and later rookie draft. Manual current-season rebuild mode ignores the seen-draft cache and replaces the current dynasty shard.
 
@@ -81,7 +88,7 @@ Historical backfills track already-included draft IDs by year and format in `dat
 
 The app does not require user uploads. It reads generated files from `data/`.
 
-Sleeper ADP is stored as gzip-compressed JSON shards listed in `data/adp/manifest.json`, such as `data/adp/2026-redraft.json.gz` and `data/adp/2026-dynasty.json.gz`. The legacy `data/custom_adp_board.csv` remains as a browser fallback, but workflows now commit the smaller shards so the site does not depend on one giant CSV.
+WAR projection inputs are stored as gzip-compressed JSON files listed in `data/war/manifest.json`, including current projections, current ADP, and historical weekly year shards. Sleeper ADP is stored as gzip-compressed JSON shards listed in `data/adp/manifest.json`, such as `data/adp/2026-redraft.json.gz` and `data/adp/2026-dynasty.json.gz`. Legacy CSV files may remain as scraper intermediates or browser fallbacks, but the site no longer depends on them for normal loading.
 
 Generated projection CSVs can use either existing projection fields or scored fantasy-point fields.
 

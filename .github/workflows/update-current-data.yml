@@ -24,8 +24,11 @@ jobs:
       - name: Scrape current projections and ADP
         run: python scripts/fantasypros_scraper.py --current --season-year 2026 --adp-scoring ppr
 
+      - name: Export browser-ready WAR data
+        run: python scripts/export_war_data.py --current
+
       - name: Commit updated data
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Update FantasyPros projection data"
-          file_pattern: data/current_projections.csv data/current_adp.csv data/scrape_manifest.json
+          file_pattern: data/war/*.json.gz data/war/manifest.json data/scrape_manifest.json

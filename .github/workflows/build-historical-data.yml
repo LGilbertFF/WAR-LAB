@@ -31,8 +31,11 @@ jobs:
       - name: Scrape historical weekly stats
         run: python scripts/fantasypros_scraper.py --historical --start-year "${{ inputs.start_year }}" --end-year "${{ inputs.end_year }}"
 
+      - name: Export browser-ready historical WAR data
+        run: python scripts/export_war_data.py --historical --historical-source "data/fantasypros_weekly_${{ inputs.start_year }}_${{ inputs.end_year }}.csv"
+
       - name: Commit historical data
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Build FantasyPros historical data"
-          file_pattern: data/fantasypros_weekly_*.csv data/scrape_manifest.json
+          file_pattern: data/war/*.json.gz data/war/manifest.json data/scrape_manifest.json
