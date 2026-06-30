@@ -2,8 +2,8 @@
   "current_projections": {
     "path": "data/war/current_projections.json.gz",
     "source": "data/current_projections.csv",
-    "rows": 232,
-    "bytes": 18856
+    "rows": 219,
+    "bytes": 15564
   },
   "current_adp": {
     "path": "data/war/current_adp.json.gz",
@@ -84,5 +84,5 @@
     ]
   },
   "version": 1,
-  "updated_at": "2026-06-29T23:16:54.822907+00:00"
+  "updated_at": "2026-06-30T01:28:29.604171+00:00"
 }
