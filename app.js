@@ -2190,8 +2190,20 @@ async function loadJson(path) {
 function setDataStatus(projectionSource, adpSource, manifest) {
   const updatedAt = manifest?.updated_at ? new Date(manifest.updated_at) : null;
   const updatedText = updatedAt && !Number.isNaN(updatedAt.valueOf()) ? updatedAt.toLocaleString() : "Not recorded";
-  if (el("projectionSource")) el("projectionSource").textContent = projectionSource === FALLBACK_PROJECTIONS_PATH ? "Fallback data" : updatedText;
-  if (el("adpSource")) el("adpSource").textContent = adpSource === "Unavailable" ? "Unavailable" : updatedText;
+  if (el("projectionSource")) {
+    el("projectionSource").textContent = projectionSource === FALLBACK_PROJECTIONS_PATH
+      ? "Fallback data"
+      : manifest?.current_projections_stale
+        ? `${updatedText} - projections stale`
+        : updatedText;
+  }
+  if (el("adpSource")) {
+    el("adpSource").textContent = adpSource === "Unavailable"
+      ? "Unavailable"
+      : manifest?.current_adp_stale
+        ? `${updatedText} - ADP stale`
+        : updatedText;
+  }
   if (el("lastRefresh")) {
     const year = manifest?.season_year ? ` · ${manifest.season_year}` : "";
     const historical = state.historicalWeeklyRows.length ? " · historical loaded" : " · historical missing";

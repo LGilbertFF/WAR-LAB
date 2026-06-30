@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
+MIN_CURRENT_PROJECTION_ROWS = 250
 
 POSITIONS = ("qb", "rb", "wr", "te")
 ADP_URLS = {
@@ -66,10 +67,22 @@ def table_to_df(html: str) -> pd.DataFrame:
     soup = BeautifulSoup(html, "html.parser")
     table = soup.find("table", {"id": "data"})
     if table is None:
-        raise RuntimeError("Could not find FantasyPros data table")
-    headers = unique_headers(th.get_text(strip=True) for th in table.find("thead").find_all("th"))
+        for candidate in soup.find_all("table"):
+            header_text = " ".join(th.get_text(" ", strip=True).lower() for th in candidate.find_all("th"))
+            if "player" in header_text:
+                table = candidate
+                break
+    if table is None:
+        title = soup.find("title")
+        title_text = f": {title.get_text(strip=True)}" if title else ""
+        raise RuntimeError(f"Could not find FantasyPros data table{title_text}")
+    thead = table.find("thead")
+    tbody = table.find("tbody")
+    if thead is None or tbody is None:
+        raise RuntimeError("FantasyPros data table is missing thead/tbody")
+    headers = unique_headers(th.get_text(strip=True) for th in thead.find_all("th"))
     rows = []
-    for tr in table.find("tbody").find_all("tr"):
+    for tr in tbody.find_all("tr"):
         cells = [td.get_text(strip=True) for td in tr.find_all("td")]
         if cells:
             rows.append(cells[: len(headers)])
@@ -309,8 +322,33 @@ def main() -> None:
     outputs: dict[str, object] = {}
 
     if args.current:
-        scrape_current_projections(DATA_DIR / "current_projections.csv", args.season_year, args.positions)
-        scrape_adp(args.adp_scoring, DATA_DIR / "current_adp.csv", args.season_year)
+        current_projections_path = DATA_DIR / "current_projections.csv"
+        existing_projection_bytes = current_projections_path.read_bytes() if current_projections_path.exists() else None
+        projections = scrape_current_projections(current_projections_path, args.season_year, args.positions)
+        if len(projections) < MIN_CURRENT_PROJECTION_ROWS:
+            if existing_projection_bytes:
+                current_projections_path.write_bytes(existing_projection_bytes)
+                print(
+                    f"WARNING: FantasyPros projections returned only {len(projections):,} rows; "
+                    f"keeping existing {current_projections_path}"
+                )
+                outputs["current_projections_stale"] = True
+                outputs["current_projections_error"] = f"Only {len(projections):,} rows returned"
+            else:
+                raise RuntimeError(f"FantasyPros projections returned only {len(projections):,} rows")
+        else:
+            outputs["current_projections_stale"] = False
+        current_adp_path = DATA_DIR / "current_adp.csv"
+        try:
+            scrape_adp(args.adp_scoring, current_adp_path, args.season_year)
+            outputs["current_adp_stale"] = False
+        except Exception as exc:
+            if current_adp_path.exists():
+                print(f"WARNING: FantasyPros ADP scrape failed; keeping existing {current_adp_path}: {exc}")
+                outputs["current_adp_stale"] = True
+                outputs["current_adp_error"] = str(exc)
+            else:
+                raise
         outputs["current_projections"] = "data/current_projections.csv"
         outputs["current_adp"] = "data/current_adp.csv"
         outputs["season_year"] = args.season_year
