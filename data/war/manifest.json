@@ -2,14 +2,14 @@
   "current_projections": {
     "path": "data/war/current_projections.json.gz",
     "source": "data/current_projections.csv",
-    "rows": 400,
-    "bytes": 26052
+    "rows": 522,
+    "bytes": 34701
   },
   "current_adp": {
     "path": "data/war/current_adp.json.gz",
     "source": "data/current_adp.csv",
-    "rows": 412,
-    "bytes": 8003
+    "rows": 406,
+    "bytes": 7874
   },
   "historical_weekly": {
     "source": "data/fantasypros_weekly_2015_2025.csv",
@@ -84,5 +84,5 @@
     ]
   },
   "version": 1,
-  "updated_at": "2026-07-04T09:32:43.735224+00:00"
+  "updated_at": "2026-07-04T11:46:43.696202+00:00"
 }
