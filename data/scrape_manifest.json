@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-12T21:07:13.298283+00:00",
+  "updated_at": "2026-07-12T22:08:04.982777+00:00",
   "current_projections": "data/current_projections.csv",
   "current_adp": "data/current_adp.csv",
   "season_year": 2026,
@@ -7,7 +7,7 @@
   "historical_weekly": "data/fantasypros_weekly_2015_2025.csv",
   "historical_start_year": 2015,
   "historical_end_year": 2025,
-  "current_projections_stale": false,
+  "current_projections_stale": true,
   "current_projections_error": "Only 231 rows returned",
   "current_adp_stale": true,
   "current_adp_error": "Could not find FantasyPros data table: Average Draft Position (ADP) - PPR Leagues 2026 | FantasyPros"
