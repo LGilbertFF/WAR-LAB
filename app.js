@@ -1748,7 +1748,7 @@ function historicalExplorerTitle(mode, metric) {
     const positionText = pos === "ALL" ? "QB/RB/WR/TE" : pos;
     return {
       title: `${start}-${end} Weekly Fantasy Points vs Single-Week WAR by Position`,
-      subtitle: `${positionText} individual player-weeks grouped into ${binSize}-point bins through ${maxFpts} FPTS - ${context.roster} - ${context.scoring} - ${context.weeks} weeks`
+      subtitle: `${positionText} individual player-weeks grouped into ${binSize}-point bins through ${maxFpts} FPTS - ${context.roster} - ${context.scoring}`
     };
   }
   if (mode === "player") {
@@ -1946,7 +1946,7 @@ function historicalWeeklyBinTraces(rows) {
 function historicalWeeklyBinLayout(copy) {
   return {
     title: {
-      text: `<b>${copy.title}</b><br><span style="font-size:12px;color:#b8b8b8">${copy.subtitle}</span>`,
+      text: `<b>${copy.title}</b><br><span style="font-size:12px;color:#b8b8b8;font-style:italic;font-weight:400">${copy.subtitle}</span>`,
       font: { size: 21, color: "#f7f7f7", family: "Kanit FPTS, Impact, sans-serif" },
       x: 0.02,
       xanchor: "left",
