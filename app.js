@@ -1985,7 +1985,7 @@ function historicalWeeklyBinLayout(copy) {
         font: { color: "rgba(240,240,240,0.72)", size: 11 }
       },
       {
-        text: "Source: FantasyPros weekly scoring, WAR Lab historical model. Lines are averages of individual player-weeks in each bin.",
+        text: "Source: Historical weekly scoring, WAR Lab historical model. Lines are averages of individual player-weeks in each bin.",
         xref: "paper",
         yref: "paper",
         x: 0,
