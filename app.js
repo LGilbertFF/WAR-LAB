@@ -1947,7 +1947,7 @@ function historicalWeeklyBinLayout(copy) {
   return {
     title: {
       text: `<b>${copy.title}</b><br><span style="font-size:12px;color:#b8b8b8">${copy.subtitle}</span>`,
-      font: { size: 21, color: "#f7f7f7" },
+      font: { size: 21, color: "#f7f7f7", family: "Kanit FPTS, Impact, sans-serif" },
       x: 0.02,
       xanchor: "left",
       y: 0.94
