@@ -1922,7 +1922,7 @@ function historicalWeeklyBinTraces(rows) {
     ), -1);
     return {
       type: "scatter",
-      mode: "lines+markers+text",
+      mode: "lines+markers",
       name: pos,
       x: points.map((point) => point.label),
       y: points.map((point) => point.avgWar),
@@ -1947,12 +1947,12 @@ function historicalWeeklyBinLayout(copy) {
   return {
     title: {
       text: `<b>${copy.title}</b><br><span style="font-size:12px;color:#b8b8b8">${copy.subtitle}</span>`,
-      font: { size: 22, color: "#f7f7f7" },
+      font: { size: 21, color: "#f7f7f7" },
       x: 0.02,
       xanchor: "left",
-      y: 0.98
+      y: 0.94
     },
-    margin: { l: 76, r: 78, t: 92, b: 104 },
+    margin: { l: 82, r: 48, t: 132, b: 150 },
     xaxis: {
       title: { text: "Fantasy points bin (single week)", standoff: 18 },
       gridcolor: "rgba(240,240,240,0.08)",
@@ -1989,13 +1989,13 @@ function historicalWeeklyBinLayout(copy) {
         xref: "paper",
         yref: "paper",
         x: 0,
-        y: -0.22,
+        y: -0.32,
         xanchor: "left",
         showarrow: false,
         font: { color: "rgba(240,240,240,0.62)", size: 11 }
       }
     ],
-    legend: { orientation: "h", y: -0.16, x: 0, font: { size: 12 } },
+    legend: { orientation: "h", y: -0.19, x: 0, font: { size: 12 }, itemwidth: 42 },
     font: { family: "Mulish, sans-serif", color: "#f0f0f0" },
     plot_bgcolor: "#111111",
     paper_bgcolor: "#111111",
