@@ -1792,7 +1792,7 @@ function renderHistoricalExplorer() {
 
   if (mode === "weeklyBins") {
     const traces = historicalWeeklyBinTraces(rows);
-    Plotly.react(chart, traces, historicalLayout(copy.title, "Fantasy points bin (single week)", "Average single-week WAR"), { responsive: true });
+    Plotly.react(chart, traces, historicalWeeklyBinLayout(copy), { responsive: true });
     return;
   }
 
@@ -1917,19 +1917,91 @@ function historicalWeeklyBinTraces(rows) {
         avgFpts: binWeeks.length ? average(binWeeks.map((week) => week.FPTS)) : null
       };
     });
+    const lastPointIndex = points.reduce((last, point, index) => (
+      point.avgWar === null ? last : index
+    ), -1);
     return {
       type: "scatter",
-      mode: "lines+markers",
+      mode: "lines+markers+text",
       name: pos,
       x: points.map((point) => point.label),
       y: points.map((point) => point.avgWar),
+      text: points.map((_, index) => index === lastPointIndex ? pos : ""),
+      textposition: "middle right",
+      textfont: { color: posColors[pos], size: 14, family: "Mulish, sans-serif" },
       customdata: points.map((point) => [point.count, point.avgFpts]),
-      line: { color: posColors[pos], width: 2.5, dash: posDashes[pos] },
-      marker: { color: posColors[pos], symbol: posSymbols[pos], size: 8 },
+      line: { color: posColors[pos], width: 3.5, shape: "spline", smoothing: 0.65 },
+      marker: {
+        color: posColors[pos],
+        symbol: posSymbols[pos],
+        size: 9,
+        line: { color: "#111111", width: 1.5 }
+      },
       connectgaps: false,
       hovertemplate: `<b>${pos} %{x} FPTS</b><br>Avg weekly WAR: %{y:.3f}<br>Player-weeks: %{customdata[0]:,}<br>Avg FPTS: %{customdata[1]:.1f}<extra></extra>`
     };
   });
+}
+
+function historicalWeeklyBinLayout(copy) {
+  return {
+    title: {
+      text: `<b>${copy.title}</b><br><span style="font-size:12px;color:#b8b8b8">${copy.subtitle}</span>`,
+      font: { size: 22, color: "#f7f7f7" },
+      x: 0.02,
+      xanchor: "left",
+      y: 0.98
+    },
+    margin: { l: 76, r: 78, t: 92, b: 104 },
+    xaxis: {
+      title: { text: "Fantasy points bin (single week)", standoff: 18 },
+      gridcolor: "rgba(240,240,240,0.08)",
+      linecolor: "rgba(240,240,240,0.38)",
+      tickfont: { size: 12 },
+      color: "#f0f0f0",
+      automargin: true
+    },
+    yaxis: {
+      title: { text: "Average single-week WAR", standoff: 18 },
+      gridcolor: "rgba(240,240,240,0.10)",
+      linecolor: "rgba(240,240,240,0.38)",
+      zeroline: true,
+      zerolinecolor: "rgba(255,255,255,0.62)",
+      zerolinewidth: 2,
+      tickfont: { size: 12 },
+      color: "#f0f0f0",
+      automargin: true
+    },
+    annotations: [
+      {
+        text: "0.00 WAR = replacement-level weekly outcome",
+        xref: "paper",
+        yref: "y",
+        x: 0.01,
+        y: 0,
+        xanchor: "left",
+        yanchor: "bottom",
+        showarrow: false,
+        font: { color: "rgba(240,240,240,0.72)", size: 11 }
+      },
+      {
+        text: "Source: FantasyPros weekly scoring, WAR Lab historical model. Lines are averages of individual player-weeks in each bin.",
+        xref: "paper",
+        yref: "paper",
+        x: 0,
+        y: -0.22,
+        xanchor: "left",
+        showarrow: false,
+        font: { color: "rgba(240,240,240,0.62)", size: 11 }
+      }
+    ],
+    legend: { orientation: "h", y: -0.16, x: 0, font: { size: 12 } },
+    font: { family: "Mulish, sans-serif", color: "#f0f0f0" },
+    plot_bgcolor: "#111111",
+    paper_bgcolor: "#111111",
+    hovermode: "closest",
+    hoverlabel: { bgcolor: "#111111", bordercolor: "#cc3333", font: { color: "#f0f0f0" } }
+  };
 }
 
 function historicalLayout(title, xTitle, yTitle, annotation = null) {
