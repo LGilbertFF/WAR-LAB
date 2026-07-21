@@ -84,5 +84,18 @@
     ]
   },
   "version": 1,
-  "updated_at": "2026-07-21T23:13:20.391442+00:00"
+  "updated_at": "2026-07-21T23:24:29.087357+00:00",
+  "historical_adp": {
+    "path": "data/war/historical_adp.json.gz",
+    "source": "data/historical_adp.csv",
+    "rows": 8352,
+    "bytes": 149877,
+    "start_year": 2020,
+    "end_year": 2025,
+    "scoring": [
+      "half",
+      "ppr",
+      "standard"
+    ]
+  }
 }

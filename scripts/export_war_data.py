@@ -80,16 +80,37 @@ def export_historical(manifest: dict, source: Path | None = None) -> None:
     }
 
 
+def export_historical_adp(manifest: dict) -> None:
+    source = DATA_DIR / "historical_adp.csv"
+    df = read_csv_if_exists(source)
+    if df.empty:
+        return
+    path = WAR_DIR / "historical_adp.json.gz"
+    size = write_json_gz(path, df)
+    years = pd.to_numeric(df.get("Year"), errors="coerce")
+    manifest["historical_adp"] = {
+        "path": path.as_posix(),
+        "source": source.as_posix(),
+        "rows": int(len(df)),
+        "bytes": int(size),
+        "start_year": int(years.min()) if years.notna().any() else None,
+        "end_year": int(years.max()) if years.notna().any() else None,
+        "scoring": sorted(str(value) for value in df.get("Scoring", pd.Series(dtype=str)).dropna().unique()),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Export WAR Lab CSV inputs to browser-ready compressed JSON.")
     parser.add_argument("--current", action="store_true", help="Export current projections and ADP")
     parser.add_argument("--historical", action="store_true", help="Export historical weekly rows")
+    parser.add_argument("--historical-adp", action="store_true", help="Export historical ADP rows")
     parser.add_argument("--historical-source", type=Path, help="Historical weekly CSV to export")
     args = parser.parse_args()
 
-    if not args.current and not args.historical:
+    if not args.current and not args.historical and not args.historical_adp:
         args.current = True
         args.historical = True
+        args.historical_adp = True
 
     manifest = {}
     if MANIFEST_PATH.exists():
@@ -102,6 +123,8 @@ def main() -> None:
         export_current(manifest)
     if args.historical:
         export_historical(manifest, args.historical_source)
+    if args.historical_adp:
+        export_historical_adp(manifest)
 
     manifest["version"] = 1
     manifest["updated_at"] = pd.Timestamp.utcnow().isoformat()

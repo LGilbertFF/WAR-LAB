@@ -31,11 +31,14 @@ jobs:
       - name: Scrape historical weekly stats
         run: python scripts/fantasypros_scraper.py --historical --start-year "${{ inputs.start_year }}" --end-year "${{ inputs.end_year }}"
 
+      - name: Scrape historical ADP
+        run: python scripts/fantasypros_scraper.py --historical-adp --start-year "${{ inputs.start_year }}" --end-year "${{ inputs.end_year }}" --historical-adp-scoring ppr half standard
+
       - name: Export browser-ready historical WAR data
-        run: python scripts/export_war_data.py --historical --historical-source "data/fantasypros_weekly_${{ inputs.start_year }}_${{ inputs.end_year }}.csv"
+        run: python scripts/export_war_data.py --historical --historical-adp --historical-source "data/fantasypros_weekly_${{ inputs.start_year }}_${{ inputs.end_year }}.csv"
 
       - name: Commit historical data
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Build FantasyPros historical data"
-          file_pattern: data/war/*.json.gz data/war/manifest.json data/scrape_manifest.json
+          file_pattern: data/historical_adp.csv data/war/*.json.gz data/war/manifest.json data/scrape_manifest.json

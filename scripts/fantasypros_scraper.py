@@ -229,6 +229,7 @@ def scrape_adp(scoring: str, output: Path, season_year: int) -> pd.DataFrame:
     result = pd.DataFrame(
         {
             "Year": season_year,
+            "Scoring": scoring,
             "Player": extracted.apply(lambda item: item[0]),
             "Team": extracted.apply(lambda item: item[1]),
             "ADP Rank": pd.to_numeric(df.get(rank_col), errors="coerce") if rank_col else None,
@@ -237,6 +238,44 @@ def scrape_adp(scoring: str, output: Path, season_year: int) -> pd.DataFrame:
         }
     )
     result.to_csv(output, index=False)
+    return result
+
+
+def scrape_historical_adp(
+    start_year: int,
+    end_year: int,
+    output: Path,
+    scoring_types: Iterable[str],
+) -> pd.DataFrame:
+    existing = pd.read_csv(output, low_memory=False) if output.exists() else pd.DataFrame()
+    frames = [existing] if not existing.empty else []
+    done: set[tuple[int, str]] = set()
+    if not existing.empty and {"Year", "Scoring"}.issubset(existing.columns):
+        for _, row in existing[["Year", "Scoring"]].drop_duplicates().iterrows():
+            year = pd.to_numeric(row["Year"], errors="coerce")
+            if pd.notna(year):
+                done.add((int(year), str(row["Scoring"]).lower()))
+
+    for year in range(start_year, end_year + 1):
+        for scoring in scoring_types:
+            if (year, scoring) in done:
+                continue
+            scratch = DATA_DIR / f".historical_adp_{year}_{scoring}.csv"
+            try:
+                frame = scrape_adp(scoring, scratch, year)
+                frames.append(frame)
+                if scratch.exists():
+                    scratch.unlink()
+                result = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+                result = result.drop_duplicates(subset=["Year", "Scoring", "Player", "POS"], keep="last")
+                result.to_csv(output, index=False, quoting=csv.QUOTE_MINIMAL)
+                print(f"scraped {year} {scoring} ADP ({len(frame):,} rows)")
+            except Exception as exc:
+                print(f"skipped {year} {scoring} ADP: {exc}")
+    result = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+    if not result.empty:
+        result = result.drop_duplicates(subset=["Year", "Scoring", "Player", "POS"], keep="last")
+        result.to_csv(output, index=False, quoting=csv.QUOTE_MINIMAL)
     return result
 
 
@@ -305,10 +344,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--current", action="store_true", help="Scrape current projections and ADP")
     parser.add_argument("--historical", action="store_true", help="Scrape historical weekly stat rows")
+    parser.add_argument("--historical-adp", action="store_true", help="Scrape historical FantasyPros ADP rows")
     parser.add_argument("--season-year", type=int, default=datetime.now().year)
     parser.add_argument("--start-year", type=int, default=2015)
     parser.add_argument("--end-year", type=int, default=datetime.now().year - 1)
     parser.add_argument("--adp-scoring", choices=sorted(ADP_URLS), default="ppr")
+    parser.add_argument("--historical-adp-scoring", nargs="+", choices=sorted(ADP_URLS), default=sorted(ADP_URLS))
     parser.add_argument(
         "--positions",
         nargs="+",
@@ -360,6 +401,16 @@ def main() -> None:
         outputs["historical_weekly"] = f"data/{output.name}"
         outputs["historical_start_year"] = args.start_year
         outputs["historical_end_year"] = args.end_year
+
+    if args.historical_adp:
+        output = DATA_DIR / "historical_adp.csv"
+        historical_adp = scrape_historical_adp(args.start_year, args.end_year, output, args.historical_adp_scoring)
+        if not historical_adp.empty:
+            outputs["historical_adp"] = f"data/{output.name}"
+            outputs["historical_adp_rows"] = int(len(historical_adp))
+            outputs["historical_adp_start_year"] = args.start_year
+            outputs["historical_adp_end_year"] = args.end_year
+            outputs["historical_adp_scoring"] = list(args.historical_adp_scoring)
 
     if outputs:
         write_manifest(**outputs)

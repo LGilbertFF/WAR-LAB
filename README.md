@@ -47,6 +47,28 @@ To backfill one position without re-scraping everything:
 C:\Users\lgilb\anaconda3\python.exe scripts\fantasypros_scraper.py --historical --start-year 2015 --end-year 2025 --positions te
 ```
 
+If FantasyPros requires a login before showing historical ADP tables, use the
+local authenticated sync instead of the GitHub Action scraper. Install
+Playwright once:
+
+```powershell
+C:\Users\lgilb\anaconda3\python.exe -m pip install playwright
+C:\Users\lgilb\anaconda3\python.exe -m playwright install chromium
+```
+
+Then run:
+
+```powershell
+C:\Users\lgilb\anaconda3\python.exe scripts\fantasypros_authenticated_adp.py --start-year 2020 --end-year 2025 --scoring ppr half standard
+```
+
+A browser will open using the ignored local profile in `.local/fantasypros-profile`.
+Sign in normally if prompted. The script keeps checking for the rendered ADP
+table while you log in. It writes `data/historical_adp.csv`, exports
+`data/war/historical_adp.json.gz`, and updates `data/war/manifest.json`. Only
+the cleaned ADP files should be committed; the browser profile and login
+session stay local.
+
 That writes a raw weekly stat export and browser-ready compressed year shards:
 
 ```text

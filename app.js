@@ -3,6 +3,7 @@ const CURRENT_ADP_PATH = "data/current_adp.csv";
 const CUSTOM_ADP_PATH = "data/custom_adp_board.csv";
 const CUSTOM_ADP_MANIFEST_PATH = "data/adp/manifest.json";
 const WAR_DATA_MANIFEST_PATH = "data/war/manifest.json";
+const HISTORICAL_ADP_PATH = "data/historical_adp.csv";
 const FALLBACK_PROJECTIONS_PATH = "data/WARProjections2024_PPR2WR.csv";
 const HISTORICAL_WEEKLY_PATH = "data/fantasypros_weekly_2015_2025.csv";
 
@@ -18,6 +19,7 @@ const state = {
   selectedAdpPlayer: null,
   historicalRows: [],
   historicalWeeklyRows: [],
+  historicalAdpRows: [],
   historicalModel: null,
   historicalModelKey: "",
   historicalScoredRows: [],
@@ -152,6 +154,9 @@ function weekLimit() {
 
 function playerKey(name) {
   return String(name || "").toLowerCase().replace(/[^a-z]/g, "");
+}
+function playerAdpKey(name) {
+  return playerKey(String(name || "").replace(/\s+(Jr\.?|Sr\.?|II|III|IV|V)$/i, ""));
 }
 
 function normalizeProjection(row, index, adpMap) {
@@ -1751,6 +1756,15 @@ function historicalExplorerTitle(mode, metric) {
       subtitle: `${positionText} individual player-weeks grouped into ${binSize}-point bins through ${maxFpts} FPTS - ${context.roster} - ${context.scoring}`
     };
   }
+  if (mode === "adpThresholds") {
+    const threshold = weekWinningThreshold();
+    const plotType = el("historicalAdpPlotType")?.value === "box" ? "Distribution" : "Heatmap";
+    const adpScoring = historicalAdpScoringLabel();
+    return {
+      title: `${start}-${end} Draft Cost of Week-Winning WAR Seasons by Position`,
+      subtitle: `${plotType} of FantasyPros ${adpScoring} ADP for players with at least one weekly WAR above each threshold - ${threshold.toFixed(2)} WAR highlighted`
+    };
+  }
   if (mode === "player") {
     const aligned = el("historicalTimeline")?.value === "aligned";
     const timeline = aligned ? "Aligned Career-Year" : "Calendar-Year";
@@ -1793,6 +1807,12 @@ function renderHistoricalExplorer() {
   if (mode === "weeklyBins") {
     const traces = historicalWeeklyBinTraces(rows);
     Plotly.react(chart, traces, historicalWeeklyBinLayout(copy), { responsive: true });
+    return;
+  }
+
+  if (mode === "adpThresholds") {
+    const plot = historicalAdpThresholdPlot(rows, copy);
+    Plotly.react(chart, plot.traces, plot.layout, { responsive: true });
     return;
   }
 
@@ -1941,6 +1961,227 @@ function historicalWeeklyBinTraces(rows) {
       hovertemplate: `<b>${pos} %{x} FPTS</b><br>Avg weekly WAR: %{y:.3f}<br>Player-weeks: %{customdata[0]:,}<br>Avg FPTS: %{customdata[1]:.1f}<extra></extra>`
     };
   });
+}
+
+function historicalAdpScoringKey() {
+  const explicit = el("historicalAdpScoring")?.value;
+  if (explicit && explicit !== "auto") return explicit;
+  const rec = settings().scoring.rec;
+  if (rec >= 0.75) return "ppr";
+  if (rec >= 0.25) return "half";
+  return "standard";
+}
+
+function historicalAdpScoringLabel() {
+  return ({ ppr: "PPR", half: "Half-PPR", standard: "Standard" }[historicalAdpScoringKey()] || "ADP");
+}
+
+function weekWinningThreshold() {
+  return Math.max(0, Math.min(2, number(el("weekWinningWar")?.value, 0.5)));
+}
+
+function historicalAdpMap() {
+  const scoring = historicalAdpScoringKey();
+  const map = new Map();
+  for (const row of state.historicalAdpRows || []) {
+    const year = number(row.Year ?? row.year, null);
+    const adp = number(row.ADP ?? row.adp, null);
+    const player = row.Player ?? row.player;
+    const rowScoring = String(row.Scoring ?? row.scoring ?? scoring).toLowerCase();
+    if (year === null || adp === null || !player || rowScoring !== scoring) continue;
+    const pos = String(row.Pos ?? row.POS ?? "").toUpperCase().replace(/[0-9]/g, "");
+    const key = `${year}|${playerAdpKey(player)}${pos ? `|${pos}` : ""}`;
+    map.set(key, { adp, rank: number(row["ADP Rank"] ?? row.adp_rank, null), posRank: row.POS ?? row["Pos ADP Rank"] ?? "" });
+    map.set(`${year}|${playerAdpKey(player)}`, { adp, rank: number(row["ADP Rank"] ?? row.adp_rank, null), posRank: row.POS ?? row["Pos ADP Rank"] ?? "" });
+  }
+  return map;
+}
+
+function historicalAdpThresholdRows(rows) {
+  const selected = el("historicalPositions")?.value || "ALL";
+  const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
+  const positionSet = new Set(positions);
+  const adpMap = historicalAdpMap();
+  const thresholds = [0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1];
+  const output = [];
+  const seen = new Set();
+  for (const row of rows) {
+    if (!positionSet.has(row.Pos)) continue;
+    const playerAdp = adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}|${row.Pos}`) || adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}`);
+    if (!playerAdp || playerAdp.adp === null) continue;
+    const maxWar = Math.max(...(row.Weeks || []).map((week) => number(week.WAR, -Infinity)));
+    if (!Number.isFinite(maxWar)) continue;
+    for (const threshold of thresholds) {
+      if (maxWar <= threshold) continue;
+      const key = `${row.Year}|${row.PlayerKey}|${row.Pos}|${threshold}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      output.push({
+        Player: row.Player,
+        Pos: row.Pos,
+        Year: row.Year,
+        ADP: playerAdp.adp,
+        Threshold: threshold,
+        MaxWar: maxWar
+      });
+    }
+  }
+  return output;
+}
+
+function historicalAdpThresholdPlot(rows, copy) {
+  const plotType = el("historicalAdpPlotType")?.value || "heatmap";
+  const points = historicalAdpThresholdRows(rows);
+  const threshold = weekWinningThreshold();
+  if (!points.length) {
+    return {
+      traces: [],
+      layout: historicalLayout(copy.title, "WAR threshold", "ADP", "No historical ADP rows matched the selected years, scoring, and positions")
+    };
+  }
+  return plotType === "box"
+    ? historicalAdpBoxPlot(points, copy, threshold)
+    : historicalAdpHeatmap(points, copy, threshold);
+}
+
+function historicalAdpBoxPlot(points, copy, threshold) {
+  const positions = uniqueSorted(points.map((point) => point.Pos)).filter((pos) => ["QB", "RB", "WR", "TE"].includes(pos));
+  const thresholds = [0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1];
+  const traces = positions.map((pos) => {
+    const posPoints = points.filter((point) => point.Pos === pos);
+    return {
+      type: "box",
+      name: pos,
+      x: posPoints.map((point) => point.Threshold),
+      y: posPoints.map((point) => point.ADP),
+      text: posPoints.map((point) => `${point.Player} (${point.Year})<br>Max weekly WAR ${point.MaxWar.toFixed(3)}`),
+      marker: { color: posColors[pos] },
+      line: { color: posColors[pos], width: 2 },
+      boxmean: true,
+      boxpoints: false,
+      hovertemplate: "<b>%{text}</b><br>Threshold: %{x}<br>ADP: %{y:.1f}<extra></extra>"
+    };
+  });
+  const highlighted = thresholds.reduce((best, value) => Math.abs(value - threshold) < Math.abs(best - threshold) ? value : best, thresholds[0]);
+  return {
+    traces,
+    layout: {
+      ...historicalAdpBaseLayout(copy),
+      xaxis: {
+        title: { text: "WAR threshold (at least one week above)", standoff: 18 },
+        range: [0.8, 0.05],
+        tickmode: "array",
+        tickvals: thresholds,
+        ticktext: thresholds.map((value) => value.toFixed(1)),
+        gridcolor: "rgba(240,240,240,0.08)",
+        color: "#f0f0f0"
+      },
+      yaxis: {
+        title: { text: "FantasyPros ADP", standoff: 18 },
+        autorange: "reversed",
+        gridcolor: "rgba(240,240,240,0.10)",
+        color: "#f0f0f0"
+      },
+      shapes: [{
+        type: "rect",
+        xref: "x",
+        yref: "paper",
+        x0: highlighted + 0.035,
+        x1: highlighted - 0.035,
+        y0: 0,
+        y1: 1,
+        fillcolor: "rgba(204,51,51,0.12)",
+        line: { width: 0 },
+        layer: "below"
+      }],
+      boxmode: "group"
+    }
+  };
+}
+
+function historicalAdpHeatmap(points, copy, threshold) {
+  const positions = ["QB", "RB", "WR", "TE"].filter((pos) => points.some((point) => point.Pos === pos));
+  const thresholds = [0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1];
+  const stats = thresholds.map((warCut) => positions.map((pos) => {
+    const group = points.filter((point) => point.Pos === pos && point.Threshold === warCut);
+    const adps = group.map((point) => point.ADP).filter((value) => value !== null);
+    if (!adps.length) return null;
+    return {
+      avg: average(adps),
+      min: Math.min(...adps),
+      max: Math.max(...adps),
+      count: adps.length,
+      players: new Set(group.map((point) => `${point.Year}-${point.Player}`)).size
+    };
+  }));
+  const z = stats.map((row) => row.map((cell) => cell?.avg ?? null));
+  const text = stats.map((row) => row.map((cell) => cell ? `Avg ${cell.avg.toFixed(1)}<br>Min ${cell.min.toFixed(0)} Max ${cell.max.toFixed(0)}<br>${cell.players} players` : "N/A"));
+  const highlightIndex = thresholds.reduce((best, value, index) => Math.abs(value - threshold) < Math.abs(thresholds[best] - threshold) ? index : best, 0);
+  return {
+    traces: [{
+      type: "heatmap",
+      x: positions,
+      y: thresholds.map((value) => value.toFixed(1)),
+      z,
+      text,
+      texttemplate: "%{text}",
+      hovertemplate: "<b>%{x}</b><br>WAR threshold %{y}<br>%{text}<extra></extra>",
+      colorscale: [
+        [0, "#f2f2f2"],
+        [0.35, "#c9dcae"],
+        [0.7, "#8fba7a"],
+        [1, "#c46f6f"]
+      ],
+      reversescale: true,
+      colorbar: { title: "Avg ADP", tickfont: { color: "#f0f0f0" }, titlefont: { color: "#f0f0f0" } },
+      xgap: 4,
+      ygap: 4
+    }],
+    layout: {
+      ...historicalAdpBaseLayout(copy),
+      xaxis: { title: "Position", color: "#f0f0f0", side: "top" },
+      yaxis: { title: "WAR threshold", color: "#f0f0f0" },
+      shapes: [{
+        type: "line",
+        xref: "paper",
+        yref: "y",
+        x0: 0,
+        x1: 1,
+        y0: thresholds[highlightIndex].toFixed(1),
+        y1: thresholds[highlightIndex].toFixed(1),
+        line: { color: "rgba(204,51,51,0.95)", width: 2 },
+        layer: "above"
+      }]
+    }
+  };
+}
+
+function historicalAdpBaseLayout(copy) {
+  return {
+    title: {
+      text: `<b>${copy.title}</b><br><span style="font-size:12px;color:#b8b8b8"><i>${copy.subtitle}</i></span>`,
+      font: { family: "Kanit FPTS, Impact, sans-serif", size: 21, color: "#f7f7f7" },
+      x: 0.02,
+      xanchor: "left",
+      y: 0.94
+    },
+    margin: { l: 84, r: 64, t: 132, b: 128 },
+    legend: { orientation: "h", y: -0.16, x: 0, font: { size: 12 } },
+    annotations: [{
+      text: "Source: Historical weekly scoring, WAR Lab historical model, FantasyPros historical ADP. Lower ADP means earlier draft cost.",
+      xref: "paper",
+      yref: "paper",
+      x: 0,
+      y: -0.24,
+      xanchor: "left",
+      showarrow: false,
+      font: { color: "rgba(240,240,240,0.62)", size: 11 }
+    }],
+    font: { family: "Mulish, sans-serif", color: "#f0f0f0" },
+    plot_bgcolor: "#111111",
+    paper_bgcolor: "#111111",
+    hoverlabel: { bgcolor: "#111111", bordercolor: "#cc3333", font: { color: "#f0f0f0" } }
+  };
 }
 
 function historicalWeeklyBinLayout(copy) {
@@ -2304,6 +2545,12 @@ async function loadHistoricalData() {
     }
   } catch {
     state.historicalWeeklyRows = [];
+  }
+  try {
+    const historicalAdpPath = state.warManifest?.historical_adp?.path || HISTORICAL_ADP_PATH;
+    state.historicalAdpRows = historicalAdpPath.endsWith(".json.gz") ? await loadJsonMaybeGzip(historicalAdpPath) : await loadCsv(historicalAdpPath);
+  } catch {
+    state.historicalAdpRows = [];
   }
   state.historicalModelKey = "";
   state.historicalScoredRowsKey = "";
