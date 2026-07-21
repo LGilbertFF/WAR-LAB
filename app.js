@@ -1741,6 +1741,16 @@ function historicalExplorerTitle(mode, metric) {
   const context = chartContextCopy();
   const start = number(el("historicalPlotStart")?.value, 2015);
   const end = number(el("historicalPlotEnd")?.value, settings().year - 1);
+  if (mode === "weeklyBins") {
+    const binSize = historicalBinSize();
+    const maxFpts = historicalBinMax();
+    const pos = el("historicalPositions")?.value || "ALL";
+    const positionText = pos === "ALL" ? "QB/RB/WR/TE" : pos;
+    return {
+      title: `${start}-${end} Weekly Fantasy Points vs Single-Week WAR by Position`,
+      subtitle: `${positionText} individual player-weeks grouped into ${binSize}-point bins through ${maxFpts} FPTS - ${context.roster} - ${context.scoring} - ${context.weeks} weeks`
+    };
+  }
   if (mode === "player") {
     const aligned = el("historicalTimeline")?.value === "aligned";
     const timeline = aligned ? "Aligned Career-Year" : "Calendar-Year";
@@ -1777,6 +1787,12 @@ function renderHistoricalExplorer() {
   const rows = (state.historicalModel?.playerRows || []).filter((row) => row.Year >= start && row.Year <= end);
   if (!rows.length) {
     Plotly.react(chart, [], historicalLayout(copy.title, "Year", metric, "Historical data is still loading"), { responsive: true });
+    return;
+  }
+
+  if (mode === "weeklyBins") {
+    const traces = historicalWeeklyBinTraces(rows);
+    Plotly.react(chart, traces, historicalLayout(copy.title, "Fantasy points bin (single week)", "Average single-week WAR"), { responsive: true });
     return;
   }
 
@@ -1842,6 +1858,78 @@ function defaultHistoricalPlayers(rows) {
     .sort((a, b) => b.WAR - a.WAR)
     .slice(0, 6)
     .map((row) => ({ token: { name: row.Player, key: row.PlayerKey }, rows: rows.filter((candidate) => candidate.PlayerKey === row.PlayerKey && candidate.Pos === row.Pos) }));
+}
+
+function historicalBinSize() {
+  return Math.max(1, Math.min(20, number(el("historicalBinSize")?.value, 5)));
+}
+
+function historicalBinMax() {
+  const binSize = historicalBinSize();
+  return Math.max(binSize, Math.min(100, number(el("historicalBinMax")?.value, 55)));
+}
+
+function historicalWeeklyPlayerWeeks(rows) {
+  const selected = el("historicalPositions")?.value || "ALL";
+  const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
+  const positionSet = new Set(positions);
+  const maxFpts = historicalBinMax();
+  const playerWeeks = [];
+  for (const row of rows) {
+    if (!positionSet.has(row.Pos)) continue;
+    for (const week of row.Weeks || []) {
+      const fpts = number(week.FPTS, null);
+      const war = number(week.WAR, null);
+      if (fpts === null || war === null || fpts < 0 || fpts >= maxFpts) continue;
+      playerWeeks.push({
+        Player: row.Player,
+        Pos: row.Pos,
+        Year: row.Year,
+        Week: week.Week,
+        FPTS: fpts,
+        WAR: war
+      });
+    }
+  }
+  return playerWeeks;
+}
+
+function historicalWeeklyBinTraces(rows) {
+  const binSize = historicalBinSize();
+  const maxFpts = historicalBinMax();
+  const selected = el("historicalPositions")?.value || "ALL";
+  const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
+  const playerWeeks = historicalWeeklyPlayerWeeks(rows);
+  const bins = Array.from({ length: Math.ceil(maxFpts / binSize) }, (_, index) => {
+    const start = index * binSize;
+    const end = Math.min(maxFpts, start + binSize);
+    return { start, end, label: `${start}-${end}` };
+  });
+
+  return positions.map((pos) => {
+    const posWeeks = playerWeeks.filter((week) => week.Pos === pos);
+    const points = bins.map((bin) => {
+      const binWeeks = posWeeks.filter((week) => week.FPTS >= bin.start && week.FPTS < bin.end);
+      return {
+        label: bin.label,
+        avgWar: binWeeks.length ? average(binWeeks.map((week) => week.WAR)) : null,
+        count: binWeeks.length,
+        avgFpts: binWeeks.length ? average(binWeeks.map((week) => week.FPTS)) : null
+      };
+    });
+    return {
+      type: "scatter",
+      mode: "lines+markers",
+      name: pos,
+      x: points.map((point) => point.label),
+      y: points.map((point) => point.avgWar),
+      customdata: points.map((point) => [point.count, point.avgFpts]),
+      line: { color: posColors[pos], width: 2.5, dash: posDashes[pos] },
+      marker: { color: posColors[pos], symbol: posSymbols[pos], size: 8 },
+      connectgaps: false,
+      hovertemplate: `<b>${pos} %{x} FPTS</b><br>Avg weekly WAR: %{y:.3f}<br>Player-weeks: %{customdata[0]:,}<br>Avg FPTS: %{customdata[1]:.1f}<extra></extra>`
+    };
+  });
 }
 
 function historicalLayout(title, xTitle, yTitle, annotation = null) {
