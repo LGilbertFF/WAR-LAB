@@ -513,7 +513,15 @@ function computeHistoricalModel() {
         war += weeklyWar;
         if (weeklyFlexWar !== null) flexWar += weeklyFlexWar;
         if (weeklySuperflexWar !== null) superflexWar += weeklySuperflexWar;
-        if (actual !== undefined) weeks.push({ Week: week, FPTS: actual, WAR: weeklyWar });
+        if (actual !== undefined) {
+          weeks.push({
+            Week: week,
+            FPTS: actual,
+            WAR: weeklyWar,
+            "Flex WAR": weeklyFlexWar,
+            "SuperFlex WAR": weeklySuperflexWar
+          });
+        }
       }
       historicalPlayerRows.push({
         ...player,
@@ -1751,18 +1759,36 @@ function historicalExplorerTitle(mode, metric) {
     const maxFpts = historicalBinMax();
     const pos = el("historicalPositions")?.value || "ALL";
     const positionText = pos === "ALL" ? "QB/RB/WR/TE" : pos;
+    const yMetric = historicalWarMetric(metric);
     return {
-      title: `${start}-${end} Weekly Fantasy Points vs Single-Week WAR by Position`,
-      subtitle: `${positionText} individual player-weeks grouped into ${binSize}-point bins through ${maxFpts} FPTS - ${context.roster} - ${context.scoring}`
+      title: `${start}-${end} Weekly Fantasy Points vs Single-Week ${yMetric} by Position`,
+      subtitle: `${positionText} individual player-weeks grouped into ${binSize}-point bins through ${maxFpts} FPTS - ${context.roster} - ${context.scoring} - ${context.weeks} weeks`,
+      yMetric
     };
   }
   if (mode === "adpThresholds") {
     const threshold = weekWinningThreshold();
-    const plotType = el("historicalAdpPlotType")?.value === "box" ? "Distribution" : "Heatmap";
+    const plotTypeValue = el("historicalAdpPlotType")?.value || "heatmap";
+    const plotType = plotTypeValue === "box" ? "Distribution" : plotTypeValue === "hitRate" ? "Hit-rate heatmap" : "Heatmap";
+    const adpScoring = historicalAdpScoringLabel();
+    const yMetric = historicalWarMetric(metric);
+    return {
+      title: `${start}-${end} Draft Cost of Week-Winning ${yMetric} Seasons by Position`,
+      subtitle: `${plotType} of FantasyPros ${adpScoring} ADP for players with at least one weekly ${yMetric} above each threshold - ${threshold.toFixed(2)} highlighted`
+    };
+  }
+  if (mode === "adpOutcome") {
     const adpScoring = historicalAdpScoringLabel();
     return {
-      title: `${start}-${end} Draft Cost of Week-Winning WAR Seasons by Position`,
-      subtitle: `${plotType} of FantasyPros ${adpScoring} ADP for players with at least one weekly WAR above each threshold - ${threshold.toFixed(2)} WAR highlighted`
+      title: `${start}-${end} FantasyPros ${adpScoring} ADP vs Season ${metric}`,
+      subtitle: `Player-season outcomes by draft cost - ${context.roster} - ${context.scoring} - lower ADP means earlier draft capital`
+    };
+  }
+  if (mode === "adpTrends") {
+    const adpScoring = historicalAdpScoringLabel();
+    return {
+      title: `${start}-${end} Year-over-Year ${metric} Trends by ADP Bucket`,
+      subtitle: `FantasyPros ${adpScoring} ADP buckets reveal where prior seasons returned the most ${metric} - ${context.roster} - ${context.scoring}`
     };
   }
   if (mode === "player") {
@@ -1805,13 +1831,25 @@ function renderHistoricalExplorer() {
   }
 
   if (mode === "weeklyBins") {
-    const traces = historicalWeeklyBinTraces(rows);
+    const traces = historicalWeeklyBinTraces(rows, metric);
     Plotly.react(chart, traces, historicalWeeklyBinLayout(copy), { responsive: true });
     return;
   }
 
   if (mode === "adpThresholds") {
-    const plot = historicalAdpThresholdPlot(rows, copy);
+    const plot = historicalAdpThresholdPlot(rows, copy, metric);
+    Plotly.react(chart, plot.traces, plot.layout, { responsive: true });
+    return;
+  }
+
+  if (mode === "adpOutcome") {
+    const plot = historicalAdpOutcomePlot(rows, copy, metric);
+    Plotly.react(chart, plot.traces, plot.layout, { responsive: true });
+    return;
+  }
+
+  if (mode === "adpTrends") {
+    const plot = historicalAdpTrendPlot(rows, copy, metric);
     Plotly.react(chart, plot.traces, plot.layout, { responsive: true });
     return;
   }
@@ -1889,7 +1927,45 @@ function historicalBinMax() {
   return Math.max(binSize, Math.min(100, number(el("historicalBinMax")?.value, 55)));
 }
 
-function historicalWeeklyPlayerWeeks(rows) {
+function historicalWarMetric(metric) {
+  return ["WAR", "Flex WAR", "SuperFlex WAR"].includes(metric) ? metric : "WAR";
+}
+
+function historicalAdpMetric(metric) {
+  return ["WAR", "FPTS", "AVG", "Flex WAR", "SuperFlex WAR"].includes(metric) ? metric : "WAR";
+}
+
+function adpBucket(adp) {
+  const value = number(adp, null);
+  if (value === null) return null;
+  if (value <= 24) return "Top 24";
+  if (value <= 60) return "25-60";
+  if (value <= 120) return "61-120";
+  if (value <= 180) return "121-180";
+  return "181+";
+}
+
+function historicalAdpBucketOrder() {
+  return ["Top 24", "25-60", "61-120", "121-180", "181+"];
+}
+
+function historicalRowsWithAdp(rows) {
+  const selected = el("historicalPositions")?.value || "ALL";
+  const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
+  const positionSet = new Set(positions);
+  const adpMap = historicalAdpMap();
+  return rows
+    .filter((row) => positionSet.has(row.Pos))
+    .map((row) => {
+      const playerAdp = adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}|${row.Pos}`) || adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}`);
+      const adp = playerAdp?.adp ?? null;
+      return adp === null ? null : { ...row, ADP: adp, "ADP Rank": playerAdp.rank, "Pos ADP Rank": playerAdp.posRank, ADPBucket: adpBucket(adp) };
+    })
+    .filter(Boolean);
+}
+
+function historicalWeeklyPlayerWeeks(rows, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
   const selected = el("historicalPositions")?.value || "ALL";
   const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
   const positionSet = new Set(positions);
@@ -1899,7 +1975,7 @@ function historicalWeeklyPlayerWeeks(rows) {
     if (!positionSet.has(row.Pos)) continue;
     for (const week of row.Weeks || []) {
       const fpts = number(week.FPTS, null);
-      const war = number(week.WAR, null);
+      const war = number(week[yMetric], null);
       if (fpts === null || war === null || fpts < 0 || fpts >= maxFpts) continue;
       playerWeeks.push({
         Player: row.Player,
@@ -1907,19 +1983,20 @@ function historicalWeeklyPlayerWeeks(rows) {
         Year: row.Year,
         Week: week.Week,
         FPTS: fpts,
-        WAR: war
+        Metric: war
       });
     }
   }
   return playerWeeks;
 }
 
-function historicalWeeklyBinTraces(rows) {
+function historicalWeeklyBinTraces(rows, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
   const binSize = historicalBinSize();
   const maxFpts = historicalBinMax();
   const selected = el("historicalPositions")?.value || "ALL";
   const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
-  const playerWeeks = historicalWeeklyPlayerWeeks(rows);
+  const playerWeeks = historicalWeeklyPlayerWeeks(rows, yMetric);
   const bins = Array.from({ length: Math.ceil(maxFpts / binSize) }, (_, index) => {
     const start = index * binSize;
     const end = Math.min(maxFpts, start + binSize);
@@ -1929,26 +2006,20 @@ function historicalWeeklyBinTraces(rows) {
   return positions.map((pos) => {
     const posWeeks = playerWeeks.filter((week) => week.Pos === pos);
     const points = bins.map((bin) => {
-      const binWeeks = posWeeks.filter((week) => week.FPTS >= bin.start && week.FPTS < bin.end);
-      return {
-        label: bin.label,
-        avgWar: binWeeks.length ? average(binWeeks.map((week) => week.WAR)) : null,
-        count: binWeeks.length,
-        avgFpts: binWeeks.length ? average(binWeeks.map((week) => week.FPTS)) : null
-      };
+        const binWeeks = posWeeks.filter((week) => week.FPTS >= bin.start && week.FPTS < bin.end);
+        return {
+          label: bin.label,
+          avgWar: binWeeks.length ? average(binWeeks.map((week) => week.Metric)) : null,
+          count: binWeeks.length,
+          avgFpts: binWeeks.length ? average(binWeeks.map((week) => week.FPTS)) : null
+        };
     });
-    const lastPointIndex = points.reduce((last, point, index) => (
-      point.avgWar === null ? last : index
-    ), -1);
     return {
       type: "scatter",
       mode: "lines+markers",
       name: pos,
       x: points.map((point) => point.label),
       y: points.map((point) => point.avgWar),
-      text: points.map((_, index) => index === lastPointIndex ? pos : ""),
-      textposition: "middle right",
-      textfont: { color: posColors[pos], size: 14, family: "Mulish, sans-serif" },
       customdata: points.map((point) => [point.count, point.avgFpts]),
       line: { color: posColors[pos], width: 3.5, shape: "spline", smoothing: 0.65 },
       marker: {
@@ -1958,7 +2029,7 @@ function historicalWeeklyBinTraces(rows) {
         line: { color: "#111111", width: 1.5 }
       },
       connectgaps: false,
-      hovertemplate: `<b>${pos} %{x} FPTS</b><br>Avg weekly WAR: %{y:.3f}<br>Player-weeks: %{customdata[0]:,}<br>Avg FPTS: %{customdata[1]:.1f}<extra></extra>`
+      hovertemplate: `<b>${pos} %{x} FPTS</b><br>Avg weekly ${yMetric}: %{y:.3f}<br>Player-weeks: %{customdata[0]:,}<br>Avg FPTS: %{customdata[1]:.1f}<extra></extra>`
     };
   });
 }
@@ -1997,7 +2068,8 @@ function historicalAdpMap() {
   return map;
 }
 
-function historicalAdpThresholdRows(rows) {
+function historicalAdpThresholdRows(rows, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
   const selected = el("historicalPositions")?.value || "ALL";
   const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
   const positionSet = new Set(positions);
@@ -2009,7 +2081,7 @@ function historicalAdpThresholdRows(rows) {
     if (!positionSet.has(row.Pos)) continue;
     const playerAdp = adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}|${row.Pos}`) || adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}`);
     if (!playerAdp || playerAdp.adp === null) continue;
-    const maxWar = Math.max(...(row.Weeks || []).map((week) => number(week.WAR, -Infinity)));
+    const maxWar = Math.max(...(row.Weeks || []).map((week) => number(week[yMetric], -Infinity)));
     if (!Number.isFinite(maxWar)) continue;
     for (const threshold of thresholds) {
       if (maxWar <= threshold) continue;
@@ -2029,22 +2101,25 @@ function historicalAdpThresholdRows(rows) {
   return output;
 }
 
-function historicalAdpThresholdPlot(rows, copy) {
+function historicalAdpThresholdPlot(rows, copy, metric = "WAR") {
   const plotType = el("historicalAdpPlotType")?.value || "heatmap";
-  const points = historicalAdpThresholdRows(rows);
+  const points = historicalAdpThresholdRows(rows, metric);
   const threshold = weekWinningThreshold();
   if (!points.length) {
     return {
       traces: [],
-      layout: historicalLayout(copy.title, "WAR threshold", "ADP", "No historical ADP rows matched the selected years, scoring, and positions")
+      layout: historicalLayout(copy.title, `${historicalWarMetric(metric)} threshold`, "ADP", "No historical ADP rows matched the selected years, scoring, and positions")
     };
   }
   return plotType === "box"
-    ? historicalAdpBoxPlot(points, copy, threshold)
-    : historicalAdpHeatmap(points, copy, threshold);
+    ? historicalAdpBoxPlot(points, copy, threshold, metric)
+    : plotType === "hitRate"
+      ? historicalAdpHitRatePlot(rows, copy, threshold, metric)
+    : historicalAdpHeatmap(points, copy, threshold, metric);
 }
 
-function historicalAdpBoxPlot(points, copy, threshold) {
+function historicalAdpBoxPlot(points, copy, threshold, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
   const positions = uniqueSorted(points.map((point) => point.Pos)).filter((pos) => ["QB", "RB", "WR", "TE"].includes(pos));
   const thresholds = [0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1];
   const traces = positions.map((pos) => {
@@ -2054,7 +2129,7 @@ function historicalAdpBoxPlot(points, copy, threshold) {
       name: pos,
       x: posPoints.map((point) => point.Threshold),
       y: posPoints.map((point) => point.ADP),
-      text: posPoints.map((point) => `${point.Player} (${point.Year})<br>Max weekly WAR ${point.MaxWar.toFixed(3)}`),
+      text: posPoints.map((point) => `${point.Player} (${point.Year})<br>Max weekly ${yMetric} ${point.MaxWar.toFixed(3)}`),
       marker: { color: posColors[pos] },
       line: { color: posColors[pos], width: 2 },
       boxmean: true,
@@ -2068,7 +2143,7 @@ function historicalAdpBoxPlot(points, copy, threshold) {
     layout: {
       ...historicalAdpBaseLayout(copy),
       xaxis: {
-        title: { text: "WAR threshold (at least one week above)", standoff: 18 },
+        title: { text: `${yMetric} threshold (at least one week above)`, standoff: 18 },
         range: [0.8, 0.05],
         tickmode: "array",
         tickvals: thresholds,
@@ -2099,7 +2174,8 @@ function historicalAdpBoxPlot(points, copy, threshold) {
   };
 }
 
-function historicalAdpHeatmap(points, copy, threshold) {
+function historicalAdpHeatmap(points, copy, threshold, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
   const positions = ["QB", "RB", "WR", "TE"].filter((pos) => points.some((point) => point.Pos === pos));
   const thresholds = [0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1];
   const stats = thresholds.map((warCut) => positions.map((pos) => {
@@ -2125,7 +2201,7 @@ function historicalAdpHeatmap(points, copy, threshold) {
       z,
       text,
       texttemplate: "%{text}",
-      hovertemplate: "<b>%{x}</b><br>WAR threshold %{y}<br>%{text}<extra></extra>",
+      hovertemplate: `<b>%{x}</b><br>${yMetric} threshold %{y}<br>%{text}<extra></extra>`,
       colorscale: [
         [0, "#f2f2f2"],
         [0.35, "#c9dcae"],
@@ -2140,7 +2216,7 @@ function historicalAdpHeatmap(points, copy, threshold) {
     layout: {
       ...historicalAdpBaseLayout(copy),
       xaxis: { title: "Position", color: "#f0f0f0", side: "top" },
-      yaxis: { title: "WAR threshold", color: "#f0f0f0" },
+      yaxis: { title: `${yMetric} threshold`, color: "#f0f0f0" },
       shapes: [{
         type: "line",
         xref: "paper",
@@ -2168,7 +2244,7 @@ function historicalAdpBaseLayout(copy) {
     margin: { l: 84, r: 64, t: 132, b: 128 },
     legend: { orientation: "h", y: -0.16, x: 0, font: { size: 12 } },
     annotations: [{
-      text: "Source: Historical weekly scoring, WAR Lab historical model, FantasyPros historical ADP. Lower ADP means earlier draft cost.",
+      text: "Source: Historical weekly scoring, WAR Lab historical model, FantasyPros historical ADP. ADP is draft cost, so lower means earlier.",
       xref: "paper",
       yref: "paper",
       x: 0,
@@ -2181,6 +2257,169 @@ function historicalAdpBaseLayout(copy) {
     plot_bgcolor: "#111111",
     paper_bgcolor: "#111111",
     hoverlabel: { bgcolor: "#111111", bordercolor: "#cc3333", font: { color: "#f0f0f0" } }
+  };
+}
+
+function historicalAdpHitRatePlot(rows, copy, threshold, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
+  const points = historicalRowsWithAdp(rows);
+  if (!points.length) {
+    return {
+      traces: [],
+      layout: historicalLayout(copy.title, "ADP bucket", "Position", "No historical ADP rows matched the selected years, scoring, and positions")
+    };
+  }
+  const positions = ["QB", "RB", "WR", "TE"].filter((pos) => points.some((row) => row.Pos === pos));
+  const buckets = historicalAdpBucketOrder().filter((bucket) => points.some((row) => row.ADPBucket === bucket));
+  const stats = positions.map((pos) => buckets.map((bucket) => {
+    const group = points.filter((row) => row.Pos === pos && row.ADPBucket === bucket);
+    if (!group.length) return null;
+    const hits = group.filter((row) => Math.max(...(row.Weeks || []).map((week) => number(week[yMetric], -Infinity))) > threshold).length;
+    return { hits, total: group.length, rate: hits / group.length };
+  }));
+  const z = stats.map((row) => row.map((cell) => cell ? cell.rate * 100 : null));
+  const text = stats.map((row) => row.map((cell) => cell ? `${(cell.rate * 100).toFixed(0)}%<br>${cell.hits}/${cell.total}` : "N/A"));
+  return {
+    traces: [{
+      type: "heatmap",
+      x: buckets,
+      y: positions,
+      z,
+      text,
+      texttemplate: "%{text}",
+      hovertemplate: `<b>%{y} %{x}</b><br>Hit rate: %{z:.1f}%<br>Weekly ${yMetric} > ${threshold.toFixed(2)}<extra></extra>`,
+      colorscale: [
+        [0, "#1a1a1a"],
+        [0.3, "#7aa6c2"],
+        [0.65, "#8fba7a"],
+        [1, "#c46f6f"]
+      ],
+      colorbar: { title: "Hit %", tickfont: { color: "#f0f0f0" }, titlefont: { color: "#f0f0f0" } },
+      xgap: 4,
+      ygap: 4
+    }],
+    layout: {
+      ...historicalAdpBaseLayout(copy),
+      xaxis: { title: "FantasyPros ADP bucket", color: "#f0f0f0", side: "top" },
+      yaxis: { title: "Position", color: "#f0f0f0" }
+    }
+  };
+}
+
+function historicalAdpOutcomePlot(rows, copy, metric = "WAR") {
+  const yMetric = historicalAdpMetric(metric);
+  const points = historicalRowsWithAdp(rows).filter((row) => number(row[yMetric], null) !== null);
+  if (!points.length) {
+    return {
+      traces: [],
+      layout: historicalLayout(copy.title, "FantasyPros ADP", yMetric, "No historical ADP rows matched the selected years, scoring, and positions")
+    };
+  }
+  const positions = ["QB", "RB", "WR", "TE"].filter((pos) => points.some((row) => row.Pos === pos));
+  const traces = positions.map((pos) => {
+    const posRows = points.filter((row) => row.Pos === pos);
+    return {
+      type: "scatter",
+      mode: "markers",
+      name: pos,
+      x: posRows.map((row) => row.ADP),
+      y: posRows.map((row) => number(row[yMetric])),
+      customdata: posRows.map((row) => [
+        row.Player,
+        row.Year,
+        row.FPTS,
+        row.WAR,
+        row["Flex WAR"],
+        row["SuperFlex WAR"],
+        row.ADPBucket
+      ]),
+      marker: {
+        color: posColors[pos],
+        symbol: posSymbols[pos],
+        size: posRows.map((row) => Math.max(7, Math.min(18, 7 + number(row.Games, 0) * 0.35))),
+        opacity: 0.72,
+        line: { color: "#111111", width: 1 }
+      },
+      hovertemplate:
+        "<b>%{customdata[0]}</b> (%{customdata[1]})<br>" +
+        "ADP: %{x:.1f} (%{customdata[6]})<br>" +
+        `${yMetric}: %{y:.3f}<br>` +
+        "FPTS: %{customdata[2]:.1f}<br>WAR: %{customdata[3]:.3f}<br>Flex: %{customdata[4]:.3f}<br>SF: %{customdata[5]:.3f}<extra></extra>"
+    };
+  });
+  return {
+    traces,
+    layout: {
+      ...historicalAdpBaseLayout(copy),
+      xaxis: {
+        title: { text: "FantasyPros ADP", standoff: 18 },
+        autorange: "reversed",
+        gridcolor: "rgba(240,240,240,0.10)",
+        color: "#f0f0f0"
+      },
+      yaxis: {
+        title: { text: `Season ${yMetric}`, standoff: 18 },
+        gridcolor: "rgba(240,240,240,0.10)",
+        zeroline: true,
+        zerolinecolor: "rgba(255,255,255,0.38)",
+        color: "#f0f0f0"
+      },
+      hovermode: "closest"
+    }
+  };
+}
+
+function historicalAdpTrendPlot(rows, copy, metric = "WAR") {
+  const yMetric = historicalAdpMetric(metric);
+  const points = historicalRowsWithAdp(rows).filter((row) => row.ADPBucket && number(row[yMetric], null) !== null);
+  if (!points.length) {
+    return {
+      traces: [],
+      layout: historicalLayout(copy.title, "Year", yMetric, "No historical ADP rows matched the selected years, scoring, and positions")
+    };
+  }
+  const years = uniqueSorted(points.map((row) => row.Year), true).map((year) => number(year));
+  const buckets = historicalAdpBucketOrder().filter((bucket) => points.some((row) => row.ADPBucket === bucket));
+  const traces = buckets.map((bucket, index) => {
+    const bucketRows = points.filter((row) => row.ADPBucket === bucket);
+    const y = years.map((year) => {
+      const group = bucketRows.filter((row) => row.Year === year);
+      return group.length ? average(group.map((row) => number(row[yMetric]))) : null;
+    });
+    const counts = years.map((year) => bucketRows.filter((row) => row.Year === year).length);
+    return {
+      type: "scatter",
+      mode: "lines+markers",
+      name: bucket,
+      x: years,
+      y,
+      customdata: counts,
+      line: { color: playerTraceColors[index % playerTraceColors.length], width: 3, shape: "spline", smoothing: 0.45 },
+      marker: { color: playerTraceColors[index % playerTraceColors.length], size: 8 },
+      connectgaps: false,
+      hovertemplate: `<b>${bucket}</b><br>%{x}<br>Avg ${yMetric}: %{y:.3f}<br>Players: %{customdata}<extra></extra>`
+    };
+  });
+  return {
+    traces,
+    layout: {
+      ...historicalAdpBaseLayout(copy),
+      xaxis: {
+        title: { text: "Season", standoff: 18 },
+        tickmode: "array",
+        tickvals: years,
+        gridcolor: "rgba(240,240,240,0.10)",
+        color: "#f0f0f0"
+      },
+      yaxis: {
+        title: { text: `Average ${yMetric}`, standoff: 18 },
+        gridcolor: "rgba(240,240,240,0.10)",
+        zeroline: true,
+        zerolinecolor: "rgba(255,255,255,0.38)",
+        color: "#f0f0f0"
+      },
+      hovermode: "x unified"
+    }
   };
 }
 
@@ -2201,9 +2440,9 @@ function historicalWeeklyBinLayout(copy) {
       tickfont: { size: 12 },
       color: "#f0f0f0",
       automargin: true
-    },
-    yaxis: {
-      title: { text: "Average single-week WAR", standoff: 18 },
+      },
+      yaxis: {
+      title: { text: `Average single-week ${copy.yMetric || "WAR"}`, standoff: 18 },
       gridcolor: "rgba(240,240,240,0.10)",
       linecolor: "rgba(240,240,240,0.38)",
       zeroline: true,
