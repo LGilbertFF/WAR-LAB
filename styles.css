@@ -1079,6 +1079,66 @@ summary::marker {
   min-height: 600px;
 }
 
+.dynasty-detail {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(360px, 1.28fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.dynasty-detail-copy h2 {
+  margin: 0;
+  font-family: "Kanit FPTS", Impact, sans-serif;
+  font-size: 1.8rem;
+  font-style: italic;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.dynasty-detail-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.dynasty-curve-svg {
+  width: 100%;
+  min-height: 250px;
+  overflow: visible;
+  color: var(--white);
+}
+
+.dynasty-grid line {
+  stroke: rgba(240, 240, 240, 0.13);
+  stroke-width: 1;
+}
+
+.dynasty-grid text,
+.dynasty-axis-labels text,
+.dynasty-axis-title,
+.dynasty-chart-label {
+  fill: rgba(240, 240, 240, 0.78);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dynasty-curve-area {
+  fill: rgba(143, 186, 122, 0.16);
+}
+
+.dynasty-curve-line {
+  fill: none;
+  stroke: #8fba7a;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dynasty-current-dot {
+  fill: #8fba7a;
+  stroke: #111111;
+  stroke-width: 3;
+}
+
 .adp-player-cell {
   display: inline-flex;
   align-items: center;
@@ -1444,6 +1504,14 @@ tbody tr.selected-row {
 
   .player-stats {
     grid-template-columns: 1fr;
+  }
+
+  .dynasty-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .dynasty-detail-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .adp-card-layout {

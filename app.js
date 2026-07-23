@@ -22,6 +22,7 @@ const state = {
   trustedWarCurveRows: [],
   dynastySortKey: "dynastyWar",
   dynastySortDir: "desc",
+  selectedDynastyKey: null,
   projectionFocus: "projection",
   adpSortKey: "rank",
   adpSortDir: "asc",
@@ -284,6 +285,16 @@ function replacementPool(players, candidatePlayers, count) {
 function average(values) {
   const clean = values.filter((value) => Number.isFinite(value));
   return clean.length ? clean.reduce((sum, value) => sum + value, 0) / clean.length : 0;
+}
+
+function percentile(values, pct) {
+  const clean = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+  if (!clean.length) return 0;
+  const index = (clean.length - 1) * Math.max(0, Math.min(1, pct));
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return clean[lower];
+  return clean[lower] + ((clean[upper] - clean[lower]) * (index - lower));
 }
 
 function std(values) {
@@ -829,24 +840,72 @@ function ageForProjection(meta, season) {
   return meta.draftAge + (season - meta.draftYear);
 }
 
-function dynastyAgeFactor(pos, age, yearOffset) {
-  if (age === null) return Math.max(0.65, 0.92 ** yearOffset);
-  const futureAge = age + yearOffset;
-  const peak = { QB: 29, RB: 24, WR: 26, TE: 27 }[pos] || 26;
-  const prePeak = { QB: 0.04, RB: 0.06, WR: 0.05, TE: 0.05 }[pos] || 0.05;
-  const postPeak = { QB: 0.04, RB: 0.12, WR: 0.08, TE: 0.07 }[pos] || 0.08;
-  if (futureAge < peak) return Math.max(0.7, 1 - ((peak - futureAge) * prePeak));
-  return Math.max(0.25, 1 - ((futureAge - peak) * postPeak));
+const dynastyAgeCurves = {
+  QB: { peakStart: 27, peakEnd: 32, youngSlope: 0.105, oldSlope: 0.055, floor: 0.36, retention: 0.985 },
+  RB: { peakStart: 23, peakEnd: 25, youngSlope: 0.16, oldSlope: 0.145, floor: 0.18, retention: 0.93 },
+  WR: { peakStart: 25, peakEnd: 28, youngSlope: 0.125, oldSlope: 0.095, floor: 0.24, retention: 0.96 },
+  TE: { peakStart: 26, peakEnd: 29, youngSlope: 0.115, oldSlope: 0.085, floor: 0.26, retention: 0.955 }
+};
+
+const dynastyRookieCompCache = new Map();
+
+function dynastyAgeFactor(pos, age) {
+  const curve = dynastyAgeCurves[pos] || dynastyAgeCurves.WR;
+  if (age === null || age === undefined) return null;
+  const parsedAge = number(age, null);
+  if (parsedAge === null) return null;
+  if (parsedAge >= curve.peakStart && parsedAge <= curve.peakEnd) return 1;
+  const distance = parsedAge < curve.peakStart ? curve.peakStart - parsedAge : parsedAge - curve.peakEnd;
+  const slope = parsedAge < curve.peakStart ? curve.youngSlope : curve.oldSlope;
+  return Math.max(curve.floor, 1 - (distance * slope));
 }
 
-function draftCapitalFactor(meta) {
-  const pick = meta?.draftPick;
-  if (pick === null || pick === undefined) return 0.9;
-  if (pick <= 12) return 1.08;
-  if (pick <= 32) return 1.02;
-  if (pick <= 75) return 0.94;
-  if (pick <= 150) return 0.84;
-  return 0.72;
+function dynastyFallbackRetention(pos, yearOffset) {
+  const curve = dynastyAgeCurves[pos] || dynastyAgeCurves.WR;
+  return curve.retention ** yearOffset;
+}
+
+function dynastyPlayerYearlyWar(pos, currentWar, age, horizon) {
+  const baseWar = Math.max(0, number(currentWar, 0));
+  if (!horizon) return [];
+  if (age === null || age === undefined) {
+    return Array.from({ length: horizon }, (_, index) => baseWar * dynastyFallbackRetention(pos, index));
+  }
+  const currentAgeFactor = Math.max(dynastyAgeFactor(pos, age) ?? 1, 0.2);
+  const peakWar = baseWar / currentAgeFactor;
+  return Array.from({ length: horizon }, (_, index) => {
+    const futureAge = number(age, 0) + index;
+    const ageFactor = dynastyAgeFactor(pos, futureAge) ?? dynastyFallbackRetention(pos, index);
+    return Math.max(0, peakWar * ageFactor);
+  });
+}
+
+function dynastyAgeCurveRows(row, extraYears = 4) {
+  const horizon = Math.max(dynastySettings().horizon, 5);
+  const pos = row.Pos === "RDP" ? row.bestCasePos || "WR" : row.Pos;
+  if (row.Pos === "RDP") {
+    return (row.yearlyWar || []).map((war, index) => ({
+      Year: settings().year + index,
+      Age: null,
+      WAR: war,
+      Label: `Year ${index + 1}`
+    }));
+  }
+  const age = number(row.age, null);
+  if (age === null) return [];
+  const baseWar = Math.max(0, number(row.currentWar, 0));
+  const peakWar = baseWar / Math.max(dynastyAgeFactor(pos, age) ?? 1, 0.2);
+  const startAge = Math.max(18, Math.floor(age) - 2);
+  const endAge = Math.ceil(age) + horizon + extraYears;
+  return Array.from({ length: Math.max(1, endAge - startAge + 1) }, (_, index) => {
+    const curveAge = startAge + index;
+    return {
+      Year: settings().year + (curveAge - age),
+      Age: curveAge,
+      WAR: Math.max(0, peakWar * (dynastyAgeFactor(pos, curveAge) ?? 0)),
+      Label: `Age ${curveAge}`
+    };
+  });
 }
 
 function rookiePickNumber(label, teams = 12) {
@@ -872,25 +931,102 @@ function rookiePickYear(name, fallbackYear) {
   return number(String(name || "").match(/\b(20\d{2})\b/)?.[1], fallbackYear);
 }
 
-function rookiePickYearlyWar(pickNo, horizon, pickYear) {
-  const currentYear = settings().year;
-  const yearsOut = Math.max(0, number(pickYear, currentYear) - currentYear);
-  const adjustedPick = number(pickNo, null);
-  const pick = adjustedPick === null ? null : adjustedPick + (yearsOut * settings().teams * 0.55);
-  if (pick === null) return Array.from({ length: horizon }, () => 0);
-  const round = Math.floor((pick - 1) / settings().teams) + 1;
-  const earlyPickWar = average([
-    historicalForRank("RB", Math.max(1, Math.round(pick * 1.1))) ?? trustedCurveWar("RB", Math.max(1, Math.round(pick * 1.1))) ?? 0,
-    historicalForRank("WR", Math.max(1, Math.round(pick * 1.25))) ?? trustedCurveWar("WR", Math.max(1, Math.round(pick * 1.25))) ?? 0,
-    historicalForRank("QB", Math.max(1, Math.round(pick * 0.9))) ?? trustedCurveWar("QB", Math.max(1, Math.round(pick * 0.9))) ?? 0,
-    historicalForRank("TE", Math.max(1, Math.round(pick * 1.7))) ?? trustedCurveWar("TE", Math.max(1, Math.round(pick * 1.7))) ?? 0
-  ]);
-  const hitRate = round === 1 ? 0.45 : round === 2 ? 0.25 : round === 3 ? 0.14 : 0.08;
-  const annual = Math.max(0, earlyPickWar * hitRate * (0.92 ** yearsOut));
-  return Array.from({ length: horizon }, (_, index) => {
-    const curve = index === 0 ? 0.55 : index === 1 ? 0.9 : 0.92 ** (index - 1);
-    return annual * curve;
-  });
+function rookiePickProxy(meta) {
+  const nflPick = number(meta?.draftPick, null);
+  const pos = meta?.pos || "";
+  if (nflPick === null) return null;
+  const posMultiplier = { RB: 0.55, WR: 0.68, QB: 0.5, TE: 0.95 }[pos] || 0.8;
+  const posOffset = { RB: 0, WR: 1, QB: 0, TE: 5 }[pos] || 3;
+  return Math.max(1, Math.min(60, (nflPick * posMultiplier) + posOffset));
+}
+
+function historicalRookieComps(horizon) {
+  const playerRows = state.historicalModel?.playerRows || [];
+  if (!playerRows.length || !state.draftMetadataRows.length) return [];
+  const cacheKey = `${horizon}|${playerRows.length}|${state.draftMetadataRows.length}`;
+  if (dynastyRookieCompCache.has(cacheKey)) return dynastyRookieCompCache.get(cacheKey);
+  const metaMap = new Map();
+  for (const row of state.draftMetadataRows) {
+    const pos = String(row.pos || "").toUpperCase();
+    if (!["QB", "RB", "WR", "TE"].includes(pos)) continue;
+    metaMap.set(`${playerKey(row.player)}|${pos}`, {
+      player: row.player,
+      pos,
+      draftYear: number(row.draft_year, null),
+      draftPick: number(row.pick, null),
+      draftAge: number(row.age, null)
+    });
+  }
+  const grouped = new Map();
+  for (const row of playerRows) {
+    const key = `${row.PlayerKey}|${row.Pos}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(row);
+  }
+  const comps = [];
+  for (const [key, seasons] of grouped.entries()) {
+    const meta = metaMap.get(key);
+    if (!meta || meta.draftYear === null || meta.draftPick === null) continue;
+    const proxyPick = rookiePickProxy(meta);
+    if (proxyPick === null) continue;
+    const yearlyWar = Array.from({ length: horizon }, (_, index) => {
+      const season = seasons.find((row) => row.Year === meta.draftYear + index);
+      return Math.max(0, number(season?.WAR, 0));
+    });
+    const totalWar = yearlyWar.reduce((sum, value) => sum + value, 0);
+    if (totalWar <= 0) continue;
+    comps.push({
+      Player: seasons[0]?.Player || meta.player,
+      Pos: meta.pos,
+      DraftYear: meta.draftYear,
+      DraftPick: meta.draftPick,
+      ProxyPick: proxyPick,
+      yearlyWar,
+      totalWar
+    });
+  }
+  dynastyRookieCompCache.set(cacheKey, comps);
+  return comps;
+}
+
+function fallbackRookiePickBestCase(pickNo, horizon) {
+  const pick = Math.max(1, number(pickNo, 1));
+  const base = Math.max(0.05, 0.82 * Math.exp(-(pick - 1) / 16));
+  const development = [0.45, 0.78, 1, 0.92, 0.82, 0.72, 0.62, 0.54, 0.46, 0.4];
+  return {
+    yearlyWar: Array.from({ length: horizon }, (_, index) => base * (development[index] ?? (0.4 * (0.9 ** (index - 9))))),
+    bestCasePos: pick <= 4 ? "RB/WR" : pick <= 12 ? "WR/RB" : pick <= 24 ? "WR" : "Flex",
+    comps: [],
+    model: "best-case rookie pick curve"
+  };
+}
+
+function rookiePickBestCaseProfile(pickNo, horizon, pickYear) {
+  const pick = Math.max(1, number(pickNo, 1));
+  const yearsOut = Math.max(0, number(pickYear, settings().year) - settings().year);
+  const futureAdjustedPick = pick + (yearsOut * settings().teams * 0.5);
+  const comps = historicalRookieComps(Math.max(horizon, 5));
+  if (!comps.length) return fallbackRookiePickBestCase(futureAdjustedPick, horizon);
+  const windows = [6, 10, 16, 24, 36];
+  let matched = [];
+  for (const window of windows) {
+    matched = comps.filter((comp) => Math.abs(comp.ProxyPick - futureAdjustedPick) <= window);
+    if (matched.length >= 10) break;
+  }
+  if (!matched.length) matched = comps;
+  const sorted = [...matched].sort((a, b) => b.totalWar - a.totalWar);
+  const topCount = Math.max(5, Math.ceil(sorted.length * 0.18));
+  const upside = sorted.slice(0, topCount);
+  const yearlyWar = Array.from({ length: horizon }, (_, index) => percentile(upside.map((comp) => comp.yearlyWar[index]), 0.85));
+  const posCounts = upside.reduce((map, comp) => map.set(comp.Pos, (map.get(comp.Pos) || 0) + 1), new Map());
+  const bestCasePos = [...posCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "WR";
+  const compNames = upside.slice(0, 4).map((comp) => `${comp.Player} (${comp.Pos}, ${comp.DraftYear})`);
+  return {
+    yearlyWar,
+    bestCasePos,
+    comps: compNames,
+    model: `85th percentile of ${upside.length} upside comps`
+  };
 }
 
 function dynastyAdpSourceRows() {
@@ -965,11 +1101,13 @@ function dynastyBoardRows() {
       const pickLabel = item.pickLabel || rookiePickLabelFromName(item.Player, adp, appCfg.teams);
       const pickYear = item.pickYear || rookiePickYear(item.Player, appCfg.year + 1);
       const pickNo = rookiePickNumber(pickLabel, appCfg.teams) ?? adp;
-      const yearlyWar = rookiePickYearlyWar(pickNo, cfg.horizon, pickYear);
+      const profile = rookiePickBestCaseProfile(pickNo, cfg.horizon, pickYear);
+      const yearlyWar = profile.yearlyWar;
       const dynastyWar = yearlyWar.reduce((sum, value) => sum + value, 0);
       rows.push({
         ...item,
         Player: `${pickYear} Rookie Pick ${pickLabel}`,
+        dynastyKey: `${pickYear}|${pickLabel}|RDP`,
         ADP: adp,
         currentWar: null,
         dynastyWar,
@@ -977,7 +1115,9 @@ function dynastyBoardRows() {
         age: null,
         pickYear,
         pickLabel,
-        model: "rookie pick comps"
+        bestCasePos: profile.bestCasePos,
+        comps: profile.comps,
+        model: profile.model
       });
       continue;
     }
@@ -985,13 +1125,11 @@ function dynastyBoardRows() {
     const meta = metaMap.get(`${playerKey(item.Player)}|${item.Pos}`);
     const currentWar = number(current?.WAR, 0);
     const age = ageForProjection(meta, settings().year);
-    const yearly = Array.from({ length: cfg.horizon }, (_, index) => {
-      if (index === 0) return currentWar;
-      return Math.max(0, currentWar * dynastyAgeFactor(item.Pos, age, index) * draftCapitalFactor(meta));
-    });
+    const yearly = dynastyPlayerYearlyWar(item.Pos, currentWar, age, cfg.horizon);
     const dynastyWar = yearly.reduce((sum, value) => sum + value, 0);
     rows.push({
       ...item,
+      dynastyKey: `${playerKey(item.Player)}|${item.Pos}`,
       ADP: adp,
       currentWar,
       dynastyWar,
@@ -999,7 +1137,9 @@ function dynastyBoardRows() {
       age,
       pickYear: null,
       pickLabel: "",
-      model: "current WAR + age/draft context"
+      bestCasePos: item.Pos,
+      comps: [],
+      model: age === null ? "current WAR + position fallback retention" : "current WAR normalized to position age curve"
     });
   }
 
@@ -1784,6 +1924,7 @@ function exportAdpBoard() {
 
 function renderDynastyWar() {
   const rows = dynastyBoardRows();
+  if (state.selectedDynastyKey && !rows.some((row) => row.dynastyKey === state.selectedDynastyKey)) state.selectedDynastyKey = null;
   const top = rows[0];
   const picks = rows.filter((row) => row.Pos === "RDP");
   const missingPickNote = missingRookiePickLabels(rows);
@@ -1828,7 +1969,8 @@ function renderDynastyChart(rows) {
       name: pos,
       x: posRows.map((row) => row.ADP),
       y: posRows.map((row) => row.dynastyWar),
-      text: posRows.map((row) => `${row.Player}<br>${pos} - ADP ${fmt(row.ADP, 1)}<br>Current WAR ${fmt(row.currentWar)}<br>Dynasty WAR ${fmt(row.dynastyWar)}`),
+      ids: posRows.map((row) => row.dynastyKey),
+      text: posRows.map((row) => `${row.Player}<br>${pos} - ADP ${fmt(row.ADP, 1)}<br>Current WAR ${fmt(row.currentWar)}<br>Dynasty WAR ${fmt(row.dynastyWar)}<br>${row.model}`),
       hoverinfo: "text",
       marker: {
         color: posColors[pos] || "#d0a85b",
@@ -1848,6 +1990,15 @@ function renderDynastyChart(rows) {
     yaxis: { title: "Projected Dynasty WAR", gridcolor: "rgba(240,240,240,0.14)", color: "#f0f0f0" },
     legend: { orientation: "h", x: 0, y: 1.12 }
   }, { responsive: true });
+  if (typeof chart.removeAllListeners === "function") chart.removeAllListeners("plotly_click");
+  if (typeof chart.on === "function") {
+    chart.on("plotly_click", (event) => {
+      const key = event.points?.[0]?.id;
+      if (!key) return;
+      state.selectedDynastyKey = state.selectedDynastyKey === key ? null : key;
+      renderDynastyTable(rows);
+    });
+  }
 }
 
 function renderDynastyTable(rows) {
@@ -1856,7 +2007,7 @@ function renderDynastyTable(rows) {
   const limited = sortedDynastyRows(rows).slice(0, 500);
   renderDynastyHeaders();
   body.innerHTML = limited.map((row) => `
-    <tr>
+    <tr data-dynasty-key="${escapeHtml(row.dynastyKey)}" class="${row.dynastyKey === state.selectedDynastyKey ? "selected-row" : ""}">
       <td>${fmt(row.rank, 0)}</td>
       <td>
         <div class="adp-player-cell">
@@ -1866,11 +2017,14 @@ function renderDynastyTable(rows) {
       </td>
       <td><span class="pos-pill pos-${row.Pos}">${escapeHtml(row.Pos)}</span></td>
       <td>${escapeHtml(row.Team || "-")}</td>
+      <td>${fmt(row.ADP, 1)}</td>
       <td>${fmt(row.currentWar)}</td>
       <td>${fmt(row.dynastyWar)}</td>
       ${dynastyYearCells(row)}
+      <td>${escapeHtml(row.Pos === "RDP" ? row.bestCasePos || "-" : ageCurvePeakText(row.Pos))}</td>
       <td>${fmt(row.age, 1)}</td>
     </tr>
+    ${row.dynastyKey === state.selectedDynastyKey ? renderDynastyDetailRow(row) : ""}
   `).join("");
 }
 
@@ -1886,9 +2040,11 @@ function renderDynastyHeaders() {
     <th data-dynasty-sort="Player">Player</th>
     <th data-dynasty-sort="Pos">Pos</th>
     <th data-dynasty-sort="Team">Team</th>
+    <th data-dynasty-sort="ADP">ADP</th>
     <th data-dynasty-sort="currentWar">Current WAR</th>
     <th data-dynasty-sort="dynastyWar">Total WAR</th>
     ${yearHeaders}
+    <th data-dynasty-sort="bestCasePos">Curve</th>
     <th data-dynasty-sort="age">Age</th>
   `;
 }
@@ -1897,6 +2053,87 @@ function dynastyYearCells(row) {
   return Array.from({ length: dynastySettings().horizon }, (_, index) => (
     `<td>${fmt(row.yearlyWar?.[index])}</td>`
   )).join("");
+}
+
+function ageCurvePeakText(pos) {
+  const curve = dynastyAgeCurves[pos] || dynastyAgeCurves.WR;
+  return `Peak ${curve.peakStart}-${curve.peakEnd}`;
+}
+
+function renderDynastyDetailRow(row) {
+  const colspan = dynastySettings().horizon + 9;
+  return `
+    <tr class="player-detail-row dynasty-detail-row">
+      <td colspan="${colspan}">
+        ${renderDynastyDetail(row)}
+      </td>
+    </tr>
+  `;
+}
+
+function renderDynastyDetail(row) {
+  const isPick = row.Pos === "RDP";
+  const curveRows = dynastyAgeCurveRows(row);
+  const comps = isPick && row.comps?.length
+    ? `<p class="muted"><strong>Upside comps:</strong> ${row.comps.map((comp) => escapeHtml(comp)).join(", ")}</p>`
+    : "";
+  return `
+    <div class="dynasty-detail">
+      <div class="dynasty-detail-copy">
+        <p class="eyebrow">${isPick ? "Rookie pick best-case profile" : "Player WAR age curve"}</p>
+        <h2>${escapeHtml(row.Player)}</h2>
+        <p class="muted">${escapeHtml(row.Team || "-")} - <span class="pos-pill pos-${row.Pos}">${escapeHtml(row.Pos)}</span> - ${escapeHtml(row.model || "")}</p>
+        <div class="player-stats dynasty-detail-stats">
+          <div><span>Dynasty WAR</span><strong>${fmt(row.dynastyWar)}</strong></div>
+          <div><span>${isPick ? "Best-case archetype" : "Current age"}</span><strong>${isPick ? escapeHtml(row.bestCasePos || "-") : fmt(row.age, 1)}</strong></div>
+          <div><span>ADP</span><strong>${fmt(row.ADP, 1)}</strong></div>
+          <div><span>Peak window</span><strong>${isPick ? "Comp based" : escapeHtml(ageCurvePeakText(row.Pos))}</strong></div>
+        </div>
+        ${comps}
+      </div>
+      ${dynastyCurveSvg(row, curveRows)}
+    </div>
+  `;
+}
+
+function dynastyCurveSvg(row, curveRows) {
+  if (!curveRows.length) {
+    return `<p class="muted">No age curve available for this row yet.</p>`;
+  }
+  const width = 760;
+  const height = 250;
+  const pad = { l: 48, r: 18, t: 18, b: 42 };
+  const values = curveRows.map((point) => number(point.WAR, 0));
+  const maxY = Math.max(0.5, Math.max(...values) * 1.18);
+  const x = (index) => pad.l + (index * ((width - pad.l - pad.r) / Math.max(1, curveRows.length - 1)));
+  const y = (value) => height - pad.b - ((value / maxY) * (height - pad.t - pad.b));
+  const linePoints = curveRows.map((point, index) => `${x(index).toFixed(1)},${y(point.WAR).toFixed(1)}`).join(" ");
+  const areaPoints = `${pad.l},${height - pad.b} ${linePoints} ${x(curveRows.length - 1)},${height - pad.b}`;
+  const currentIndex = row.Pos === "RDP" ? 0 : curveRows.reduce((best, point, index) => (
+    Math.abs(number(point.Age, 0) - number(row.age, 0)) < Math.abs(number(curveRows[best].Age, 0) - number(row.age, 0)) ? index : best
+  ), 0);
+  const ticks = curveRows.filter((_, index) => index === 0 || index === curveRows.length - 1 || index % Math.max(1, Math.ceil(curveRows.length / 5)) === 0);
+  const tickMarkup = ticks.map((point) => {
+    const index = curveRows.indexOf(point);
+    return `<text x="${x(index).toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(row.Pos === "RDP" ? point.Label : String(point.Age))}</text>`;
+  }).join("");
+  const yTicks = [0, maxY / 2, maxY].map((value) => `
+    <g>
+      <line x1="${pad.l}" x2="${width - pad.r}" y1="${y(value).toFixed(1)}" y2="${y(value).toFixed(1)}"></line>
+      <text x="8" y="${(y(value) + 4).toFixed(1)}">${fmt(value)}</text>
+    </g>
+  `).join("");
+  return `
+    <svg class="dynasty-curve-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(row.Player)} projected WAR curve">
+      <g class="dynasty-grid">${yTicks}</g>
+      <polygon class="dynasty-curve-area" points="${areaPoints}"></polygon>
+      <polyline class="dynasty-curve-line" points="${linePoints}"></polyline>
+      <circle class="dynasty-current-dot" cx="${x(currentIndex).toFixed(1)}" cy="${y(curveRows[currentIndex].WAR).toFixed(1)}" r="6"></circle>
+      <g class="dynasty-axis-labels">${tickMarkup}</g>
+      <text class="dynasty-axis-title" x="${width / 2}" y="${height - 1}" text-anchor="middle">${row.Pos === "RDP" ? "Projected rookie season" : "Age"}</text>
+      <text class="dynasty-chart-label" x="${x(currentIndex).toFixed(1)}" y="${Math.max(18, y(curveRows[currentIndex].WAR) - 12).toFixed(1)}" text-anchor="middle">${row.Pos === "RDP" ? "Year 1" : `Age ${fmt(row.age, 1)}`}</text>
+    </svg>
+  `;
 }
 
 function exportDynastyWar() {
@@ -3413,6 +3650,13 @@ function bindEvents() {
     const row = event.target.closest("tr[data-adp-player]");
     if (!row) return;
     state.selectedAdpPlayer = state.selectedAdpPlayer === row.dataset.adpPlayer ? null : row.dataset.adpPlayer;
+    scheduleRender(0);
+  });
+  el("dynastyWarBody")?.addEventListener("click", (event) => {
+    if (event.target.closest(".dynasty-detail-row")) return;
+    const row = event.target.closest("tr[data-dynasty-key]");
+    if (!row) return;
+    state.selectedDynastyKey = state.selectedDynastyKey === row.dataset.dynastyKey ? null : row.dataset.dynastyKey;
     scheduleRender(0);
   });
   el("adpLeaguePresets")?.addEventListener("click", (event) => {
