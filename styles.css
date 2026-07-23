@@ -1139,6 +1139,18 @@ summary::marker {
   stroke-width: 3;
 }
 
+.dynasty-history-dot {
+  fill: #d0a85b;
+  stroke: #111111;
+  stroke-width: 2;
+}
+
+.dynasty-history-label {
+  fill: rgba(240, 240, 240, 0.68);
+  font-size: 10px;
+  font-weight: 800;
+}
+
 .adp-player-cell {
   display: inline-flex;
   align-items: center;
