@@ -2338,6 +2338,7 @@ function updateHistoricalControlVisibility() {
     player: ["players", "timeline"],
     weeklyBins: ["positions", "binSize", "binMax"],
     adpThresholds: ["positions", "adpPlot", "adpScoring", "threshold"],
+    boomBustHeatmap: ["positions", "adpScoring", "threshold"],
     adpOutcome: ["positions", "adpScoring"],
     adpTrends: ["positions", "adpScoring"]
   };
@@ -2428,6 +2429,14 @@ function historicalExplorerTitle(mode, metric) {
       subtitle: `${plotType} of historical ${historicalAdpScoringLabel()} ADP for top-${HISTORICAL_ADP_PLAYER_CAP} draft costs with at least one weekly ${yMetric} above each threshold - ${threshold.toFixed(2)} highlighted`
     };
   }
+  if (mode === "boomBustHeatmap") {
+    const threshold = weekWinningThreshold();
+    const yMetric = historicalWarMetric(metric);
+    return {
+      title: `${start}-${end} ${historicalAdpScoringLabel()} ADP by Boom/Bust Weekly ${yMetric} Profile`,
+      subtitle: `${historicalPositionText()} player-seasons drafted in the top-${HISTORICAL_ADP_PLAYER_CAP} - boom weeks above ${threshold.toFixed(2)} ${yMetric}, bust weeks below 0.00 ${yMetric} - ${context.roster} - ${context.scoring}`
+    };
+  }
   if (mode === "adpOutcome") {
     return {
       title: `${start}-${end} Historical ${historicalAdpScoringLabel()} ADP vs Season ${metric}`,
@@ -2486,6 +2495,12 @@ function renderHistoricalExplorer() {
 
   if (mode === "adpThresholds") {
     const plot = historicalAdpThresholdPlot(rows, copy, metric);
+    Plotly.react(chart, plot.traces, plot.layout, { responsive: true });
+    return;
+  }
+
+  if (mode === "boomBustHeatmap") {
+    const plot = historicalBoomBustAdpHeatmap(rows, copy, metric);
     Plotly.react(chart, plot.traces, plot.layout, { responsive: true });
     return;
   }
@@ -2943,6 +2958,159 @@ function historicalAdpHitRatePlot(rows, copy, threshold, metric = "WAR") {
       ...historicalAdpBaseLayout(copy),
       xaxis: { title: "Historical ADP bucket", color: "#f0f0f0", side: "top" },
       yaxis: { title: "Position", color: "#f0f0f0" }
+    }
+  };
+}
+
+function historicalBoomBustRows(rows, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
+  const threshold = weekWinningThreshold();
+  return historicalRowsWithAdp(rows)
+    .map((row) => {
+      const weekValues = (row.Weeks || [])
+        .map((week) => number(week[yMetric], null))
+        .filter((value) => value !== null);
+      if (!weekValues.length) return null;
+      const weeksAbove = weekValues.filter((value) => value > threshold).length;
+      if (!weeksAbove) return null;
+      return {
+        Player: row.Player,
+        Pos: row.Pos,
+        Year: row.Year,
+        ADP: row.ADP,
+        WeeksAbove: weeksAbove,
+        WeeksBelow: weekValues.filter((value) => value < 0).length,
+        MaxWar: Math.max(...weekValues)
+      };
+    })
+    .filter(Boolean);
+}
+
+function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
+  const threshold = weekWinningThreshold();
+  const points = historicalBoomBustRows(rows, yMetric);
+  if (!points.length) {
+    return {
+      traces: [],
+      layout: historicalLayout(copy.title, "Weeks below 0 WAR", `Weeks above ${threshold.toFixed(2)} ${yMetric}`, "No historical ADP rows matched the selected years, scoring, positions, and threshold")
+    };
+  }
+  const positions = selectedHistoricalPositions().filter((pos) => points.some((point) => point.Pos === pos));
+  const columns = positions.length === 1 ? 1 : 2;
+  const rowsCount = positions.length <= 2 ? 1 : 2;
+  const gapX = columns === 1 ? 0 : 0.08;
+  const gapY = rowsCount === 1 ? 0 : 0.15;
+  const domainWidth = (1 - (gapX * (columns - 1))) / columns;
+  const domainHeight = (1 - (gapY * (rowsCount - 1))) / rowsCount;
+  const traces = [];
+  const layoutAxes = {};
+  const annotations = [];
+
+  positions.forEach((pos, index) => {
+    const posPoints = points.filter((point) => point.Pos === pos);
+    const xValues = uniqueSorted(posPoints.map((point) => point.WeeksBelow), true);
+    const yValues = uniqueSorted(posPoints.map((point) => point.WeeksAbove), true).sort((a, b) => b - a);
+    const stats = yValues.map((weeksAbove) => xValues.map((weeksBelow) => {
+      const group = posPoints.filter((point) => point.WeeksAbove === weeksAbove && point.WeeksBelow === weeksBelow);
+      if (!group.length) return null;
+      return {
+        avg: average(group.map((point) => point.ADP)),
+        count: group.length,
+        min: Math.min(...group.map((point) => point.ADP)),
+        max: Math.max(...group.map((point) => point.ADP))
+      };
+    }));
+    const z = stats.map((row) => row.map((cell) => cell?.avg ?? null));
+    const text = stats.map((row) => row.map((cell) => cell ? `${cell.avg.toFixed(1)}<br>N=${cell.count}` : ""));
+    const customdata = stats.map((row) => row.map((cell) => cell ? [cell.min, cell.max, cell.count] : [null, null, 0]));
+    const axisSuffix = index === 0 ? "" : `${index + 1}`;
+    const xRef = `x${axisSuffix}`;
+    const yRef = `y${axisSuffix}`;
+    const xAxisKey = `xaxis${axisSuffix}`;
+    const yAxisKey = `yaxis${axisSuffix}`;
+    const col = index % columns;
+    const rowIndex = Math.floor(index / columns);
+    const x0 = col * (domainWidth + gapX);
+    const x1 = x0 + domainWidth;
+    const y1 = 1 - (rowIndex * (domainHeight + gapY));
+    const y0 = y1 - domainHeight;
+
+    traces.push({
+      type: "heatmap",
+      name: pos,
+      x: xValues,
+      y: yValues,
+      z,
+      text,
+      customdata,
+      texttemplate: "%{text}",
+      hovertemplate: `<b>${pos}</b><br>Weeks above ${threshold.toFixed(2)} ${yMetric}: %{y}<br>Weeks below 0.00 ${yMetric}: %{x}<br>Avg ADP: %{z:.1f}<br>Min/Max ADP: %{customdata[0]:.0f} / %{customdata[1]:.0f}<br>Player-seasons: %{customdata[2]}<extra></extra>`,
+      coloraxis: "coloraxis",
+      xaxis: xRef,
+      yaxis: yRef,
+      xgap: 3,
+      ygap: 3
+    });
+
+    layoutAxes[xAxisKey] = {
+      domain: [x0, x1],
+      title: rowIndex === rowsCount - 1 ? { text: "Weeks below 0 WAR", standoff: 10 } : "",
+      tickmode: "linear",
+      dtick: 1,
+      gridcolor: "rgba(240,240,240,0.06)",
+      color: "#f0f0f0"
+    };
+    layoutAxes[yAxisKey] = {
+      domain: [y0, y1],
+      title: col === 0 ? { text: `Weeks above ${threshold.toFixed(2)} ${yMetric}`, standoff: 10 } : "",
+      tickmode: "linear",
+      dtick: 1,
+      gridcolor: "rgba(240,240,240,0.06)",
+      color: "#f0f0f0"
+    };
+    annotations.push({
+      text: `<b>${pos}</b>`,
+      x: (x0 + x1) / 2,
+      y: Math.min(1.02, y1 + 0.045),
+      xref: "paper",
+      yref: "paper",
+      showarrow: false,
+      font: { color: posColors[pos] || "#f0f0f0", size: 15 }
+    });
+  });
+
+  return {
+    traces,
+    layout: {
+      ...historicalAdpBaseLayout(copy),
+      ...layoutAxes,
+      height: positions.length <= 2 ? 680 : 900,
+      margin: { l: 78, r: 92, t: 142, b: 124 },
+      annotations: [
+        ...annotations,
+        {
+          text: "Cells show average historical ADP and player-season count. Lower ADP means more expensive draft cost.",
+          xref: "paper",
+          yref: "paper",
+          x: 0,
+          y: -0.14,
+          xanchor: "left",
+          showarrow: false,
+          font: { color: "rgba(240,240,240,0.62)", size: 11 }
+        }
+      ],
+      coloraxis: {
+        colorscale: [
+          [0, "#f2f2f2"],
+          [0.26, "#f0c56d"],
+          [0.55, "#d9854f"],
+          [0.78, "#9d4b4b"],
+          [1, "#421d2b"]
+        ],
+        reversescale: true,
+        colorbar: { title: "Avg ADP", tickfont: { color: "#f0f0f0" }, titlefont: { color: "#f0f0f0" } }
+      }
     }
   };
 }
