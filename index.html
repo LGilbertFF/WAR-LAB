@@ -218,7 +218,7 @@
             </div>
           </div>
           <div class="historical-controls">
-            <label>
+            <label data-control="mode">
               View
               <select id="historicalMode">
                 <option value="rank">Positional rank by year</option>
@@ -229,7 +229,7 @@
                 <option value="adpTrends">Year-over-year ADP trends</option>
               </select>
             </label>
-            <label>
+            <label data-control="metric">
               Metric
               <select id="historicalMetric">
                 <option value="WAR">WAR</option>
@@ -239,26 +239,26 @@
                 <option value="SuperFlex WAR">SuperFlex WAR</option>
               </select>
             </label>
-            <fieldset class="historical-position-filter">
+            <fieldset class="historical-position-filter" data-control="positions">
               <legend>Positions</legend>
               <label><input type="checkbox" name="historicalPosFilter" value="QB" checked> QB</label>
               <label><input type="checkbox" name="historicalPosFilter" value="RB" checked> RB</label>
               <label><input type="checkbox" name="historicalPosFilter" value="WR" checked> WR</label>
               <label><input type="checkbox" name="historicalPosFilter" value="TE" checked> TE</label>
             </fieldset>
-            <label>
+            <label data-control="rank">
               Pos rank
               <input id="historicalRank" type="number" min="1" max="250" value="1">
             </label>
-            <label>
+            <label data-control="startYear">
               Start year
               <select id="historicalPlotStart"></select>
             </label>
-            <label>
+            <label data-control="endYear">
               End year
               <select id="historicalPlotEnd"></select>
             </label>
-            <label class="player-query-control">
+            <label class="player-query-control" data-control="players">
               <span class="label-with-info">
                 Players
                 <button class="info-button" type="button" aria-label="Historical player input help" title="Type player names separated by commas. Add :YEAR after a name to start that player's line later, like Josh Allen:2020. Select suggestions below to insert names.">i</button>
@@ -266,22 +266,22 @@
               <input id="historicalPlayers" type="search" placeholder="Josh Allen, Travis Kelce:2020">
               <div id="historicalPlayerSuggestions" class="player-suggestions" aria-label="Player suggestions"></div>
             </label>
-            <label>
+            <label data-control="timeline">
               Player timeline
               <select id="historicalTimeline">
                 <option value="calendar">Calendar years</option>
                 <option value="aligned">Align each player to Year 1</option>
               </select>
             </label>
-            <label>
+            <label data-control="binSize">
               Bin size
               <input id="historicalBinSize" type="number" min="1" max="20" value="5">
             </label>
-            <label>
+            <label data-control="binMax">
               Max FPTS
               <input id="historicalBinMax" type="number" min="20" max="100" value="55">
             </label>
-            <label>
+            <label data-control="adpPlot">
               ADP plot
               <select id="historicalAdpPlotType">
                 <option value="heatmap">Avg/min/max heatmap</option>
@@ -289,7 +289,7 @@
                 <option value="hitRate">Hit-rate by ADP bucket</option>
               </select>
             </label>
-            <label>
+            <label data-control="adpScoring">
               ADP scoring
               <select id="historicalAdpScoring">
                 <option value="auto">Match scoring settings</option>
@@ -298,7 +298,7 @@
                 <option value="standard">Standard</option>
               </select>
             </label>
-            <label>
+            <label data-control="threshold">
               Week-winning WAR
               <input id="weekWinningWar" type="number" min="0" max="2" step="0.05" value="0.5">
             </label>
@@ -507,6 +507,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-    <script src="app.js?v=historical-lab-adp-20260722b"></script>
+    <script src="app.js?v=historical-lab-adp-20260722c"></script>
   </body>
 </html>

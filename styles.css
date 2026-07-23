@@ -508,6 +508,10 @@ summary::marker {
   grid-column: span 2;
 }
 
+.historical-controls [hidden] {
+  display: none;
+}
+
 .historical-position-filter {
   display: flex;
   flex-wrap: wrap;
@@ -537,6 +541,15 @@ summary::marker {
   color: var(--white);
   font-size: 0.78rem;
   font-weight: 800;
+}
+
+.historical-position-filter input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  accent-color: #9fc6f2;
 }
 
 .label-with-info {

@@ -2093,6 +2093,24 @@ function setProjectionFocus(focus) {
   }, 0);
 }
 
+function updateHistoricalControlVisibility() {
+  const mode = el("historicalMode")?.value || "rank";
+  const always = ["mode", "metric", "startYear", "endYear"];
+  const byMode = {
+    rank: ["positions", "rank"],
+    player: ["players", "timeline"],
+    weeklyBins: ["positions", "binSize", "binMax"],
+    adpThresholds: ["positions", "adpPlot", "adpScoring", "threshold"],
+    adpOutcome: ["positions", "adpScoring"],
+    adpTrends: ["positions", "adpScoring"]
+  };
+  const visible = new Set([...(always || []), ...(byMode[mode] || [])]);
+  document.querySelectorAll(".historical-controls [data-control]").forEach((control) => {
+    const show = visible.has(control.dataset.control);
+    control.hidden = !show;
+  });
+}
+
 function selectedHistoricalPositions() {
   const checked = [...document.querySelectorAll("input[name='historicalPosFilter']:checked")]
     .map((input) => input.value)
@@ -2207,6 +2225,7 @@ function historicalExplorerTitle(mode, metric) {
 function renderHistoricalExplorer() {
   const chart = el("historicalExplorerChart");
   if (!chart) return;
+  updateHistoricalControlVisibility();
   const mode = el("historicalMode")?.value || "rank";
   const metric = el("historicalMetric")?.value || "WAR";
   const start = number(el("historicalPlotStart")?.value, 2015);
