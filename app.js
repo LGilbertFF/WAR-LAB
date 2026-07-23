@@ -887,6 +887,52 @@ function inferredDynastyAge(player, pos) {
   return rookieAge + Math.max(0, settings().year - firstYear);
 }
 
+function playerHistoricalWarProfile(player, pos, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
+  const key = playerKey(player);
+  const seasons = (state.historicalModel?.playerRows || [])
+    .filter((row) => row.PlayerKey === key && row.Pos === pos)
+    .sort((a, b) => b.Year - a.Year)
+    .slice(0, 3);
+  if (!seasons.length) return null;
+  const seasonWars = seasons.map((row) => number(row[yMetric], null)).filter((value) => value !== null);
+  const warPerGame = seasons
+    .map((row) => {
+      const war = number(row[yMetric], null);
+      const games = number(row.Games, null);
+      return war !== null && games ? war / games : null;
+    })
+    .filter((value) => value !== null);
+  if (!seasonWars.length && !warPerGame.length) return null;
+  return {
+    seasonWar: seasonWars.length ? weightedAverageRecent(seasonWars) : null,
+    warPerGame: warPerGame.length ? weightedAverageRecent(warPerGame) : null
+  };
+}
+
+function weightedAverageRecent(values) {
+  const weights = [0.5, 0.3, 0.2];
+  const clean = values.filter((value) => Number.isFinite(value));
+  if (!clean.length) return 0;
+  const totalWeight = clean.reduce((sum, _, index) => sum + (weights[index] || 0.1), 0);
+  return clean.reduce((sum, value, index) => sum + (value * (weights[index] || 0.1)), 0) / Math.max(0.001, totalWeight);
+}
+
+function dynastyPlayerBaseWar(player, pos, currentWar, metric = "WAR") {
+  const projectedWar = Math.max(0, number(currentWar, 0));
+  const profile = playerHistoricalWarProfile(player, pos, metric);
+  if (!profile) return projectedWar;
+  const games = settings().weeks;
+  const warPerGameSeason = profile.warPerGame === null ? null : profile.warPerGame * games;
+  const pieces = [
+    { value: projectedWar, weight: 0.58 },
+    { value: profile.seasonWar, weight: 0.24 },
+    { value: warPerGameSeason, weight: 0.18 }
+  ].filter((piece) => piece.value !== null && Number.isFinite(piece.value));
+  const totalWeight = pieces.reduce((sum, piece) => sum + piece.weight, 0);
+  return Math.max(0, pieces.reduce((sum, piece) => sum + (piece.value * piece.weight), 0) / Math.max(0.001, totalWeight));
+}
+
 function dynastyPlayerYearlyWar(pos, currentWar, age, horizon) {
   const baseWar = Math.max(0, number(currentWar, 0));
   if (!horizon) return [];
@@ -911,14 +957,12 @@ function dynastyAgeCurveRows(row, extraYears = 4) {
       Year: settings().year + index,
       Age: null,
       WAR: war,
-      Label: index < Math.max(0, number(row.pickYear, settings().year) - settings().year)
-        ? `${settings().year + index}`
-        : `Y${index - Math.max(0, number(row.pickYear, settings().year) - settings().year) + 1}`
+      Label: `Y${index + 1}`
     }));
   }
   const age = number(row.age, null);
   if (age === null) return [];
-  const baseWar = Math.max(0, number(row.currentWar, 0));
+  const baseWar = Math.max(0, number(row.blendedWarBase ?? row.currentWar, 0));
   const currentAgeFactor = Math.max(dynastyAgeFactor(pos, age) ?? 1, 0.2);
   const startAge = Math.max(18, Math.floor(age) - 2);
   const endAge = Math.ceil(age) + horizon + extraYears;
@@ -1053,13 +1097,40 @@ function fallbackRookiePickRankCurve(pickNo, horizon) {
   };
 }
 
+function currentRookieClassRankWar(pickNo, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
+  const metaMap = draftMetadataMap();
+  const rookieRows = state.results
+    .map((row) => {
+      const meta = metaMap.get(`${playerKey(row.Player)}|${row.Pos}`);
+      if (!meta || meta.draftYear !== settings().year) return null;
+      const value = number(row[yMetric], null);
+      return value === null ? null : { ...row, MetricWar: Math.max(0, value) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.MetricWar - a.MetricWar);
+  if (!rookieRows.length) return null;
+  const pick = Math.max(1, number(pickNo, 1));
+  let matched = [];
+  for (const window of [0, 1, 2, 4, 8, 14]) {
+    matched = rookieRows
+      .map((row, index) => ({ ...row, RookieRank: index + 1 }))
+      .filter((row) => Math.abs(row.RookieRank - pick) <= window);
+    if ((window === 0 && matched.length) || matched.length >= 2 || window === 14) break;
+  }
+  if (!matched.length) return null;
+  const weighted = matched.reduce((sum, row) => sum + (row.MetricWar / Math.max(1, Math.abs(row.RookieRank - pick) + 1)), 0);
+  const totalWeight = matched.reduce((sum, row) => sum + (1 / Math.max(1, Math.abs(row.RookieRank - pick) + 1)), 0);
+  return weighted / Math.max(0.001, totalWeight);
+}
+
 function rookiePickRankProfile(pickNo, horizon, pickYear, metric = "WAR") {
   const pick = Math.max(1, number(pickNo, 1));
   const yearsOut = Math.max(0, number(pickYear, settings().year) - settings().year);
   const futureAdjustedPick = pick + (yearsOut * settings().teams * 0.65);
   const rawHorizon = Math.max(horizon, 6);
   const curves = historicalDraftClassRankCurves(rawHorizon, metric);
-  const discount = 0.92 ** yearsOut;
+  const discount = 0.97 ** yearsOut;
   if (!curves.length) {
     const fallback = fallbackRookiePickRankCurve(futureAdjustedPick, rawHorizon);
     return {
@@ -1095,6 +1166,15 @@ function rookiePickRankProfile(pickNo, horizon, pickYear, metric = "WAR") {
       for (const example of row.Examples || []) {
         if (examples.length < 4 && !examples.includes(example)) examples.push(example);
       }
+    }
+  }
+  const currentClassY1 = currentRookieClassRankWar(pick, metric);
+  if (currentClassY1 !== null && rawYearlyWar.some((value) => value > 0)) {
+    const historicalY1 = rawYearlyWar[0] || currentClassY1;
+    const blendedY1 = (historicalY1 * 0.42) + (currentClassY1 * 0.58);
+    const scale = blendedY1 / Math.max(0.001, historicalY1);
+    for (let index = 0; index < rawYearlyWar.length; index += 1) {
+      rawYearlyWar[index] *= scale;
     }
   }
   const yearlyWar = Array.from({ length: horizon }, (_, index) => (rawYearlyWar[index] || 0) * discount);
@@ -1210,9 +1290,13 @@ function dynastyBoardRows() {
     const currentSuperflexWar = number(current?.["SuperFlex WAR"], currentWar);
     const actualAge = ageForProjection(meta, settings().year);
     const age = actualAge ?? inferredDynastyAge(item.Player, item.Pos);
-    const yearly = dynastyPlayerYearlyWar(item.Pos, currentWar, age, cfg.horizon);
+    const blendedWarBase = dynastyPlayerBaseWar(item.Player, item.Pos, currentWar, "WAR");
+    const blendedSuperflexWarBase = dynastyShowsSuperflex()
+      ? dynastyPlayerBaseWar(item.Player, item.Pos, currentSuperflexWar, "SuperFlex WAR")
+      : 0;
+    const yearly = dynastyPlayerYearlyWar(item.Pos, blendedWarBase, age, cfg.horizon);
     const yearlySuperflexWar = dynastyShowsSuperflex()
-      ? dynastyPlayerYearlyWar(item.Pos, currentSuperflexWar, age, cfg.horizon)
+      ? dynastyPlayerYearlyWar(item.Pos, blendedSuperflexWarBase, age, cfg.horizon)
       : [];
     const dynastyWar = yearly.reduce((sum, value) => sum + value, 0);
     const dynastySuperflexWar = yearlySuperflexWar.reduce((sum, value) => sum + value, 0);
@@ -1222,6 +1306,7 @@ function dynastyBoardRows() {
       ADP: adp,
       currentWar,
       currentSuperflexWar,
+      blendedWarBase,
       dynastyWar,
       dynastySuperflexWar,
       yearlyWar: yearly,
@@ -1232,10 +1317,10 @@ function dynastyBoardRows() {
       bestCasePos: item.Pos,
       comps: [],
       model: actualAge === null && age !== null
-        ? "current WAR + inferred position age curve"
+        ? "projection/history blend + inferred position age curve"
         : age === null
-          ? "current WAR + position trend decline"
-          : "current WAR normalized to position age curve"
+          ? "projection/history blend + position trend decline"
+          : "projection/history blend + position age curve"
     });
   }
 
@@ -2186,6 +2271,7 @@ function renderDynastyDetail(row) {
           <div><span>Dynasty WAR</span><strong>${fmt(row.dynastyWar)}</strong></div>
           ${dynastyShowsSuperflex() ? `<div><span>SuperFlex WAR</span><strong>${fmt(row.dynastySuperflexWar)}</strong></div>` : ""}
           <div><span>${isPick ? "Common archetype" : "Current age"}</span><strong>${isPick ? escapeHtml(row.bestCasePos || "-") : fmt(row.age, 1)}</strong></div>
+          ${!isPick ? `<div><span>Blended curve base</span><strong>${fmt(row.blendedWarBase)}</strong></div>` : ""}
           <div><span>ADP</span><strong>${fmt(row.ADP, 1)}</strong></div>
           <div><span>Curve basis</span><strong>${isPick ? "Class rank" : escapeHtml(ageCurvePeakText(row.Pos))}</strong></div>
         </div>
