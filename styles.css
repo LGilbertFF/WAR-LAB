@@ -468,6 +468,30 @@ summary::marker {
   height: 300px;
 }
 
+.rank-card {
+  cursor: pointer;
+}
+
+.workspace.rank-expanded {
+  grid-template-columns: minmax(0, 1fr) 380px;
+}
+
+.workspace.rank-expanded > .side-panel {
+  order: 1;
+}
+
+.workspace.rank-expanded > .chart-panel {
+  order: 2;
+}
+
+.workspace.rank-expanded #rankCurveChart {
+  height: 640px;
+}
+
+.workspace.rank-expanded #projectionChart {
+  height: 300px;
+}
+
 #historicalExplorerChart {
   width: 100%;
   height: 740px;
@@ -482,6 +506,37 @@ summary::marker {
 
 .historical-controls .player-query-control {
   grid-column: span 2;
+}
+
+.historical-position-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: start;
+  gap: 8px;
+  min-height: 70px;
+  padding: 9px 10px 10px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.historical-position-filter legend {
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.historical-position-filter label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: auto;
+  min-width: 52px;
+  color: var(--white);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .label-with-info {
@@ -949,6 +1004,11 @@ summary::marker {
   height: 560px;
 }
 
+#dynastyWarChart {
+  width: 100%;
+  height: 560px;
+}
+
 #adpDraftDistributionChart {
   width: 100%;
   height: 280px;
@@ -996,6 +1056,14 @@ summary::marker {
 
 .adp-table-wrap table {
   min-width: 940px;
+}
+
+.dynasty-control-bar {
+  grid-template-columns: repeat(3, minmax(150px, 220px));
+}
+
+.dynasty-workspace .chart-panel {
+  min-height: 600px;
 }
 
 .adp-player-cell {
@@ -1328,11 +1396,20 @@ tbody tr.selected-row {
 
   #projectionChart,
   #historicalExplorerChart,
-  #adpTrendChart {
+  #adpTrendChart,
+  #dynastyWarChart {
     height: 460px;
   }
 
   #rankCurveChart {
+    height: 260px;
+  }
+
+  .workspace.rank-expanded #rankCurveChart {
+    height: 460px;
+  }
+
+  .workspace.rank-expanded #projectionChart {
     height: 260px;
   }
 

@@ -4,6 +4,9 @@ const CUSTOM_ADP_PATH = "data/custom_adp_board.csv";
 const CUSTOM_ADP_MANIFEST_PATH = "data/adp/manifest.json";
 const WAR_DATA_MANIFEST_PATH = "data/war/manifest.json";
 const HISTORICAL_ADP_PATH = "data/historical_adp.csv";
+const HISTORICAL_ADP_PLAYER_CAP = 200;
+const DRAFT_METADATA_PATH = "data/nfl_skill_players_2000_2026.csv";
+const TRUSTED_WAR_CURVE_PATH = "data/historical_WAR_PPR2WR.csv";
 const FALLBACK_PROJECTIONS_PATH = "data/WARProjections2024_PPR2WR.csv";
 const HISTORICAL_WEEKLY_PATH = "data/fantasypros_weekly_2015_2025.csv";
 
@@ -11,9 +14,15 @@ const state = {
   rawProjections: [],
   adpRows: [],
   customAdpRows: [],
+  dynastyAdpRows: [],
   customAdpLoaded: false,
   customAdpManifest: null,
   customAdpLoadedKey: "",
+  draftMetadataRows: [],
+  trustedWarCurveRows: [],
+  dynastySortKey: "dynastyWar",
+  dynastySortDir: "desc",
+  projectionFocus: "projection",
   adpSortKey: "rank",
   adpSortDir: "asc",
   selectedAdpPlayer: null,
@@ -155,6 +164,7 @@ function weekLimit() {
 function playerKey(name) {
   return String(name || "").toLowerCase().replace(/[^a-z]/g, "");
 }
+
 function playerAdpKey(name) {
   return playerKey(String(name || "").replace(/\s+(Jr\.?|Sr\.?|II|III|IV|V)$/i, ""));
 }
@@ -783,6 +793,221 @@ function adpSettings() {
     slots: cfg.slots,
     scoringValues: cfg.scoring
   };
+}
+
+function dynastySettings() {
+  return {
+    horizon: Math.max(1, Math.min(10, number(el("dynastyHorizon")?.value, 3))),
+    position: el("dynastyPosition")?.value || "ALL",
+    query: String(el("dynastySearch")?.value || "").trim().toLowerCase()
+  };
+}
+
+function draftMetadataMap() {
+  const map = new Map();
+  for (const row of state.draftMetadataRows) {
+    const pos = String(row.pos || "").toUpperCase();
+    if (!["QB", "RB", "WR", "TE"].includes(pos)) continue;
+    map.set(`${playerKey(row.player)}|${pos}`, {
+      draftYear: number(row.draft_year, null),
+      draftRound: number(row.round, null),
+      draftPick: number(row.pick, null),
+      draftAge: number(row.age, null)
+    });
+  }
+  return map;
+}
+
+function trustedCurveWar(pos, rank) {
+  const rounded = Math.max(1, Math.round(number(rank, 1)));
+  const row = state.trustedWarCurveRows.find((item) => Math.round(number(item.Rank, 0)) === rounded);
+  return number(row?.[`${pos} WAR`], null);
+}
+
+function ageForProjection(meta, season) {
+  if (!meta || meta.draftAge === null || meta.draftYear === null) return null;
+  return meta.draftAge + (season - meta.draftYear);
+}
+
+function dynastyAgeFactor(pos, age, yearOffset) {
+  if (age === null) return Math.max(0.65, 0.92 ** yearOffset);
+  const futureAge = age + yearOffset;
+  const peak = { QB: 29, RB: 24, WR: 26, TE: 27 }[pos] || 26;
+  const prePeak = { QB: 0.04, RB: 0.06, WR: 0.05, TE: 0.05 }[pos] || 0.05;
+  const postPeak = { QB: 0.04, RB: 0.12, WR: 0.08, TE: 0.07 }[pos] || 0.08;
+  if (futureAge < peak) return Math.max(0.7, 1 - ((peak - futureAge) * prePeak));
+  return Math.max(0.25, 1 - ((futureAge - peak) * postPeak));
+}
+
+function draftCapitalFactor(meta) {
+  const pick = meta?.draftPick;
+  if (pick === null || pick === undefined) return 0.9;
+  if (pick <= 12) return 1.08;
+  if (pick <= 32) return 1.02;
+  if (pick <= 75) return 0.94;
+  if (pick <= 150) return 0.84;
+  return 0.72;
+}
+
+function rookiePickNumber(label, teams = 12) {
+  const match = String(label || "").match(/(\d+)\.(\d+)/);
+  if (!match) return null;
+  return (number(match[1], 1) - 1) * teams + number(match[2], 1);
+}
+
+function rookiePickLabelFromPick(pickNo, teams = 12) {
+  const pick = number(pickNo, null);
+  if (pick === null) return "";
+  const roundNo = Math.floor((pick - 1) / teams) + 1;
+  const slot = Math.floor((pick - 1) % teams) + 1;
+  return `${roundNo}.${String(slot).padStart(2, "0")}`;
+}
+
+function rookiePickLabelFromName(name, fallbackPick, teams) {
+  const match = String(name || "").match(/(\d+\.\d+)/);
+  return match?.[1] || rookiePickLabelFromPick(fallbackPick, teams);
+}
+
+function rookiePickYear(name, fallbackYear) {
+  return number(String(name || "").match(/\b(20\d{2})\b/)?.[1], fallbackYear);
+}
+
+function rookiePickYearlyWar(pickNo, horizon, pickYear) {
+  const currentYear = settings().year;
+  const yearsOut = Math.max(0, number(pickYear, currentYear) - currentYear);
+  const adjustedPick = number(pickNo, null);
+  const pick = adjustedPick === null ? null : adjustedPick + (yearsOut * settings().teams * 0.55);
+  if (pick === null) return Array.from({ length: horizon }, () => 0);
+  const round = Math.floor((pick - 1) / settings().teams) + 1;
+  const earlyPickWar = average([
+    historicalForRank("RB", Math.max(1, Math.round(pick * 1.1))) ?? trustedCurveWar("RB", Math.max(1, Math.round(pick * 1.1))) ?? 0,
+    historicalForRank("WR", Math.max(1, Math.round(pick * 1.25))) ?? trustedCurveWar("WR", Math.max(1, Math.round(pick * 1.25))) ?? 0,
+    historicalForRank("QB", Math.max(1, Math.round(pick * 0.9))) ?? trustedCurveWar("QB", Math.max(1, Math.round(pick * 0.9))) ?? 0,
+    historicalForRank("TE", Math.max(1, Math.round(pick * 1.7))) ?? trustedCurveWar("TE", Math.max(1, Math.round(pick * 1.7))) ?? 0
+  ]);
+  const hitRate = round === 1 ? 0.45 : round === 2 ? 0.25 : round === 3 ? 0.14 : 0.08;
+  const annual = Math.max(0, earlyPickWar * hitRate * (0.92 ** yearsOut));
+  return Array.from({ length: horizon }, (_, index) => {
+    const curve = index === 0 ? 0.55 : index === 1 ? 0.9 : 0.92 ** (index - 1);
+    return annual * curve;
+  });
+}
+
+function dynastyAdpSourceRows() {
+  return state.dynastyAdpRows.filter((row) => {
+    if (number(row.season, null) !== settings().year) return false;
+    if (row.league_format !== "dynasty") return false;
+    if (!["QB", "RB", "WR", "TE", "RDP"].includes(String(row.position || "").toUpperCase())) return false;
+    return number(row.adp, null) !== null;
+  });
+}
+
+function dynastyBoardRows() {
+  const cfg = dynastySettings();
+  const appCfg = settings();
+  const metaMap = draftMetadataMap();
+  const warMap = new Map(state.results.map((row) => [`${playerKey(row.Player)}|${row.Pos}`, row]));
+  const grouped = new Map();
+
+  for (const row of dynastyAdpSourceRows()) {
+    const pos = String(row.position || "").toUpperCase();
+    const name = String(row.full_name || "").trim();
+    const drafts = Math.max(1, number(row.drafts, 0));
+    const adp = number(row.adp, null);
+    if (adp === null) continue;
+    const pickLabel = pos === "RDP" ? rookiePickLabelFromName(name, adp, appCfg.teams) : "";
+    const pickYear = pos === "RDP" ? rookiePickYear(name, appCfg.year + 1) : null;
+    const key = pos === "RDP" ? `${pickYear}|${pickLabel}|RDP` : `${playerKey(name)}|${pos}`;
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        Player: pos === "RDP" ? `${pickYear} Rookie Pick ${pickLabel}` : name,
+        Pos: pos,
+        Team: row.team || "",
+        headshot_url: row.headshot_url || "",
+        weightedAdp: 0,
+        adpWeight: 0,
+        drafts: 0,
+        pickYear,
+        pickLabel
+      });
+    }
+    const item = grouped.get(key);
+    item.weightedAdp += adp * drafts;
+    item.adpWeight += drafts;
+    item.drafts += drafts;
+  }
+
+  for (let slot = 1; slot <= appCfg.teams; slot += 1) {
+    const label = `1.${String(slot).padStart(2, "0")}`;
+    const pickYear = appCfg.year + 1;
+    const name = `${pickYear} Rookie Pick ${label}`;
+    const key = `${pickYear}|${label}|RDP`;
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        Player: name,
+        Pos: "RDP",
+        Team: "PICK",
+        headshot_url: "",
+        weightedAdp: slot,
+        adpWeight: 1,
+        drafts: 0,
+        pickYear,
+        pickLabel: label,
+        synthesized: true
+      });
+    }
+  }
+
+  const rows = [];
+  for (const item of grouped.values()) {
+    const adp = item.weightedAdp / Math.max(1, item.adpWeight);
+    if (item.Pos === "RDP") {
+      const pickLabel = item.pickLabel || rookiePickLabelFromName(item.Player, adp, appCfg.teams);
+      const pickYear = item.pickYear || rookiePickYear(item.Player, appCfg.year + 1);
+      const pickNo = rookiePickNumber(pickLabel, appCfg.teams) ?? adp;
+      const yearlyWar = rookiePickYearlyWar(pickNo, cfg.horizon, pickYear);
+      const dynastyWar = yearlyWar.reduce((sum, value) => sum + value, 0);
+      rows.push({
+        ...item,
+        Player: `${pickYear} Rookie Pick ${pickLabel}`,
+        ADP: adp,
+        currentWar: null,
+        dynastyWar,
+        yearlyWar,
+        age: null,
+        pickYear,
+        pickLabel,
+        model: "rookie pick comps"
+      });
+      continue;
+    }
+    const current = warMap.get(`${playerKey(item.Player)}|${item.Pos}`);
+    const meta = metaMap.get(`${playerKey(item.Player)}|${item.Pos}`);
+    const currentWar = number(current?.WAR, 0);
+    const age = ageForProjection(meta, settings().year);
+    const yearly = Array.from({ length: cfg.horizon }, (_, index) => {
+      if (index === 0) return currentWar;
+      return Math.max(0, currentWar * dynastyAgeFactor(item.Pos, age, index) * draftCapitalFactor(meta));
+    });
+    const dynastyWar = yearly.reduce((sum, value) => sum + value, 0);
+    rows.push({
+      ...item,
+      ADP: adp,
+      currentWar,
+      dynastyWar,
+      yearlyWar: yearly,
+      age,
+      pickYear: null,
+      pickLabel: "",
+      model: "current WAR + age/draft context"
+    });
+  }
+
+  return rows
+    .filter((row) => cfg.position === "ALL" || row.Pos === cfg.position)
+    .filter((row) => !cfg.query || `${row.Player} ${row.Team} ${row.pickLabel || ""}`.toLowerCase().includes(cfg.query))
+    .sort((a, b) => b.dynastyWar - a.dynastyWar)
+    .map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
 function adpScoringOptions(format) {
@@ -1557,6 +1782,144 @@ function exportAdpBoard() {
   URL.revokeObjectURL(url);
 }
 
+function renderDynastyWar() {
+  const rows = dynastyBoardRows();
+  const top = rows[0];
+  const picks = rows.filter((row) => row.Pos === "RDP");
+  const missingPickNote = missingRookiePickLabels(rows);
+  if (el("dynastyPlayerCount")) el("dynastyPlayerCount").textContent = rows.length;
+  if (el("dynastyTopPlayer")) el("dynastyTopPlayer").textContent = top ? `${top.Player} ${fmt(top.dynastyWar)}` : "-";
+  if (el("dynastyRookiePickCount")) el("dynastyRookiePickCount").textContent = picks.length;
+  if (el("dynastySource")) el("dynastySource").textContent = `${settings().year} Sleeper dynasty ADP - ${dynastySettings().horizon} years - ${state.rawProjections.length} current projection rows${missingPickNote ? ` - missing ${missingPickNote}` : ""}`;
+  renderDynastyChart(rows);
+  renderDynastyTable(rows);
+}
+
+function missingRookiePickLabels(rows) {
+  const posFilter = dynastySettings().position;
+  if (!["ALL", "RDP"].includes(posFilter)) return "";
+  const teams = settings().teams;
+  const seen = new Set(rows.filter((row) => row.Pos === "RDP").map((row) => row.pickLabel));
+  const missing = Array.from({ length: teams }, (_, index) => `1.${String(index + 1).padStart(2, "0")}`)
+    .filter((label) => !seen.has(label));
+  return missing.join(", ");
+}
+
+function sortedDynastyRows(rows) {
+  const dir = state.dynastySortDir === "asc" ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const yearMatch = String(state.dynastySortKey || "").match(/^year_(\d+)$/);
+    const av = yearMatch ? a.yearlyWar?.[number(yearMatch[1], 1) - 1] : a[state.dynastySortKey];
+    const bv = yearMatch ? b.yearlyWar?.[number(yearMatch[1], 1) - 1] : b[state.dynastySortKey];
+    if (typeof av === "string" || typeof bv === "string") return String(av ?? "").localeCompare(String(bv ?? "")) * dir;
+    return ((av ?? Number.POSITIVE_INFINITY) - (bv ?? Number.POSITIVE_INFINITY)) * dir;
+  });
+}
+
+function renderDynastyChart(rows) {
+  const chart = el("dynastyWarChart");
+  if (!chart || !window.Plotly) return;
+  const limited = rows.slice(0, 120);
+  const traces = ["QB", "RB", "WR", "TE", "RDP"].map((pos) => {
+    const posRows = limited.filter((row) => row.Pos === pos);
+    return {
+      type: "scatter",
+      mode: "markers",
+      name: pos,
+      x: posRows.map((row) => row.ADP),
+      y: posRows.map((row) => row.dynastyWar),
+      text: posRows.map((row) => `${row.Player}<br>${pos} - ADP ${fmt(row.ADP, 1)}<br>Current WAR ${fmt(row.currentWar)}<br>Dynasty WAR ${fmt(row.dynastyWar)}`),
+      hoverinfo: "text",
+      marker: {
+        color: posColors[pos] || "#d0a85b",
+        symbol: pos === "RDP" ? "x" : posSymbols[pos] || "circle",
+        size: pos === "RDP" ? 11 : 9,
+        line: { color: "#111111", width: 1 }
+      }
+    };
+  });
+  Plotly.react(chart, traces, {
+    title: { text: `${dynastySettings().horizon} Year Dynasty Value vs ADP`, font: { color: "#f0f0f0", size: 18 } },
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0.18)",
+    font: { color: "#f0f0f0", family: "Mulish, sans-serif" },
+    margin: { t: 54, r: 18, b: 56, l: 62 },
+    xaxis: { title: "Dynasty ADP", autorange: "reversed", gridcolor: "rgba(240,240,240,0.14)", color: "#f0f0f0" },
+    yaxis: { title: "Projected Dynasty WAR", gridcolor: "rgba(240,240,240,0.14)", color: "#f0f0f0" },
+    legend: { orientation: "h", x: 0, y: 1.12 }
+  }, { responsive: true });
+}
+
+function renderDynastyTable(rows) {
+  const body = el("dynastyWarBody");
+  if (!body) return;
+  const limited = sortedDynastyRows(rows).slice(0, 500);
+  renderDynastyHeaders();
+  body.innerHTML = limited.map((row) => `
+    <tr>
+      <td>${fmt(row.rank, 0)}</td>
+      <td>
+        <div class="adp-player-cell">
+          <img class="adp-row-headshot" src="${escapeHtml(row.headshot_url || "")}" alt="" loading="lazy" onerror="this.style.display='none'">
+          <strong>${escapeHtml(row.Player)}</strong>
+        </div>
+      </td>
+      <td><span class="pos-pill pos-${row.Pos}">${escapeHtml(row.Pos)}</span></td>
+      <td>${escapeHtml(row.Team || "-")}</td>
+      <td>${fmt(row.currentWar)}</td>
+      <td>${fmt(row.dynastyWar)}</td>
+      ${dynastyYearCells(row)}
+      <td>${fmt(row.age, 1)}</td>
+    </tr>
+  `).join("");
+}
+
+function renderDynastyHeaders() {
+  const row = el("dynastyWarHead");
+  if (!row) return;
+  const yearHeaders = Array.from({ length: dynastySettings().horizon }, (_, index) => {
+    const year = settings().year + index;
+    return `<th data-dynasty-sort="year_${index + 1}">${year} WAR</th>`;
+  }).join("");
+  row.innerHTML = `
+    <th data-dynasty-sort="rank">Rank</th>
+    <th data-dynasty-sort="Player">Player</th>
+    <th data-dynasty-sort="Pos">Pos</th>
+    <th data-dynasty-sort="Team">Team</th>
+    <th data-dynasty-sort="currentWar">Current WAR</th>
+    <th data-dynasty-sort="dynastyWar">Total WAR</th>
+    ${yearHeaders}
+    <th data-dynasty-sort="age">Age</th>
+  `;
+}
+
+function dynastyYearCells(row) {
+  return Array.from({ length: dynastySettings().horizon }, (_, index) => (
+    `<td>${fmt(row.yearlyWar?.[index])}</td>`
+  )).join("");
+}
+
+function exportDynastyWar() {
+  const rows = dynastyBoardRows();
+  if (!rows.length) return;
+  const yearCols = Array.from({ length: dynastySettings().horizon }, (_, index) => `${settings().year + index} WAR`);
+  const cols = ["rank", "Player", "Pos", "Team", "currentWar", "dynastyWar", ...yearCols, "age"];
+  const csv = [
+    cols.join(","),
+    ...rows.map((row) => {
+      const values = [row.rank, row.Player, row.Pos, row.Team, row.currentWar, row.dynastyWar, ...Array.from({ length: dynastySettings().horizon }, (_, index) => row.yearlyWar?.[index]), row.age];
+      return values.map((value) => JSON.stringify(value ?? "")).join(",");
+    })
+  ].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `dynasty-war-${settings().year}-${dynastySettings().horizon}yr.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function projectionChartCopy(metric) {
   const context = chartContextCopy();
   const labels = {
@@ -1597,6 +1960,7 @@ function chartContextCopy() {
 }
 
 function renderProjectionChart(rows) {
+  updateProjectionWorkspace();
   const metric = el("chartMetric").value;
   const xKey = rows.some((row) => row[metric] !== null) ? metric : "WAR";
   const copy = projectionChartCopy(xKey);
@@ -1674,6 +2038,7 @@ function projectionRankCurveOverlayTraces(xKey) {
 }
 
 function renderRankCurve() {
+  updateProjectionWorkspace();
   const selected = el("rankCurvePosition").value;
   const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
   const curve = state.historicalModel?.curve || [];
@@ -1706,6 +2071,40 @@ function historicalPlayerTokens() {
       const [name, start] = token.split(":").map((part) => part.trim());
       return { name, key: playerKey(name), start: number(start, null) };
     });
+}
+
+function updateProjectionWorkspace() {
+  const workspace = document.querySelector("#projectionsView .workspace");
+  if (!workspace) return;
+  workspace.classList.toggle("rank-expanded", state.projectionFocus === "rank");
+}
+
+function setProjectionFocus(focus) {
+  if (!["projection", "rank"].includes(focus) || state.projectionFocus === focus) return;
+  state.projectionFocus = focus;
+  updateProjectionWorkspace();
+  setTimeout(() => {
+    if (window.Plotly) {
+      const projectionChart = el("projectionChart");
+      const rankCurveChart = el("rankCurveChart");
+      if (projectionChart) Plotly.Plots.resize(projectionChart);
+      if (rankCurveChart) Plotly.Plots.resize(rankCurveChart);
+    }
+  }, 0);
+}
+
+function selectedHistoricalPositions() {
+  const checked = [...document.querySelectorAll("input[name='historicalPosFilter']:checked")]
+    .map((input) => input.value)
+    .filter((pos) => ["QB", "RB", "WR", "TE"].includes(pos));
+  if (checked.length) return checked;
+  const legacy = el("historicalPositions")?.value || "ALL";
+  return legacy === "ALL" ? ["QB", "RB", "WR", "TE"] : [legacy];
+}
+
+function historicalPositionText() {
+  const positions = selectedHistoricalPositions();
+  return positions.length === 4 ? "QB/RB/WR/TE" : positions.join("/");
 }
 
 function historicalPlayerOptions() {
@@ -1757,12 +2156,10 @@ function historicalExplorerTitle(mode, metric) {
   if (mode === "weeklyBins") {
     const binSize = historicalBinSize();
     const maxFpts = historicalBinMax();
-    const pos = el("historicalPositions")?.value || "ALL";
-    const positionText = pos === "ALL" ? "QB/RB/WR/TE" : pos;
     const yMetric = historicalWarMetric(metric);
     return {
       title: `${start}-${end} Weekly Fantasy Points vs Single-Week ${yMetric} by Position`,
-      subtitle: `${positionText} individual player-weeks grouped into ${binSize}-point bins through ${maxFpts} FPTS - ${context.roster} - ${context.scoring} - ${context.weeks} weeks`,
+      subtitle: `${historicalPositionText()} individual player-weeks grouped into ${binSize}-point bins through ${maxFpts} FPTS - ${context.roster} - ${context.scoring}`,
       yMetric
     };
   }
@@ -1770,25 +2167,22 @@ function historicalExplorerTitle(mode, metric) {
     const threshold = weekWinningThreshold();
     const plotTypeValue = el("historicalAdpPlotType")?.value || "heatmap";
     const plotType = plotTypeValue === "box" ? "Distribution" : plotTypeValue === "hitRate" ? "Hit-rate heatmap" : "Heatmap";
-    const adpScoring = historicalAdpScoringLabel();
     const yMetric = historicalWarMetric(metric);
     return {
       title: `${start}-${end} Draft Cost of Week-Winning ${yMetric} Seasons by Position`,
-      subtitle: `${plotType} of FantasyPros ${adpScoring} ADP for players with at least one weekly ${yMetric} above each threshold - ${threshold.toFixed(2)} highlighted`
+      subtitle: `${plotType} of historical ${historicalAdpScoringLabel()} ADP for top-${HISTORICAL_ADP_PLAYER_CAP} draft costs with at least one weekly ${yMetric} above each threshold - ${threshold.toFixed(2)} highlighted`
     };
   }
   if (mode === "adpOutcome") {
-    const adpScoring = historicalAdpScoringLabel();
     return {
-      title: `${start}-${end} FantasyPros ${adpScoring} ADP vs Season ${metric}`,
-      subtitle: `Player-season outcomes by draft cost - ${context.roster} - ${context.scoring} - lower ADP means earlier draft capital`
+      title: `${start}-${end} Historical ${historicalAdpScoringLabel()} ADP vs Season ${metric}`,
+      subtitle: `Top-${HISTORICAL_ADP_PLAYER_CAP} player-season outcomes by draft cost - ${historicalPositionText()} - ${context.roster} - ${context.scoring} - lower ADP means earlier draft capital`
     };
   }
   if (mode === "adpTrends") {
-    const adpScoring = historicalAdpScoringLabel();
     return {
-      title: `${start}-${end} Year-over-Year ${metric} Trends by ADP Bucket`,
-      subtitle: `FantasyPros ${adpScoring} ADP buckets reveal where prior seasons returned the most ${metric} - ${context.roster} - ${context.scoring}`
+      title: `${start}-${end} Year-over-Year ${metric} Trends by ADP Bucket and Position`,
+      subtitle: `Historical ${historicalAdpScoringLabel()} ADP buckets reveal which positions returned the most ${metric} - top-${HISTORICAL_ADP_PLAYER_CAP} draft costs - ${context.roster} - ${context.scoring}`
     };
   }
   if (mode === "player") {
@@ -1804,10 +2198,8 @@ function historicalExplorerTitle(mode, metric) {
     };
   }
   const rank = number(el("historicalRank")?.value, 1);
-  const pos = el("historicalPositions")?.value || "ALL";
-  const positionText = pos === "ALL" ? "QB/RB/WR/TE" : pos;
   return {
-    title: `${start}-${end} Historical ${metric} for ${positionText} Positional Rank ${rank}`,
+    title: `${start}-${end} Historical ${metric} for ${historicalPositionText()} Positional Rank ${rank}`,
     subtitle: `${context.roster} - ${context.scoring} - ${context.weeks} weeks - ${context.teamSource} from ${context.historyStart}+ seasons`
   };
 }
@@ -1862,10 +2254,8 @@ function renderHistoricalExplorer() {
 }
 
 function historicalRankTraces(rows, metric) {
-  const selected = el("historicalPositions")?.value || "ALL";
   const rank = number(el("historicalRank")?.value, 1);
-  const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
-  return positions.map((pos) => {
+  return selectedHistoricalPositions().map((pos) => {
     const points = rows
       .filter((row) => row.Pos === pos && row.Rank === rank)
       .sort((a, b) => a.Year - b.Year);
@@ -1942,23 +2332,23 @@ function adpBucket(adp) {
   if (value <= 60) return "25-60";
   if (value <= 120) return "61-120";
   if (value <= 180) return "121-180";
-  return "181+";
+  if (value <= HISTORICAL_ADP_PLAYER_CAP) return "181-200";
+  return null;
 }
 
 function historicalAdpBucketOrder() {
-  return ["Top 24", "25-60", "61-120", "121-180", "181+"];
+  return ["Top 24", "25-60", "61-120", "121-180", "181-200"];
 }
 
 function historicalRowsWithAdp(rows) {
-  const selected = el("historicalPositions")?.value || "ALL";
-  const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
-  const positionSet = new Set(positions);
+  const positionSet = new Set(selectedHistoricalPositions());
   const adpMap = historicalAdpMap();
   return rows
     .filter((row) => positionSet.has(row.Pos))
     .map((row) => {
       const playerAdp = adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}|${row.Pos}`) || adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}`);
       const adp = playerAdp?.adp ?? null;
+      if (adp === null || adp > HISTORICAL_ADP_PLAYER_CAP) return null;
       return adp === null ? null : { ...row, ADP: adp, "ADP Rank": playerAdp.rank, "Pos ADP Rank": playerAdp.posRank, ADPBucket: adpBucket(adp) };
     })
     .filter(Boolean);
@@ -1966,9 +2356,7 @@ function historicalRowsWithAdp(rows) {
 
 function historicalWeeklyPlayerWeeks(rows, metric = "WAR") {
   const yMetric = historicalWarMetric(metric);
-  const selected = el("historicalPositions")?.value || "ALL";
-  const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
-  const positionSet = new Set(positions);
+  const positionSet = new Set(selectedHistoricalPositions());
   const maxFpts = historicalBinMax();
   const playerWeeks = [];
   for (const row of rows) {
@@ -1994,8 +2382,7 @@ function historicalWeeklyBinTraces(rows, metric = "WAR") {
   const yMetric = historicalWarMetric(metric);
   const binSize = historicalBinSize();
   const maxFpts = historicalBinMax();
-  const selected = el("historicalPositions")?.value || "ALL";
-  const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
+  const positions = selectedHistoricalPositions();
   const playerWeeks = historicalWeeklyPlayerWeeks(rows, yMetric);
   const bins = Array.from({ length: Math.ceil(maxFpts / binSize) }, (_, index) => {
     const start = index * binSize;
@@ -2070,9 +2457,7 @@ function historicalAdpMap() {
 
 function historicalAdpThresholdRows(rows, metric = "WAR") {
   const yMetric = historicalWarMetric(metric);
-  const selected = el("historicalPositions")?.value || "ALL";
-  const positions = selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
-  const positionSet = new Set(positions);
+  const positionSet = new Set(selectedHistoricalPositions());
   const adpMap = historicalAdpMap();
   const thresholds = [0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1];
   const output = [];
@@ -2080,7 +2465,7 @@ function historicalAdpThresholdRows(rows, metric = "WAR") {
   for (const row of rows) {
     if (!positionSet.has(row.Pos)) continue;
     const playerAdp = adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}|${row.Pos}`) || adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}`);
-    if (!playerAdp || playerAdp.adp === null) continue;
+    if (!playerAdp || playerAdp.adp === null || playerAdp.adp > HISTORICAL_ADP_PLAYER_CAP) continue;
     const maxWar = Math.max(...(row.Weeks || []).map((week) => number(week[yMetric], -Infinity)));
     if (!Number.isFinite(maxWar)) continue;
     for (const threshold of thresholds) {
@@ -2152,8 +2537,8 @@ function historicalAdpBoxPlot(points, copy, threshold, metric = "WAR") {
         color: "#f0f0f0"
       },
       yaxis: {
-        title: { text: "FantasyPros ADP", standoff: 18 },
-        autorange: "reversed",
+        title: { text: "Historical ADP", standoff: 18 },
+        range: [HISTORICAL_ADP_PLAYER_CAP, 0],
         gridcolor: "rgba(240,240,240,0.10)",
         color: "#f0f0f0"
       },
@@ -2244,7 +2629,7 @@ function historicalAdpBaseLayout(copy) {
     margin: { l: 84, r: 64, t: 132, b: 128 },
     legend: { orientation: "h", y: -0.16, x: 0, font: { size: 12 } },
     annotations: [{
-      text: "Source: Historical weekly scoring, WAR Lab historical model, FantasyPros historical ADP. ADP is draft cost, so lower means earlier.",
+      text: "Source: Historical weekly scoring, WAR Lab historical model, and historical ADP. ADP is draft cost, so lower means earlier.",
       xref: "paper",
       yref: "paper",
       x: 0,
@@ -2300,7 +2685,7 @@ function historicalAdpHitRatePlot(rows, copy, threshold, metric = "WAR") {
     }],
     layout: {
       ...historicalAdpBaseLayout(copy),
-      xaxis: { title: "FantasyPros ADP bucket", color: "#f0f0f0", side: "top" },
+      xaxis: { title: "Historical ADP bucket", color: "#f0f0f0", side: "top" },
       yaxis: { title: "Position", color: "#f0f0f0" }
     }
   };
@@ -2312,7 +2697,7 @@ function historicalAdpOutcomePlot(rows, copy, metric = "WAR") {
   if (!points.length) {
     return {
       traces: [],
-      layout: historicalLayout(copy.title, "FantasyPros ADP", yMetric, "No historical ADP rows matched the selected years, scoring, and positions")
+      layout: historicalLayout(copy.title, "Historical ADP", yMetric, "No historical ADP rows matched the selected years, scoring, and positions")
     };
   }
   const positions = ["QB", "RB", "WR", "TE"].filter((pos) => points.some((row) => row.Pos === pos));
@@ -2352,8 +2737,8 @@ function historicalAdpOutcomePlot(rows, copy, metric = "WAR") {
     layout: {
       ...historicalAdpBaseLayout(copy),
       xaxis: {
-        title: { text: "FantasyPros ADP", standoff: 18 },
-        autorange: "reversed",
+        title: { text: "Historical ADP", standoff: 18 },
+        range: [HISTORICAL_ADP_PLAYER_CAP, 0],
         gridcolor: "rgba(240,240,240,0.10)",
         color: "#f0f0f0"
       },
@@ -2380,26 +2765,29 @@ function historicalAdpTrendPlot(rows, copy, metric = "WAR") {
   }
   const years = uniqueSorted(points.map((row) => row.Year), true).map((year) => number(year));
   const buckets = historicalAdpBucketOrder().filter((bucket) => points.some((row) => row.ADPBucket === bucket));
-  const traces = buckets.map((bucket, index) => {
-    const bucketRows = points.filter((row) => row.ADPBucket === bucket);
-    const y = years.map((year) => {
-      const group = bucketRows.filter((row) => row.Year === year);
-      return group.length ? average(group.map((row) => number(row[yMetric]))) : null;
-    });
-    const counts = years.map((year) => bucketRows.filter((row) => row.Year === year).length);
-    return {
-      type: "scatter",
-      mode: "lines+markers",
-      name: bucket,
-      x: years,
-      y,
-      customdata: counts,
-      line: { color: playerTraceColors[index % playerTraceColors.length], width: 3, shape: "spline", smoothing: 0.45 },
-      marker: { color: playerTraceColors[index % playerTraceColors.length], size: 8 },
-      connectgaps: false,
-      hovertemplate: `<b>${bucket}</b><br>%{x}<br>Avg ${yMetric}: %{y:.3f}<br>Players: %{customdata}<extra></extra>`
-    };
-  });
+  const positions = selectedHistoricalPositions().filter((pos) => points.some((row) => row.Pos === pos));
+  const bucketDashes = ["solid", "dash", "dot", "dashdot", "longdash"];
+  const traces = positions.flatMap((pos) => buckets.map((bucket, bucketIndex) => {
+      const bucketRows = points.filter((row) => row.Pos === pos && row.ADPBucket === bucket);
+      const y = years.map((year) => {
+        const group = bucketRows.filter((row) => row.Year === year);
+        return group.length ? average(group.map((row) => number(row[yMetric]))) : null;
+      });
+      const counts = years.map((year) => bucketRows.filter((row) => row.Year === year).length);
+      return {
+        type: "scatter",
+        mode: "lines+markers",
+        name: `${pos} ${bucket}`,
+        legendgroup: pos,
+        x: years,
+        y,
+        customdata: counts,
+        line: { color: posColors[pos], width: bucket === "Top 24" ? 3.5 : 2.4, dash: bucketDashes[bucketIndex % bucketDashes.length], shape: "spline", smoothing: 0.45 },
+        marker: { color: posColors[pos], symbol: posSymbols[pos], size: bucket === "Top 24" ? 9 : 7 },
+        connectgaps: false,
+        hovertemplate: `<b>${pos} ${bucket}</b><br>%{x}<br>Avg ${yMetric}: %{y:.3f}<br>Players: %{customdata}<extra></extra>`
+      };
+    })).filter((trace) => trace.y.some((value) => value !== null));
   return {
     traces,
     layout: {
@@ -2679,6 +3067,11 @@ function render() {
     renderAdpLab();
     return;
   }
+  if (state.activeView === "dynastyView") {
+    calculateWar(state.rawProjections);
+    renderDynastyWar();
+    return;
+  }
   if (state.activeView === "historicalView") {
     renderHistoricalExplorer();
     return;
@@ -2721,13 +3114,13 @@ async function parseCsvFile(file) {
 }
 
 async function loadCsv(path) {
-  const response = await fetch(path);
+  const response = await fetch(path, { cache: "no-store" });
   if (!response.ok) throw new Error(`Could not load ${path}`);
   return Papa.parse(await response.text(), { header: true, skipEmptyLines: true }).data;
 }
 
 async function loadJsonMaybeGzip(path) {
-  const response = await fetch(path);
+  const response = await fetch(path, { cache: "no-store" });
   if (!response.ok) throw new Error(`Could not load ${path}`);
   if (path.endsWith(".gz")) {
     if (!("DecompressionStream" in window)) throw new Error("This browser cannot decompress data shards.");
@@ -2771,6 +3164,30 @@ async function initData() {
   }
   render();
   loadHistoricalData();
+  loadDynastyInputs();
+}
+
+async function loadDynastyInputs() {
+  try {
+    state.draftMetadataRows = await loadCsv(DRAFT_METADATA_PATH);
+  } catch {
+    state.draftMetadataRows = [];
+  }
+  try {
+    state.trustedWarCurveRows = await loadCsv(TRUSTED_WAR_CURVE_PATH);
+  } catch {
+    state.trustedWarCurveRows = [];
+  }
+  try {
+    if (!state.customAdpManifest) state.customAdpManifest = await loadJsonMaybeGzip(CUSTOM_ADP_MANIFEST_PATH);
+    const shards = state.customAdpManifest?.shards || [];
+    const wanted = shards.filter((shard) => Number(shard.season) === settings().year && shard.league_format === "dynasty");
+    const frames = await Promise.all(wanted.map((shard) => loadJsonMaybeGzip(shard.path)));
+    state.dynastyAdpRows = frames.flat();
+  } catch {
+    state.dynastyAdpRows = [];
+  }
+  scheduleRender(0);
 }
 
 async function loadHistoricalData() {
@@ -2828,7 +3245,7 @@ async function loadCustomAdpData() {
 }
 
 async function loadJson(path) {
-  const response = await fetch(path);
+  const response = await fetch(path, { cache: "no-store" });
   if (!response.ok) throw new Error(`Could not load ${path}`);
   return response.json();
 }
@@ -2927,6 +3344,13 @@ function bindEvents() {
       scheduleRender(0);
     });
   });
+  el("rankCurveCard")?.addEventListener("click", (event) => {
+    if (event.target.closest("select, button, input, label")) return;
+    setProjectionFocus("rank");
+  });
+  el("projectionChart")?.addEventListener("click", () => {
+    if (state.projectionFocus === "rank") setProjectionFocus("projection");
+  });
   el("historicalPlayers")?.addEventListener("input", renderHistoricalPlayerSuggestions);
   el("historicalPlayerSuggestions")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-player-suggestion]");
@@ -2979,6 +3403,18 @@ function bindEvents() {
   });
   el("exportResults").addEventListener("click", exportResults);
   el("exportAdpBoard")?.addEventListener("click", exportAdpBoard);
+  el("exportDynastyWar")?.addEventListener("click", exportDynastyWar);
+  el("dynastyWarHead")?.addEventListener("click", (event) => {
+    const th = event.target.closest("th[data-dynasty-sort]");
+    if (!th) return;
+    const key = th.dataset.dynastySort;
+    if (state.dynastySortKey === key) state.dynastySortDir = state.dynastySortDir === "asc" ? "desc" : "asc";
+    else {
+      state.dynastySortKey = key;
+      state.dynastySortDir = key === "Player" || key === "Pos" ? "asc" : "desc";
+    }
+    scheduleRender(0);
+  });
 }
 
 function initControls() {

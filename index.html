@@ -42,7 +42,7 @@
           </div>
         </details>
 
-        <details>
+        <details open>
           <summary>Scoring Settings</summary>
           <div class="control-grid scoring-grid">
             <label>Reception <input id="receptions" type="number" step="0.1" value="1"></label>
@@ -112,6 +112,7 @@
 
       <nav class="view-tabs" aria-label="WAR Lab views">
         <button class="active" type="button" data-view="projectionsView">Projections</button>
+        <button type="button" data-view="dynastyView">Dynasty WAR</button>
         <button type="button" data-view="historicalView">Historical Looks</button>
         <button type="button" data-view="adpView">ADP Lab</button>
       </nav>
@@ -139,7 +140,7 @@
           </div>
 
           <aside class="side-panel">
-            <section class="rank-card">
+            <section class="rank-card" id="rankCurveCard">
               <div class="panel-header compact">
                 <h2>Rank Curve</h2>
                 <select id="rankCurvePosition">
@@ -154,6 +155,58 @@
             </section>
           </aside>
         </div>
+      </section>
+
+      <section id="dynastyView" class="view-panel">
+        <section class="adp-panel dynasty-panel">
+          <div class="panel-header">
+            <div>
+              <h2>Projected Dynasty WAR</h2>
+              <p id="dynastySource">Dynasty WAR data is loading.</p>
+            </div>
+            <button id="exportDynastyWar" type="button">Export Dynasty WAR</button>
+          </div>
+          <div class="adp-season-bar dynasty-control-bar">
+            <label>
+              Horizon years
+              <input id="dynastyHorizon" type="number" min="1" max="10" value="3">
+            </label>
+            <label>
+              Position
+              <select id="dynastyPosition">
+                <option value="ALL">All</option>
+                <option value="QB">QB</option>
+                <option value="RB">RB</option>
+                <option value="WR">WR</option>
+                <option value="TE">TE</option>
+                <option value="RDP">Rookie picks</option>
+              </select>
+            </label>
+            <label>
+              Search
+              <input id="dynastySearch" type="search" placeholder="Player or pick">
+            </label>
+          </div>
+          <div class="adp-summary-grid">
+            <article><span>Rows</span><strong id="dynastyPlayerCount">-</strong></article>
+            <article><span>Top dynasty WAR</span><strong id="dynastyTopPlayer">-</strong></article>
+            <article><span>Rookie picks</span><strong id="dynastyRookiePickCount">-</strong></article>
+            <article><span>WAR source</span><strong>Current WAR engine</strong></article>
+          </div>
+          <div class="adp-workspace dynasty-workspace">
+            <div class="chart-panel">
+              <div id="dynastyWarChart"></div>
+            </div>
+            <div class="table-wrap adp-table-wrap">
+              <table>
+                <thead>
+                  <tr id="dynastyWarHead"></tr>
+                </thead>
+                <tbody id="dynastyWarBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
       </section>
 
       <section id="historicalView" class="view-panel">
@@ -186,16 +239,13 @@
                 <option value="SuperFlex WAR">SuperFlex WAR</option>
               </select>
             </label>
-            <label>
-              Positions
-              <select id="historicalPositions">
-                <option value="ALL">All positions</option>
-                <option value="QB">QB</option>
-                <option value="RB">RB</option>
-                <option value="WR">WR</option>
-                <option value="TE">TE</option>
-              </select>
-            </label>
+            <fieldset class="historical-position-filter">
+              <legend>Positions</legend>
+              <label><input type="checkbox" name="historicalPosFilter" value="QB" checked> QB</label>
+              <label><input type="checkbox" name="historicalPosFilter" value="RB" checked> RB</label>
+              <label><input type="checkbox" name="historicalPosFilter" value="WR" checked> WR</label>
+              <label><input type="checkbox" name="historicalPosFilter" value="TE" checked> TE</label>
+            </fieldset>
             <label>
               Pos rank
               <input id="historicalRank" type="number" min="1" max="250" value="1">
@@ -457,6 +507,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-    <script src="app.js?v=historical-lab-adp-20260722"></script>
+    <script src="app.js?v=historical-lab-adp-20260722b"></script>
   </body>
 </html>

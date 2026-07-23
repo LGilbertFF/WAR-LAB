@@ -1,0 +1,2071 @@
+birthday,draft_year,player,pos,team,round,pick,college,age
+2002-05-25,2025,Cam Ward,QB,TEN,1,1.0,Miami (FL),23.0
+2003-05-18,2025,Travis Hunter,WR,JAX,1,2.0,Colorado,22.0
+2003-12-02,2025,Ashton Jeanty,RB,LVR,1,6.0,Boise St.,21.0
+2003-04-05,2025,Tetairoa McMillan,WR,CAR,1,8.0,Arizona,22.0
+2004-04-09,2025,Colston Loveland,TE,CHI,1,10.0,Michigan,21.0
+2002-05-24,2025,Tyler Warren,TE,IND,1,14.0,Penn St.,23.0
+2002-10-14,2025,Emeka Egbuka,WR,TAM,1,19.0,Ohio St.,22.0
+2003-03-16,2025,Omarion Hampton,RB,LAC,1,22.0,North Carolina,22.0
+2003-08-01,2025,Matthew Golden,WR,GNB,1,23.0,Texas,22.0
+2003-05-13,2025,Jaxson Dart,QB,NYG,1,25.0,Mississippi,22.0
+2002-12-15,2025,Jayden Higgins,WR,HOU,2,34.0,Iowa St.,22.0
+2003-10-29,2025,Quinshon Judkins,RB,CLE,2,36.0,Ohio St.,21.0
+2002-10-22,2025,TreVeyon Henderson,RB,NWE,2,38.0,Ohio St.,22.0
+2003-12-12,2025,Luther Burden,WR,CHI,2,39.0,Missouri,21.0
+1999-09-28,2025,Tyler Shough,QB,NOR,2,40.0,Louisville,25.0
+2004-05-08,2025,Mason Taylor,TE,NYJ,2,42.0,LSU,21.0
+2003-03-07,2025,Terrance Ferguson,TE,LAR,2,46.0,Oregon,22.0
+2003-04-05,2025,Elijah Arroyo,TE,SEA,2,50.0,Miami (FL),22.0
+2002-02-28,2025,Tre Harris,WR,LAC,2,55.0,Mississippi,23.0
+2002-12-18,2025,Jack Bech,WR,LVR,2,58.0,TCU,22.0
+2001-02-04,2025,RJ Harvey,RB,DEN,2,60.0,Central Florida,24.0
+2004-07-20,2025,Harold Fannin,TE,CLE,3,67.0,Bowling Green,21.0
+2002-11-13,2025,Kyle Williams,WR,NWE,3,69.0,Washington St.,22.0
+2002-02-20,2025,Isaac TeSlaa,WR,DET,3,70.0,Arkansas,23.0
+2002-12-10,2025,Pat Bryant,WR,DEN,3,74.0,Illinois,22.0
+2002-09-04,2025,Jaylin Noel,WR,HOU,3,79.0,Iowa St.,23.0
+2003-08-14,2025,Kaleb Johnson,RB,PIT,3,83.0,Iowa,22.0
+2001-11-22,2025,Savion Williams,WR,GNB,3,87.0,TCU,23.0
+2002-12-13,2025,Jalen Milroe,QB,SEA,3,92.0,Alabama,22.0
+2000-12-28,2025,Dillon Gabriel,QB,CLE,3,94.0,Oregon,24.0
+2003-03-15,2025,Tai Felton,WR,MIN,3,102.0,Maryland,22.0
+2001-12-14,2025,Chimere Dike,WR,TEN,4,103.0,Florida,23.0
+2003-02-14,2025,Bhayshul Tuten,RB,JAX,4,104.0,Virginia Tech,22.0
+2002-02-05,2025,Cam Skattebo,RB,NYG,4,105.0,Arizona St.,23.0
+2002-11-30,2025,Dont'e Thornton,WR,LVR,4,108.0,Tennessee,22.0
+2001-10-11,2025,Arian Smith,WR,NYJ,4,110.0,Georgia,23.0
+2004-07-09,2025,Trevor Etienne,RB,CAR,4,114.0,Georgia,21.0
+2000-12-29,2025,Woody Marks,RB,HOU,4,116.0,USC,24.0
+2002-12-29,2025,Jarquez Hunter,RB,LAR,4,117.0,Auburn,22.0
+2002-09-06,2025,Gunnar Helm,TE,TEN,4,120.0,Texas,23.0
+2004-09-14,2025,Dylan Sampson,RB,CLE,4,126.0,Tennessee,20.0
+2002-05-01,2025,Jaylin Lane,WR,WAS,4,128.0,Virginia Tech,23.0
+2003-02-18,2025,Jalen Royals,WR,KAN,4,133.0,Utah St.,22.0
+2003-06-03,2025,Elic Ayomanor,WR,TEN,4,136.0,Stanford,22.0
+2002-02-15,2025,Jordan Watkins,WR,SFO,4,138.0,Mississippi,23.0
+2002-02-07,2025,Shedeur Sanders,QB,CLE,5,144.0,Colorado,23.0
+2004-03-29,2025,Jordan James,RB,SFO,5,147.0,Oregon,21.0
+2004-01-08,2025,Jaydon Blue,RB,DAL,5,149.0,Texas,21.0
+2003-08-26,2025,DJ Giddens,RB,IND,5,151.0,Kansas St.,22.0
+2001-10-16,2025,KeAndre Lambert-Smith,WR,LAC,5,158.0,Auburn,23.0
+2003-03-18,2025,Mitchell Evans,TE,CAR,5,163.0,Notre Dame,22.0
+2003-06-25,2025,Oronde Gadsden II,TE,LAC,5,165.0,Syracuse,22.0
+2002-11-29,2025,Tory Horton,WR,SEA,5,166.0,Colorado St.,22.0
+2000-12-06,2025,Jackson Hawes,TE,BUF,5,173.0,Georgia Tech,24.0
+2002-09-06,2025,Robbie Ouzts,TE,SEA,5,175.0,Alabama,23.0
+2004-01-15,2025,Ollie Gordon,RB,MIA,6,179.0,Oklahoma St.,21.0
+2002-09-19,2025,Kyle McCord,QB,PHI,6,181.0,Syracuse,22.0
+2003-08-12,2025,Devin Neal,RB,NOR,6,184.0,Kansas,22.0
+2001-09-24,2025,Will Howard,QB,PIT,6,185.0,Ohio St.,23.0
+2002-10-04,2025,Kalel Mullings,RB,TEN,6,188.0,Michigan,22.0
+2002-09-13,2025,Riley Leonard,QB,IND,6,189.0,Notre Dame,22.0
+2002-05-13,2025,Tahj Brooks,RB,CIN,6,193.0,Texas Tech,23.0
+2000-12-06,2025,Graham Mertz,QB,HOU,6,197.0,Florida,24.0
+2003-04-30,2025,Gavin Bartholomew,TE,MIN,6,202.0,Pittsburgh,22.0
+2002-03-29,2025,LaJohntay Wester,WR,BAL,6,203.0,Colorado,23.0
+2002-09-12,2025,Jimmy Horn,WR,CAR,6,208.0,Colorado,22.0
+2001-06-18,2025,Cam Miller,QB,LVR,6,215.0,North Dakota St.,24.0
+2002-09-20,2025,Thomas Fidone,TE,NYG,7,219.0,Nebraska,22.0
+2004-01-31,2025,Damien Martinez,RB,SEA,7,223.0,Miami (FL),21.0
+2000-10-25,2025,Kurtis Rourke,QB,SFO,7,227.0,Indiana,24.0
+2003-04-11,2025,Brashard Smith,RB,KAN,7,228.0,SMU,22.0
+2003-03-15,2025,Quinn Ewers,QB,MIA,7,231.0,Texas,22.0
+2002-06-06,2025,Kyle Monangai,RB,CHI,7,233.0,Rutgers,23.0
+2002-05-18,2025,Tez Johnson,WR,TAM,7,235.0,Oregon,23.0
+2004-08-05,2025,LeQuint Allen,RB,JAX,7,236.0,Syracuse,21.0
+2002-02-06,2025,Ricky White,WR,SEA,7,238.0,UNLV,23.0
+2002-10-24,2025,Phil Mafah,RB,DAL,7,239.0,Clemson,22.0
+2002-09-06,2025,Kaden Prather,WR,BUF,7,240.0,Maryland,23.0
+2001-01-01,2025,Caleb Lohner,TE,DEN,7,241.0,Utah,24.0
+2002-10-24,2025,Konata Mumpfield,WR,LAR,7,242.0,Pittsburgh,22.0
+2002-11-08,2025,Dominic Lovett,WR,DET,7,244.0,Georgia,22.0
+2001-04-12,2025,Jacory Croskey-Merritt,RB,WAS,7,245.0,Arizona,24.0
+2003-03-17,2025,Moliki Matavao,TE,NOR,7,248.0,UCLA,22.0
+2001-06-29,2025,Luke Lachey,TE,HOU,7,255.0,Iowa,24.0
+2001-11-18,2024,Caleb Williams,QB,CHI,1,1.0,USC,22.0
+2000-12-18,2024,Jayden Daniels,QB,WAS,1,2.0,LSU,23.0
+2002-08-30,2024,Drake Maye,QB,NWE,1,3.0,North Carolina,22.0
+2002-08-11,2024,Marvin Harrison Jr.,WR,ARI,1,4.0,Ohio St.,22.0
+2003-07-28,2024,Malik Nabers,WR,NYG,1,6.0,LSU,21.0
+2000-05-08,2024,Michael Penix,QB,ATL,1,8.0,Washington,24.0
+2002-06-03,2024,Rome Odunze,WR,CHI,1,9.0,Washington,22.0
+2003-01-20,2024,J.J. McCarthy,QB,MIN,1,10.0,Michigan,21.0
+2000-02-25,2024,Bo Nix,QB,DEN,1,12.0,Oregon,24.0
+2002-12-13,2024,Brock Bowers,TE,LVR,1,13.0,Georgia,21.0
+2002-10-08,2024,Brian Thomas,WR,JAX,1,23.0,LSU,21.0
+2003-04-27,2024,Xavier Worthy,WR,KAN,1,28.0,Texas,21.0
+2000-09-09,2024,Ricky Pearsall,WR,SFO,1,31.0,Florida,23.0
+2001-01-29,2024,Xavier Legette,WR,CAR,1,32.0,South Carolina,23.0
+2003-05-17,2024,Keon Coleman,WR,BUF,2,33.0,Florida St.,21.0
+2001-11-11,2024,Ladd McConkey,WR,LAC,2,34.0,Georgia,22.0
+2002-04-11,2024,Ja'Lynn Polk,WR,NWE,2,37.0,Washington,22.0
+2003-07-21,2024,Jonathon Brooks,RB,CAR,2,46.0,Texas,21.0
+2002-10-08,2024,Adonai Mitchell,WR,IND,2,52.0,Texas,21.0
+2002-06-14,2024,Ben Sinnott,TE,WAS,2,53.0,Kansas St.,22.0
+2002-03-21,2024,Malachi Corley,WR,NYJ,3,65.0,Western Kentucky,22.0
+2002-07-23,2024,Trey Benson,RB,ARI,3,66.0,Florida St.,22.0
+2001-06-28,2024,Jermaine Burton,WR,CIN,3,80.0,Alabama,23.0
+2001-09-17,2024,Tip Reiman,TE,ARI,3,82.0,Illinois,22.0
+2000-11-25,2024,Blake Corum,RB,LAR,3,83.0,Michigan,23.0
+2001-06-19,2024,Roman Wilson,WR,PIT,3,84.0,Michigan,23.0
+2001-01-05,2024,MarShawn Lloyd,RB,GNB,3,88.0,USC,23.0
+2001-12-07,2024,Jalen McMillan,WR,TAM,3,92.0,Washington,22.0
+2001-04-02,2024,Luke McCaffrey,WR,WAS,3,100.0,Rice,23.0
+2003-03-27,2024,Ja'Tavion Sanders,TE,CAR,4,101.0,Texas,21.0
+2003-02-06,2024,Troy Franklin,WR,DEN,4,102.0,Oregon,21.0
+2001-02-26,2024,Theo Johnson,TE,NYG,4,107.0,Penn St.,23.0
+2002-02-18,2024,Javon Baker,WR,NWE,4,110.0,Central Florida,22.0
+2001-06-19,2024,Devontez Walker,WR,BAL,4,113.0,North Carolina,23.0
+2000-09-13,2024,Erick All,TE,CIN,4,115.0,Iowa,23.0
+2003-04-01,2024,Jaylen Wright,RB,MIA,4,120.0,Tennessee,21.0
+2002-05-03,2024,AJ Barner,TE,SEA,4,121.0,Michigan,22.0
+2000-06-12,2024,Cade Stover,TE,HOU,4,123.0,Ohio St.,24.0
+2002-08-19,2024,Bucky Irving,RB,TAM,4,125.0,Oregon,22.0
+2002-08-29,2024,Will Shipley,RB,PHI,4,127.0,Clemson,22.0
+1999-11-11,2024,Ray Davis,RB,BUF,4,128.0,Kentucky,24.0
+2000-06-28,2024,Isaac Guerendo,RB,SFO,4,129.0,Louisville,24.0
+2000-11-02,2024,Jared Wiley,TE,KAN,4,131.0,TCU,23.0
+2004-01-20,2024,Braelon Allen,RB,NYJ,4,134.0,Wisconsin,20.0
+2001-02-04,2024,Jacob Cowing,WR,SFO,4,135.0,Arizona,23.0
+2001-04-06,2024,Anthony Gould,WR,IND,5,142.0,Oregon St.,23.0
+2003-09-06,2024,Audric Estime,RB,DEN,5,147.0,Notre Dame,21.0
+2000-09-28,2024,Spencer Rattler,QB,NOR,5,150.0,South Carolina,23.0
+2001-05-31,2024,Ainias Smith,WR,PHI,5,152.0,Texas A&M,23.0
+2000-12-19,2024,Jamari Thrash,WR,CLE,5,156.0,Louisville,23.0
+2001-02-16,2024,Rasheen Ali,RB,BAL,5,165.0,Marshall,23.0
+1999-11-23,2024,Tyrone Tracy Jr.,RB,NYG,5,166.0,Purdue,24.0
+2000-02-16,2024,Keilan Robinson,RB,JAX,5,167.0,Texas,24.0
+2001-01-10,2024,Bub Means,WR,NOR,5,170.0,Pittsburgh,23.0
+2000-05-02,2024,Jordan Travis,QB,NYJ,5,171.0,Florida St.,24.0
+2002-02-21,2024,Isaiah Davis,RB,NYJ,5,173.0,South Dakota St.,22.0
+2001-08-28,2024,Kimani Vidal,RB,LAC,6,181.0,Troy,23.0
+2000-05-15,2024,Jha'Quan Jackson,WR,TEN,6,182.0,Tulane,24.0
+2001-01-04,2024,Malik Washington,WR,MIA,6,184.0,Virginia,23.0
+2001-04-03,2024,Johnny Wilson,WR,PHI,6,185.0,Florida St.,23.0
+2002-06-25,2024,Jase McClellan,RB,ATL,6,186.0,Alabama,22.0
+2001-03-06,2024,Casey Washington,WR,ATL,6,187.0,Illinois,23.0
+2000-05-19,2024,Tejhaun Palmer,WR,ARI,6,191.0,Ala-Birmingham,24.0
+2000-03-06,2024,Joe Milton,QB,NWE,6,193.0,Tennessee,24.0
+1999-03-15,2024,Tanner McLachlan,TE,CIN,6,194.0,Arizona,25.0
+1999-08-18,2024,Jawhar Jordan,RB,HOU,6,205.0,Louisville,25.0
+1999-12-14,2024,Dylan Laube,RB,LVR,6,208.0,New Hampshire,24.0
+2000-10-01,2024,Jordan Whittington,WR,LAR,6,213.0,Texas,23.0
+1999-10-27,2024,Ryan Flournoy,WR,DAL,6,216.0,SE Missouri St.,24.0
+1999-09-10,2024,Devin Leary,QB,BAL,6,218.0,Kentucky,24.0
+2002-03-18,2024,Brenden Rice,WR,LAC,7,225.0,USC,22.0
+2001-06-14,2024,Jaheim Bell,TE,NWE,7,231.0,Florida St.,23.0
+1997-12-12,2024,Devaughn Vele,WR,DEN,7,235.0,Utah,26.0
+2001-05-16,2024,Tahj Washington,WR,MIA,7,241.0,USC,23.0
+2001-09-30,2024,Michael Pratt,QB,GNB,7,245.0,Tulane,22.0
+2000-02-02,2024,Devin Culp,TE,TAM,7,246.0,Washington,24.0
+2000-11-29,2024,Cornelius Johnson,WR,LAC,7,253.0,Michigan,23.0
+2001-07-25,2023,Bryce Young,QB,CAR,1,1.0,Alabama,22.0
+2001-10-03,2023,C.J. Stroud,QB,HOU,1,2.0,Ohio St.,21.0
+2002-05-22,2023,Anthony Richardson,QB,IND,1,4.0,Florida,21.0
+2002-01-30,2023,Bijan Robinson,RB,ATL,1,8.0,Texas,21.0
+2002-03-20,2023,Jahmyr Gibbs,RB,DET,1,12.0,Alabama,21.0
+2002-02-14,2023,Jaxon Smith-Njigba,WR,SEA,1,20.0,Ohio St.,21.0
+2001-09-06,2023,Quentin Johnston,WR,LAC,1,21.0,TCU,22.0
+2000-09-11,2023,Zay Flowers,WR,BAL,1,22.0,Boston Col.,22.0
+2002-01-27,2023,Jordan Addison,WR,MIN,1,23.0,USC,21.0
+1999-10-18,2023,Dalton Kincaid,TE,BUF,1,25.0,Utah,23.0
+1999-06-27,2023,Will Levis,QB,TEN,2,33.0,Kentucky,24.0
+2001-01-12,2023,Sam LaPorta,TE,DET,2,34.0,Iowa,22.0
+2001-07-06,2023,Michael Mayer,TE,LVR,2,35.0,Notre Dame,22.0
+2001-04-20,2023,Jonathan Mingo,WR,CAR,2,39.0,Mississippi,22.0
+2000-09-02,2023,Luke Musgrave,TE,GNB,2,42.0,Oregon St.,23.0
+2000-04-28,2023,Jayden Reed,WR,GNB,2,50.0,Michigan St.,23.0
+2001-01-08,2023,Zach Charbonnet,RB,SEA,2,52.0,UCLA,22.0
+2000-04-22,2023,Rashee Rice,WR,KAN,2,55.0,SMU,23.0
+1998-09-28,2023,Luke Schoonmaker,TE,DAL,2,58.0,Michigan,24.0
+2000-12-27,2023,Brenton Strange,TE,JAX,2,61.0,Penn St.,22.0
+2002-03-19,2023,Marvin Mims,WR,DEN,2,63.0,Oklahoma,21.0
+1998-01-13,2023,Hendon Hooker,QB,DET,3,68.0,Tennessee,25.0
+1999-10-29,2023,Tank Dell,WR,HOU,3,69.0,Houston,23.0
+2002-06-11,2023,Kendre Miller,RB,NOR,3,71.0,TCU,21.0
+2001-09-25,2023,Jalin Hyatt,WR,NYG,3,73.0,Tennessee,21.0
+2000-04-19,2023,Cedric Tillman,WR,CLE,3,74.0,Tennessee,23.0
+2000-11-03,2023,Tucker Kraft,TE,GNB,3,78.0,South Dakota St.,22.0
+2001-08-12,2023,Josh Downs,WR,IND,3,79.0,North Carolina,22.0
+2001-06-15,2023,Tyjae Spears,RB,TEN,3,81.0,Tulane,22.0
+2001-10-13,2023,De'Von Achane,RB,MIA,3,84.0,Texas A&M,21.0
+2001-08-30,2023,Tank Bigsby,RB,JAX,3,88.0,Auburn,22.0
+2001-08-17,2023,Darnell Washington,TE,PIT,3,93.0,Georgia,22.0
+2000-02-23,2023,Michael Wilson,WR,ARI,3,94.0,Stanford,23.0
+2001-03-08,2023,Tre Tucker,WR,LVR,3,100.0,Cincinnati,22.0
+2000-02-24,2023,Cameron Latu,TE,SFO,3,101.0,Alabama,23.0
+2001-01-31,2023,Roschon Johnson,RB,CHI,4,115.0,Texas,22.0
+2000-09-11,2023,Derius Davis,WR,LAC,4,125.0,TCU,22.0
+1999-03-16,2023,Jake Haener,QB,NOR,4,127.0,Fresno St.,24.0
+1997-10-28,2023,Stetson Bennett,QB,LAR,4,128.0,Georgia,25.0
+1998-10-29,2023,Charlie Jones,WR,CIN,4,131.0,Purdue,24.0
+2001-10-12,2023,Tyler Scott,WR,CHI,4,133.0,Cincinnati,21.0
+1998-09-01,2023,Aidan O'Connell,QB,LVR,4,135.0,Purdue,25.0
+1999-03-23,2023,Clayton Tune,QB,ARI,5,139.0,Houston,24.0
+1999-11-14,2023,Dorian Thompson-Robinson,QB,CLE,5,140.0,UCLA,23.0
+2002-10-05,2023,Israel Abanikanda,RB,NYJ,5,143.0,Pittsburgh,20.0
+1999-09-08,2023,Josh Whyle,TE,TEN,5,147.0,Cincinnati,23.0
+1998-07-14,2023,Sean Clifford,QB,GNB,5,149.0,Penn St.,25.0
+2000-04-17,2023,Justin Shorter,WR,BUF,5,150.0,Florida,23.0
+2001-06-16,2023,Dontayvion Wicks,WR,GNB,5,159.0,Virginia,22.0
+1999-06-22,2023,Will Mallory,TE,IND,5,162.0,Miami (FL),24.0
+2000-03-21,2023,Chase Brown,RB,CIN,5,163.0,Illinois,23.0
+1998-03-24,2023,Jaren Hall,QB,MIN,5,164.0,BYU,25.0
+2000-06-15,2023,Payne Durham,TE,TAM,5,171.0,Purdue,23.0
+1999-11-04,2023,Eric Gray,RB,NYG,5,172.0,Oklahoma,23.0
+2001-02-03,2023,Davis Allen,TE,LAR,5,175.0,Clemson,22.0
+2000-10-26,2023,Evan Hull,RB,IND,5,176.0,Northwestern,22.0
+2001-05-29,2023,Puka Nacua,WR,LAR,5,177.0,BYU,22.0
+2002-03-21,2023,Parker Washington,WR,JAX,6,185.0,Penn St.,21.0
+2002-05-07,2023,Kayshon Boutte,WR,NWE,6,187.0,LSU,21.0
+2000-04-27,2023,Tanner McKee,QB,PHI,6,188.0,Stanford,23.0
+2001-04-02,2023,Trey Palmer,WR,TAM,6,191.0,Nebraska,22.0
+2000-09-26,2023,Chris Rodriguez,RB,WAS,6,193.0,Kentucky,22.0
+1999-10-26,2023,A.T. Perry,WR,NOR,6,195.0,Wake Forest,23.0
+2000-10-27,2023,Elijah Higgins,WR,MIA,6,197.0,Stanford,22.0
+2000-06-01,2023,Xavier Hutchinson,WR,HOU,6,205.0,Iowa St.,23.0
+1999-10-15,2023,Andrei Iosivas,WR,CIN,6,206.0,Princeton,23.0
+2000-12-08,2023,DeMario Douglas,WR,NWE,6,210.0,Liberty,22.0
+2001-11-02,2023,Deuce Vaughn,RB,DAL,6,212.0,Kansas St.,21.0
+2001-05-30,2023,Zach Evans,RB,LAR,6,215.0,Mississippi,22.0
+1999-11-15,2023,Antoine Green,WR,DET,7,219.0,North Carolina,23.0
+1999-06-06,2023,Zack Kuntz,TE,NYJ,7,220.0,Old Dominion,24.0
+2001-07-08,2023,DeWayne McBride,RB,MIN,7,222.0,Ala-Birmingham,22.0
+1999-04-19,2023,Colton Dowell,WR,TEN,7,228.0,UT Martin,24.0
+2001-08-16,2023,Lew Nichols,RB,GNB,7,235.0,Central Michigan,22.0
+2000-03-03,2023,Kenny McIntosh,RB,SEA,7,237.0,Georgia,23.0
+2001-03-12,2023,Max Duggan,QB,LAC,7,239.0,TCU,22.0
+2000-05-07,2023,Jalen Brooks,WR,DAL,7,244.0,South Carolina,23.0
+1999-11-11,2023,Brayden Willis,TE,SFO,7,247.0,Oklahoma,23.0
+2000-01-28,2023,Ronnie Bell,WR,SFO,7,253.0,Michigan,23.0
+2001-06-20,2023,Grant Dubose,WR,GNB,7,256.0,Charlotte,22.0
+2001-07-24,2022,Drake London,WR,ATL,1,8.0,USC,21.0
+2000-07-22,2022,Garrett Wilson,WR,NYJ,1,10.0,Ohio St.,22.0
+2000-06-27,2022,Chris Olave,WR,NOR,1,11.0,Ohio St.,22.0
+2001-03-26,2022,Jameson Williams,WR,DET,1,12.0,Alabama,21.0
+2000-03-22,2022,Jahan Dotson,WR,WAS,1,16.0,Penn St.,22.0
+2000-03-23,2022,Treylon Burks,WR,TEN,1,18.0,Arkansas,22.0
+1998-06-06,2022,Kenny Pickett,QB,PIT,1,20.0,Pittsburgh,24.0
+1999-05-12,2022,Christian Watson,WR,GNB,2,34.0,North Dakota St.,23.0
+2001-05-31,2022,Breece Hall,RB,NYJ,2,36.0,Iowa St.,21.0
+2000-10-20,2022,Kenneth Walker III,RB,SEA,2,41.0,Michigan St.,21.0
+2001-01-05,2022,Wan'Dale Robinson,WR,NYG,2,43.0,Kentucky,21.0
+2000-07-18,2022,John Metchie,WR,HOU,2,44.0,Alabama,22.0
+2000-09-07,2022,Tyquan Thornton,WR,NWE,2,50.0,Baylor,21.0
+2001-03-04,2022,George Pickens,WR,PIT,2,52.0,Georgia,21.0
+2000-05-02,2022,Alec Pierce,WR,IND,2,53.0,Cincinnati,22.0
+2000-09-10,2022,Skyy Moore,WR,KAN,2,54.0,Western Michigan,21.0
+1999-11-22,2022,Trey McBride,TE,ARI,2,55.0,Colorado St.,22.0
+1999-09-25,2022,James Cook,RB,BUF,2,63.0,Georgia,22.0
+1997-05-11,2022,Velus Jones Jr.,WR,CHI,3,71.0,Tennessee,25.0
+1998-10-09,2022,Jelani Woods,TE,IND,3,73.0,Virginia,23.0
+1999-08-31,2022,Desmond Ridder,QB,ATL,3,74.0,Cincinnati,23.0
+2000-03-26,2022,Greg Dulcich,TE,DEN,3,80.0,UCLA,22.0
+1999-05-25,2022,Malik Willis,QB,TEN,3,86.0,Liberty,23.0
+1999-02-27,2022,Jalen Tolbert,WR,DAL,3,88.0,South Alabama,23.0
+1999-01-12,2022,Rachaad White,RB,TAM,3,91.0,Arizona St.,23.0
+2000-10-23,2022,Tyrion Davis-Price,RB,SFO,3,93.0,LSU,21.0
+1999-01-31,2022,Matt Corral,QB,CAR,3,94.0,Mississippi,23.0
+1999-03-22,2022,Brian Robinson Jr.,RB,WAS,3,98.0,Alabama,23.0
+2000-12-14,2022,David Bell,WR,CLE,3,99.0,Purdue,21.0
+2000-08-11,2022,Jeremy Ruckert,TE,NYJ,3,101.0,Ohio St.,22.0
+1999-04-01,2022,Danny Gray,WR,SFO,3,105.0,SMU,23.0
+1999-04-15,2022,Cade Otton,TE,TAM,4,106.0,Washington,23.0
+2000-02-19,2022,Dameon Pierce,RB,HOU,4,107.0,Florida,22.0
+2000-09-22,2022,Daniel Bellinger,TE,NYG,4,112.0,San Diego St.,21.0
+1999-09-18,2022,Zamir White,RB,LVR,4,122.0,Georgia,22.0
+2001-08-09,2022,Isaiah Spiller,RB,LAC,4,123.0,Texas A&M,21.0
+2000-01-25,2022,Erik Ezukanma,WR,MIA,4,125.0,Texas Tech,22.0
+1998-12-10,2022,Pierre Strong,RB,NWE,4,127.0,South Dakota St.,23.0
+1999-02-10,2022,Charlie Kolar,TE,BAL,4,128.0,Iowa St.,23.0
+1999-01-18,2022,Jake Ferguson,TE,DAL,4,129.0,Wisconsin,23.0
+1999-11-26,2022,Hassan Haskins,RB,TEN,4,131.0,Michigan,22.0
+2000-04-13,2022,Romeo Doubs,WR,GNB,4,132.0,Nevada,22.0
+1999-04-26,2022,Bailey Zappe,QB,NWE,4,137.0,Western Kentucky,23.0
+1999-03-24,2022,Calvin Austin III,WR,PIT,4,138.0,Memphis,23.0
+2000-04-18,2022,Isaiah Likely,TE,BAL,4,139.0,Coastal Carolina,22.0
+1999-09-08,2022,Chigoziem Okonkwo,TE,TEN,4,143.0,Maryland,22.0
+2000-09-16,2022,Sam Howell,QB,WAS,5,144.0,North Carolina,21.0
+2000-02-03,2022,Khalil Shakir,WR,BUF,5,148.0,Boise St.,22.0
+2000-03-16,2022,Cole Turner,TE,WAS,5,149.0,Nevada,22.0
+2000-04-15,2022,Tyler Allgeier,RB,ATL,5,151.0,BYU,22.0
+1999-12-16,2022,Snoop Conner,RB,JAX,5,154.0,Mississippi,22.0
+1999-09-12,2022,Jerome Ford,RB,CLE,5,156.0,Cincinnati,22.0
+1999-03-14,2022,Montrell Washington,WR,DEN,5,162.0,Samford,23.0
+1999-06-17,2022,Kyle Philips,WR,TEN,5,163.0,UCLA,23.0
+2000-08-26,2022,Kyren Williams,RB,LAR,5,164.0,Notre Dame,22.0
+1998-05-12,2022,Ty Chandler,RB,MIN,5,169.0,North Carolina,24.0
+2000-03-15,2022,Teagan Quitoriano,TE,HOU,5,170.0,Oregon St.,22.0
+1999-08-11,2022,James Mitchell,TE,DET,5,177.0,Virginia Tech,23.0
+2000-11-17,2022,Kevin Harris,RB,NWE,6,183.0,South Carolina,21.0
+1999-03-02,2022,Jalen Nailor,WR,MIN,6,191.0,Michigan St.,23.0
+1998-07-28,2022,Andrew Ogletree,TE,IND,6,192.0,Youngstown St.,24.0
+2000-02-07,2022,Tyler Badie,RB,BAL,6,196.0,Missouri,22.0
+1998-12-04,2022,Grant Calcaterra,TE,PHI,6,198.0,SMU,23.0
+1999-10-26,2022,Keaontay Ingram,RB,ARI,6,201.0,USC,22.0
+2000-03-19,2022,Michael Woods II,WR,CLE,6,202.0,Oklahoma,22.0
+1999-01-02,2022,Trestan Ebner,RB,CHI,6,203.0,Baylor,23.0
+1999-01-22,2022,Connor Heyward,TE,PIT,6,208.0,Michigan St.,23.0
+2000-03-09,2022,John FitzPatrick,TE,ATL,6,213.0,Georgia,22.0
+1998-01-20,2022,Ko Kieft,TE,TAM,6,218.0,Minnesota,24.0
+1998-11-25,2022,Nick Muse,TE,MIN,7,227.0,South Carolina,23.0
+1999-05-18,2022,Bo Melton,WR,SEA,7,229.0,Rutgers,23.0
+1999-06-04,2022,Dareke Young,WR,SEA,7,233.0,Lenoir-Rhyne,23.0
+1997-09-03,2022,Chris Oladokun,QB,PIT,7,241.0,South Dakota St.,25.0
+1997-06-04,2022,Skylar Thompson,QB,MIA,7,247.0,Kansas St.,25.0
+1997-10-10,2022,Brittain Brown,RB,LVR,7,250.0,UCLA,24.0
+1999-03-02,2022,Isiah Pacheco,RB,KAN,7,251.0,Rutgers,23.0
+1998-03-24,2022,Samori Toure,WR,GNB,7,258.0,Nebraska,24.0
+1998-12-10,2022,Zander Horvath,RB,LAC,7,260.0,Purdue,23.0
+1999-12-27,2022,Brock Purdy,QB,SFO,7,262.0,Iowa St.,22.0
+1999-10-06,2021,Trevor Lawrence,QB,JAX,1,1.0,Clemson,21.0
+1999-08-03,2021,Zach Wilson,QB,NYJ,1,2.0,BYU,22.0
+2000-05-09,2021,Trey Lance,QB,SFO,1,3.0,North Dakota St.,21.0
+2000-10-06,2021,Kyle Pitts,TE,ATL,1,4.0,Florida,20.0
+2000-03-01,2021,Ja'Marr Chase,WR,CIN,1,5.0,LSU,21.0
+1998-11-25,2021,Jaylen Waddle,WR,MIA,1,6.0,Alabama,22.0
+1998-11-14,2021,DeVonta Smith,WR,PHI,1,10.0,Alabama,22.0
+1999-03-05,2021,Justin Fields,QB,CHI,1,11.0,Ohio St.,22.0
+1998-09-05,2021,Mac Jones,QB,NWE,1,15.0,Alabama,23.0
+1999-01-27,2021,Kadarius Toney,WR,NYG,1,20.0,Florida,22.0
+1998-03-09,2021,Najee Harris,RB,PIT,1,24.0,Alabama,23.0
+1999-01-26,2021,Travis Etienne,RB,JAX,1,25.0,Clemson,22.0
+1999-11-29,2021,Rashod Bateman,WR,BAL,1,27.0,Minnesota,21.0
+2000-03-27,2021,Elijah Moore,WR,NYJ,2,34.0,Mississippi,21.0
+2000-04-25,2021,Javonte Williams,RB,DEN,2,35.0,North Carolina,21.0
+2000-06-09,2021,Rondale Moore,WR,ARI,2,49.0,Purdue,21.0
+1998-10-25,2021,Pat Freiermuth,TE,PIT,2,55.0,Penn St.,22.0
+1997-03-23,2021,D'Wayne Eskridge,WR,SEA,2,56.0,Western Michigan,24.0
+1999-10-07,2021,Tutu Atwell,WR,LAR,2,57.0,Louisville,21.0
+2000-06-09,2021,Terrace Marshall Jr.,WR,CAR,2,59.0,LSU,21.0
+1998-03-06,2021,Kyle Trask,QB,TAM,2,64.0,Florida,23.0
+1999-06-22,2021,Kellen Mond,QB,MIN,3,66.0,Texas A&M,22.0
+1998-10-21,2021,Davis Mills,QB,HOU,3,67.0,Stanford,22.0
+1999-09-22,2021,Josh Palmer,WR,LAC,3,77.0,Tennessee,21.0
+1998-08-19,2021,Hunter Long,TE,MIA,3,81.0,Boston Col.,23.0
+1999-11-01,2021,Dyami Brown,WR,WAS,3,82.0,North Carolina,21.0
+2000-06-02,2021,Tommy Tremble,TE,CAR,3,83.0,Notre Dame,21.0
+1999-09-23,2021,Amari Rodgers,WR,GNB,3,85.0,Clemson,21.0
+1999-01-30,2021,Trey Sermon,RB,SFO,3,88.0,Ohio St.,22.0
+1999-03-19,2021,Nico Collins,WR,HOU,3,89.0,Michigan,22.0
+2000-09-05,2021,Anthony Schwartz,WR,CLE,3,91.0,Auburn,21.0
+1999-01-12,2021,Tre' McKitty,TE,LAC,3,97.0,Georgia,22.0
+1999-05-07,2021,Michael Carter,RB,NYJ,4,107.0,North Carolina,22.0
+1997-12-17,2021,Dez Fitzpatrick,WR,TEN,4,109.0,Louisville,23.0
+1999-10-24,2021,Amon-Ra St. Brown,WR,DET,4,112.0,USC,21.0
+1998-02-09,2021,Kene Nwangwu,RB,MIN,4,119.0,Iowa St.,23.0
+1998-02-23,2021,Rhamondre Stevenson,RB,NWE,4,120.0,Oklahoma,23.0
+1997-11-06,2021,John Bates,TE,WAS,4,124.0,Boise St.,23.0
+1999-06-11,2021,Chuba Hubbard,RB,CAR,4,126.0,Oklahoma St.,22.0
+1998-03-27,2021,Kylen Granson,TE,IND,4,127.0,SMU,23.0
+1999-01-14,2021,Jaelon Darden,WR,TAM,4,129.0,North Texas,22.0
+1999-05-13,2021,Tylan Wallace,WR,BAL,4,131.0,Oklahoma St.,22.0
+1998-03-30,2021,Ian Book,QB,NOR,4,133.0,Notre Dame,23.0
+1997-04-16,2021,Jacob Harris,WR,LAR,4,141.0,Central Florida,24.0
+1997-10-14,2021,Luke Farrell,TE,JAX,5,145.0,Ohio St.,23.0
+2000-07-16,2021,Brevin Jordan,TE,HOU,5,147.0,Miami (FL),21.0
+1999-03-14,2021,Kenneth Gainwell,RB,PHI,5,150.0,Memphis,22.0
+1999-08-29,2021,Ihmir Smith-Marsette,WR,MIN,5,157.0,Iowa,22.0
+1999-04-30,2021,Noah Gray,TE,KAN,5,162.0,Duke,22.0
+1998-07-15,2021,Zach Davidson,TE,MIN,5,168.0,Central Missouri St.,23.0
+1997-11-05,2021,Simi Fehoko,WR,DAL,5,179.0,Stanford,23.0
+1997-10-30,2021,Cornell Powell,WR,KAN,5,181.0,Clemson,23.0
+1997-09-08,2021,Frank Darby,WR,ATL,6,187.0,Arizona St.,23.0
+1998-05-02,2021,Elijah Mitchell,RB,SFO,6,194.0,Louisiana,23.0
+1999-02-28,2021,Gary Brightwell,RB,NYG,6,196.0,Arizona,22.0
+1999-02-13,2021,Larry Rountree,RB,LAC,6,198.0,Missouri,22.0
+1997-10-05,2021,Chris Evans,RB,CIN,6,202.0,Michigan,23.0
+1998-03-26,2021,Marquez Stevenson,WR,BUF,6,203.0,Houston,23.0
+1998-10-26,2021,Shi Smith,WR,CAR,6,204.0,South Carolina,22.0
+1999-06-14,2021,Racey McMath,WR,TEN,6,205.0,LSU,22.0
+1998-07-10,2021,Jalen Camp,WR,JAX,6,209.0,Georgia Tech,23.0
+1998-07-16,2021,Demetric Felton,RB,CLE,6,211.0,UCLA,23.0
+1998-04-21,2021,Khalil Herbert,RB,CHI,6,217.0,Virginia Tech,23.0
+1998-09-30,2021,Sam Ehlinger,QB,IND,6,218.0,Texas,22.0
+2000-04-10,2021,Seth Williams,WR,DEN,6,219.0,Auburn,21.0
+1999-05-15,2021,Dazz Newsome,WR,CHI,6,221.0,North Carolina,22.0
+1997-08-13,2021,Mike Strachan,WR,IND,7,229.0,Charleston (WV),24.0
+1998-01-11,2021,Jake Funk,RB,LAR,7,233.0,Maryland,23.0
+1998-01-26,2021,Tre Nixon,WR,NWE,7,242.0,Central Florida,23.0
+1998-06-09,2021,Gerrid Doaks,RB,MIA,7,244.0,Cincinnati,23.0
+1997-06-27,2021,Ben Skowronek,WR,LAR,7,249.0,Notre Dame,24.0
+1998-08-24,2021,Kawaan Baker,WR,NOR,7,255.0,South Alabama,23.0
+1998-08-18,2021,Kylin Hill,RB,GNB,7,256.0,Mississippi St.,23.0
+2000-04-15,2021,Jermar Jefferson,RB,DET,7,257.0,Oregon St.,21.0
+1999-06-23,2021,Dax Milne,WR,WAS,7,258.0,BYU,22.0
+1996-12-10,2020,Joe Burrow,QB,CIN,1,1.0,LSU,23.0
+1998-03-02,2020,Tua Tagovailoa,QB,MIA,1,5.0,Alabama,22.0
+1998-03-10,2020,Justin Herbert,QB,LAC,1,6.0,Oregon,22.0
+1999-01-24,2020,Henry Ruggs III,WR,LVR,1,12.0,Alabama,21.0
+1999-04-24,2020,Jerry Jeudy,WR,DEN,1,15.0,Alabama,21.0
+1999-04-08,2020,CeeDee Lamb,WR,DAL,1,17.0,Oklahoma,21.0
+1999-01-02,2020,Jalen Reagor,WR,PHI,1,21.0,TCU,21.0
+1999-06-16,2020,Justin Jefferson,WR,MIN,1,22.0,LSU,21.0
+1998-03-17,2020,Brandon Aiyuk,WR,SFO,1,25.0,Arizona St.,22.0
+1998-11-02,2020,Jordan Love,QB,GNB,1,26.0,Utah St.,21.0
+1999-04-11,2020,Clyde Edwards-Helaire,RB,KAN,1,32.0,LSU,21.0
+1999-01-18,2020,Tee Higgins,WR,CIN,2,33.0,Clemson,21.0
+1997-10-05,2020,Michael Pittman Jr.,WR,IND,2,34.0,USC,22.0
+1999-01-14,2020,D'Andre Swift,RB,DET,2,35.0,Georgia,21.0
+1999-01-19,2020,Jonathan Taylor,RB,IND,2,41.0,Wisconsin,21.0
+1998-10-05,2020,Laviska Shenault Jr.,WR,JAX,2,42.0,Colorado,21.0
+1999-03-10,2020,Cole Kmet,TE,CHI,2,43.0,Notre Dame,21.0
+1999-07-08,2020,KJ Hamler,WR,DEN,2,46.0,Penn St.,21.0
+1998-07-07,2020,Chase Claypool,WR,PIT,2,49.0,Notre Dame,22.0
+1999-06-22,2020,Cam Akers,RB,LAR,2,52.0,Florida St.,21.0
+1998-08-07,2020,Jalen Hurts,QB,PHI,2,53.0,Oklahoma,22.0
+1998-12-17,2020,J.K. Dobbins,RB,BAL,2,55.0,Ohio St.,21.0
+1996-07-26,2020,Van Jefferson,WR,LAR,2,57.0,Florida,24.0
+1997-10-10,2020,Denzel Mims,WR,NYJ,2,59.0,Baylor,22.0
+1998-05-02,2020,AJ Dillon,RB,GNB,2,62.0,Boston Col.,22.0
+1998-06-23,2020,Antonio Gibson,RB,WAS,3,66.0,Memphis,22.0
+1997-05-04,2020,Ke'Shawn Vaughn,RB,TAM,3,76.0,Illinois,23.0
+1997-10-14,2020,Lynn Bowden Jr.,WR,LVR,3,80.0,Kentucky,22.0
+1998-11-13,2020,Bryan Edwards,WR,LVR,3,81.0,South Carolina,21.0
+1997-12-15,2020,Zack Moss,RB,BUF,3,86.0,Utah,22.0
+1997-08-14,2020,Devin Asiasi,TE,NWE,3,91.0,UCLA,23.0
+1997-09-12,2020,Devin Duvernay,WR,BAL,3,92.0,Texas,22.0
+1998-07-09,2020,Darrynton Evans,RB,TEN,3,93.0,Appalachian St.,22.0
+1997-02-14,2020,Josiah Deguara,TE,GNB,3,94.0,Cincinnati,23.0
+1999-04-14,2020,Dalton Keene,TE,NWE,3,101.0,Virginia Tech,21.0
+1997-02-05,2020,Adam Trautman,TE,NOR,3,105.0,Dayton,23.0
+1997-11-20,2020,Joshua Kelley,RB,LAC,4,112.0,UCLA,22.0
+1998-04-23,2020,Harrison Bryant,TE,CLE,4,115.0,Florida Atlantic,22.0
+1998-04-25,2020,Albert Okwuegbunam,TE,DEN,4,118.0,Missouri,22.0
+1998-01-30,2020,La'Mical Perine,RB,NYJ,4,120.0,Florida,22.0
+1997-11-17,2020,Jacob Eason,QB,IND,4,122.0,Washington,22.0
+1998-03-04,2020,Anthony McFarland Jr.,RB,PIT,4,124.0,Maryland,22.0
+1997-02-28,2020,James Morgan,QB,NYJ,4,125.0,Florida International,23.0
+1999-04-01,2020,Gabriel Davis,WR,BUF,4,128.0,Central Florida,21.0
+1999-01-08,2020,Colby Parkinson,TE,SEA,4,133.0,Stanford,21.0
+1997-03-27,2020,Brycen Hopkins,TE,LAR,4,136.0,Purdue,23.0
+1998-04-11,2020,Antonio Gandy-Golden,WR,WAS,4,142.0,Liberty,22.0
+1998-09-16,2020,DeeJay Dallas,RB,SEA,4,144.0,Miami (FL),21.0
+1998-01-04,2020,Joe Reed,WR,LAC,5,151.0,Virginia,22.0
+1998-08-25,2020,Tyler Johnson,WR,TAM,5,161.0,Minnesota,22.0
+1997-09-23,2020,Collin Johnson,WR,JAX,5,165.0,Texas,22.0
+1998-04-01,2020,Quintez Cephus,WR,DET,5,166.0,Wisconsin,22.0
+1998-07-30,2020,Jake Fromm,QB,BUF,5,167.0,Georgia,22.0
+1996-05-31,2020,John Hightower,WR,PHI,5,168.0,Boise St.,24.0
+1998-09-18,2020,Isaiah Coulter,WR,HOU,5,171.0,Rhode Island,21.0
+1998-04-20,2020,Jason Huntley,RB,DET,5,172.0,New Mexico St.,22.0
+1997-10-29,2020,Darnell Mooney,WR,CHI,5,173.0,Tulane,22.0
+1997-06-10,2020,K.J. Osborn,WR,MIN,5,176.0,Miami (FL),23.0
+1999-02-19,2020,Donovan Peoples-Jones,WR,CLE,6,187.0,Michigan,21.0
+1996-04-11,2020,Jake Luton,QB,JAX,6,189.0,Oregon St.,24.0
+1997-10-16,2020,Charlie Woerner,TE,SFO,6,190.0,Georgia,22.0
+1998-06-09,2020,Quez Watkins,WR,PHI,6,200.0,Southern Miss,22.0
+1996-09-21,2020,James Proche,WR,BAL,6,201.0,SMU,23.0
+1997-04-02,2020,Tyler Davis,TE,JAX,6,206.0,Georgia Tech,23.0
+1998-10-21,2020,Isaiah Hodgins,WR,BUF,6,207.0,Oregon St.,21.0
+1998-08-06,2020,Dezmon Patmon,WR,IND,6,212.0,Washington St.,22.0
+1998-08-04,2020,Freddie Swain,WR,SEA,6,214.0,Florida,22.0
+1997-07-10,2020,Jauan Jennings,WR,SFO,7,217.0,Tennessee,23.0
+1997-09-15,2020,K.J. Hill,WR,LAC,7,220.0,Ohio St.,22.0
+1999-04-13,2020,Eno Benjamin,RB,ARI,7,222.0,Arizona St.,21.0
+1998-05-20,2020,Cole McDonald,QB,TEN,7,224.0,Hawaii,22.0
+1996-11-24,2020,Ben DiNucci,QB,DAL,7,231.0,James Madison,23.0
+1996-12-15,2020,Tommy Stevens,QB,NOR,7,240.0,Mississippi St.,23.0
+1997-08-26,2020,Nate Stanley,QB,MIN,7,244.0,Iowa,23.0
+1998-04-02,2020,Raymond Calais,RB,TAM,7,245.0,Louisiana,22.0
+1997-04-19,2020,Malcolm Perry,RB,MIA,7,246.0,Navy,23.0
+1996-11-28,2020,Stephen Sullivan,TE,SEA,7,251.0,LSU,23.0
+1997-09-20,2020,Tyrie Cleveland,WR,DEN,7,252.0,Florida,22.0
+1997-08-07,2019,Kyler Murray,QB,ARI,1,1.0,Oklahoma,22.0
+1997-05-27,2019,Daniel Jones,QB,NYG,1,6.0,Duke,22.0
+1997-07-03,2019,T.J. Hockenson,TE,DET,1,8.0,Iowa,22.0
+1997-05-03,2019,Dwayne Haskins,QB,WAS,1,15.0,Ohio St.,22.0
+1997-11-20,2019,Noah Fant,TE,DEN,1,20.0,Iowa,21.0
+1998-02-11,2019,Josh Jacobs,RB,OAK,1,24.0,Alabama,21.0
+1997-06-04,2019,Marquise Brown,WR,BAL,1,25.0,Oklahoma,22.0
+1997-12-17,2019,N'Keal Harry,WR,NWE,1,32.0,Arizona St.,21.0
+1996-01-15,2019,Deebo Samuel,WR,SFO,2,36.0,South Carolina,23.0
+1996-11-10,2019,Drew Lock,QB,DEN,2,42.0,Missouri,22.0
+1998-08-09,2019,Irv Smith Jr.,TE,MIN,2,50.0,Alabama,21.0
+1997-06-30,2019,A.J. Brown,WR,TEN,2,51.0,Mississippi,22.0
+1996-04-16,2019,Drew Sample,TE,CIN,2,52.0,Washington,23.0
+1997-05-01,2019,Miles Sanders,RB,PHI,2,53.0,Penn St.,22.0
+1998-03-12,2019,Mecole Hardman,WR,KAN,2,56.0,Georgia,21.0
+1996-12-31,2019,JJ Arcega-Whiteside,WR,PHI,2,57.0,Stanford,22.0
+1997-07-16,2019,Parris Campbell,WR,IND,2,59.0,Ohio St.,22.0
+1996-11-18,2019,Andy Isabella,WR,ARI,2,62.0,Massachusetts,22.0
+1997-12-14,2019,D.K. Metcalf,WR,SEA,2,64.0,Mississippi,21.0
+1996-07-05,2019,Diontae Johnson,WR,PIT,3,66.0,Toledo,23.0
+1996-01-23,2019,Jalen Hurd,WR,SFO,3,67.0,Baylor,23.0
+1997-03-21,2019,Josh Oliver,TE,JAX,3,69.0,San Jose St.,22.0
+1997-08-19,2019,Darrell Henderson,RB,LAR,3,70.0,Memphis,22.0
+1997-06-07,2019,David Montgomery,RB,CHI,3,73.0,Iowa St.,22.0
+1997-09-03,2019,Devin Singletary,RB,BUF,3,74.0,Florida Atlantic,22.0
+1996-06-26,2019,Jace Sternberger,TE,GNB,3,75.0,Texas A&M,23.0
+1995-09-15,2019,Terry McLaurin,WR,WAS,3,76.0,Ohio St.,23.0
+1997-03-23,2019,Kahale Warring,TE,HOU,3,86.0,San Diego St.,22.0
+1997-02-11,2019,Damien Harris,RB,NWE,3,87.0,Alabama,22.0
+1996-10-12,2019,Miles Boykin,WR,BAL,3,93.0,Notre Dame,22.0
+1996-11-14,2019,Dawson Knox,TE,BUF,3,96.0,Mississippi,22.0
+1995-04-03,2019,Will Grier,QB,CAR,3,100.0,West Virginia,24.0
+1998-06-19,2019,Alexander Mattison,RB,MIN,3,102.0,Boise St.,21.0
+1996-05-16,2019,Hakeem Butler,WR,ARI,4,103.0,Iowa St.,23.0
+1994-12-26,2019,Ryan Finley,QB,CIN,4,104.0,North Carolina St.,24.0
+1997-07-08,2019,Bryce Love,RB,WAS,4,112.0,Stanford,22.0
+1997-11-14,2019,Justice Hill,RB,BAL,4,113.0,Oklahoma St.,21.0
+1997-03-07,2019,Gary Jennings Jr,WR,SEA,4,120.0,West Virginia,22.0
+1995-09-12,2019,Trevon Wesco,TE,NYJ,4,121.0,West Virginia,23.0
+1998-02-27,2019,Benny Snell Jr.,RB,PIT,4,122.0,Kentucky,21.0
+1996-07-21,2019,Riley Ridley,WR,CHI,4,126.0,Georgia,23.0
+1997-04-30,2019,Tony Pollard,RB,DAL,4,128.0,Memphis,22.0
+1996-08-08,2019,Jarrett Stidham,QB,NWE,4,133.0,Auburn,23.0
+1997-05-06,2019,Foster Moreau,TE,OAK,4,137.0,LSU,22.0
+1996-10-30,2019,Ryquell Armstead,RB,JAX,5,140.0,Temple,22.0
+1996-09-10,2019,Zach Gentry,TE,PIT,5,141.0,Michigan,22.0
+1995-12-21,2019,Hunter Renfrow,WR,OAK,5,149.0,Clemson,23.0
+1996-09-08,2019,Qadree Ollison,RB,ATL,5,152.0,Pittsburgh,22.0
+1996-02-09,2019,Jordan Scarlett,RB,CAR,5,154.0,Florida,23.0
+1995-09-15,2019,Easton Stick,QB,LAC,5,166.0,North Dakota St.,23.0
+1995-06-15,2019,Clayton Thorson,QB,PHI,5,167.0,Northwestern,24.0
+1997-01-12,2019,Darius Slayton,WR,NYG,5,171.0,Auburn,22.0
+1996-10-09,2019,KeeSean Johnson,WR,ARI,6,174.0,Fresno St.,22.0
+1997-04-24,2019,Kaden Smith,TE,SFO,6,176.0,Stanford,22.0
+1996-05-16,2019,Gardner Minshew II,QB,JAX,6,178.0,Washington St.,23.0
+1997-10-18,2019,Trayveon Williams,RB,CIN,6,182.0,Texas A&M,21.0
+1995-09-13,2019,Travis Fulgham,WR,DET,6,184.0,Old Dominion,23.0
+1997-09-17,2019,Ty Johnson,RB,DET,6,186.0,Maryland,21.0
+1996-09-04,2019,Juwann Winfree,WR,DEN,6,187.0,Colorado,23.0
+1997-01-06,2019,Dexter Williams,RB,GNB,6,194.0,Notre Dame,22.0
+1995-08-23,2019,Trace McSorley,QB,BAL,6,197.0,Penn St.,24.0
+1996-08-13,2019,Marcus Green,WR,ATL,6,203.0,La-Monroe,23.0
+1998-08-07,2019,Travis Homer,RB,SEA,6,204.0,Miami (FL),21.0
+1996-12-15,2019,Kelvin Harmon,WR,WAS,6,206.0,North Carolina St.,22.0
+1997-07-31,2019,Scott Miller,WR,TAM,6,208.0,Bowling Green,22.0
+1996-09-12,2019,Rodney Anderson,RB,CIN,6,211.0,Oklahoma,22.0
+1997-02-12,2019,Darwin Thompson,RB,KAN,6,214.0,Utah St.,22.0
+1997-08-25,2019,Mike Weber,RB,DAL,7,218.0,Ohio St.,22.0
+1995-05-12,2019,Cullen Gillaspia,RB,HOU,7,220.0,Texas A&M,24.0
+1996-10-31,2019,Kerrith Whyte Jr,RB,CHI,7,222.0,Florida Atlantic,22.0
+1997-05-21,2019,Isaac Nauta,TE,DET,7,224.0,Georgia,22.0
+1995-07-01,2019,Tommy Sweeney,TE,BUF,7,228.0,Boston Col.,24.0
+1997-03-29,2019,AlizÃ© Mack,TE,NOR,7,231.0,Notre Dame,22.0
+1996-07-29,2019,Chandler Cox,RB,MIA,7,233.0,Auburn,23.0
+1997-02-15,2019,Myles Gaskin,RB,MIA,7,234.0,Washington,22.0
+1994-01-17,2019,John Ursua,WR,SEA,7,236.0,Hawaii,25.0
+1996-10-23,2019,Terry Godwin,WR,CAR,7,237.0,Georgia,22.0
+1997-05-16,2019,Dillon Mitchell,WR,MIN,7,239.0,Oregon,22.0
+1997-03-17,2019,Olabisi Johnson,WR,MIN,7,247.0,Colorado St.,22.0
+1996-07-15,2019,Caleb Wilson,TE,ARI,7,254.0,UCLA,23.0
+1995-04-14,2018,Baker Mayfield,QB,CLE,1,1.0,Oklahoma,23.0
+1997-02-09,2018,Saquon Barkley,RB,NYG,1,2.0,Penn St.,21.0
+1997-06-05,2018,Sam Darnold,QB,NYJ,1,3.0,USC,21.0
+1996-05-21,2018,Josh Allen,QB,BUF,1,7.0,Wyoming,22.0
+1997-02-10,2018,Josh Rosen,QB,ARI,1,10.0,UCLA,21.0
+1997-04-14,2018,D.J. Moore,WR,CAR,1,24.0,Maryland,21.0
+1993-08-24,2018,Hayden Hurst,TE,BAL,1,25.0,South Carolina,25.0
+1994-12-20,2018,Calvin Ridley,WR,ATL,1,26.0,Alabama,23.0
+1996-02-02,2018,Rashaad Penny,RB,SEA,1,27.0,San Diego St.,22.0
+1995-02-17,2018,Sony Michel,RB,NWE,1,31.0,Georgia,23.0
+1997-01-07,2018,Lamar Jackson,QB,BAL,1,32.0,Louisville,21.0
+1995-12-27,2018,Nick Chubb,RB,CLE,2,35.0,Georgia,22.0
+1997-08-03,2018,Ronald Jones II,RB,TAM,2,38.0,USC,21.0
+1995-10-10,2018,Courtland Sutton,WR,DEN,2,40.0,SMU,22.0
+1995-10-03,2018,Mike Gesicki,TE,MIA,2,42.0,Penn St.,22.0
+1997-06-30,2018,Kerryon Johnson,RB,DET,2,43.0,Auburn,21.0
+1995-10-23,2018,Dante Pettis,WR,SFO,2,44.0,Washington,22.0
+1996-11-18,2018,Christian Kirk,WR,ARI,2,47.0,Texas A&M,21.0
+1995-01-03,2018,Dallas Goedert,TE,PHI,2,49.0,South Dakota St.,23.0
+1994-10-09,2018,Anthony Miller,WR,CHI,2,51.0,Memphis,23.0
+1997-06-21,2018,Derrius Guice,RB,WAS,2,59.0,LSU,21.0
+1996-04-02,2018,James Washington,WR,PIT,2,60.0,Oklahoma St.,22.0
+1996-09-23,2018,DJ Chark,WR,JAX,2,61.0,LSU,21.0
+1996-02-24,2018,Royce Freeman,RB,DEN,3,71.0,Oregon,22.0
+1995-07-17,2018,Mason Rudolph,QB,PIT,3,76.0,Oklahoma St.,23.0
+1996-03-04,2018,Michael Gallup,WR,DAL,3,81.0,Colorado St.,22.0
+1995-09-06,2018,Mark Andrews,TE,BAL,3,86.0,Oklahoma,23.0
+1996-01-07,2018,Tre'Quan Smith,WR,NOR,3,91.0,Central Florida,22.0
+1992-04-19,2018,Jordan Akins,TE,HOU,3,98.0,Central Florida,26.0
+1996-06-06,2018,Ian Thomas,TE,CAR,4,101.0,Indiana,22.0
+1997-01-14,2018,Keke Coutee,WR,HOU,4,103.0,Texas Tech,21.0
+1996-11-12,2018,Nyheim Hines,RB,IND,4,104.0,North Carolina St.,21.0
+1997-01-09,2018,Antonio Callaway,WR,CLE,4,105.0,Florida,21.0
+1996-02-23,2018,Chris Herndon,TE,NYJ,4,107.0,Miami (FL),22.0
+1995-03-17,2018,Kyle Lauletta,QB,NYG,4,108.0,Richmond,23.0
+1997-03-29,2018,Mark Walton,RB,CIN,4,112.0,Miami (FL),21.0
+1995-03-10,2018,DaeSean Hamilton,WR,DEN,4,113.0,Penn St.,23.0
+1996-07-08,2018,Will Dissly,TE,SEA,4,120.0,Washington,22.0
+1995-08-09,2018,Durham Smythe,TE,MIA,4,123.0,Notre Dame,23.0
+1995-09-11,2018,Ito Smith,RB,ATL,4,126.0,Southern Miss,22.0
+1995-12-22,2018,Kalen Ballage,RB,MIA,4,131.0,Arizona St.,22.0
+1995-02-23,2018,Jaleel Scott,WR,BAL,4,132.0,New Mexico St.,23.0
+1995-05-23,2018,J'Mon Moore,WR,GNB,4,133.0,Missouri,23.0
+1996-04-13,2018,Chase Edmonds,RB,ARI,4,134.0,Fordham,22.0
+1996-07-11,2018,Dalton Schultz,TE,DAL,4,137.0,Stanford,22.0
+1996-04-04,2018,Justin Watson,WR,TAM,5,144.0,Pennsylvania,22.0
+1995-02-17,2018,Troy Fumagalli,TE,DEN,5,156.0,Wisconsin,23.0
+1995-07-30,2018,Tyler Conklin,TE,MIN,5,157.0,Central Michigan,23.0
+1995-12-22,2018,Daurice Fountain,WR,IND,5,159.0,Northern Iowa,22.0
+1996-11-13,2018,Jordan Lasley,WR,BAL,5,162.0,UCLA,21.0
+1996-07-20,2018,Jaylen Samuels,TE,PIT,5,165.0,North Carolina St.,22.0
+1994-07-18,2018,Jordan Wilkins,RB,IND,5,169.0,Mississippi,24.0
+1995-03-25,2018,Mike White,QB,DAL,5,171.0,Western Kentucky,23.0
+1994-10-10,2018,Marquez Valdes-Scantling,WR,GNB,5,174.0,South Florida,23.0
+1995-04-16,2018,Damion Ratley,WR,CLE,6,175.0,Texas A&M,23.0
+1996-10-04,2018,John Kelly,RB,LAR,6,176.0,Tennessee,21.0
+1996-08-09,2018,Deon Cain,WR,IND,6,185.0,Clemson,22.0
+1996-10-15,2018,Ray-Ray McCloud,WR,BUF,6,187.0,Clemson,21.0
+1994-06-29,2018,Dylan Cantrell,WR,LAC,6,191.0,Texas Tech,24.0
+1996-01-22,2018,Russell Gage,WR,ATL,6,194.0,LSU,22.0
+1996-07-20,2018,Tremon Smith,WR,KAN,6,196.0,Central Arkansas,22.0
+1994-12-28,2018,Luke Falk,QB,TEN,6,199.0,Washington St.,23.0
+1995-04-27,2018,Boston Scott,RB,NOR,6,201.0,Louisiana Tech,23.0
+1995-02-14,2018,Tanner Lee,QB,JAX,6,203.0,Nebraska,23.0
+1994-07-23,2018,Trenton Cannon,RB,NYJ,6,204.0,Virginia St.,24.0
+1996-09-30,2018,Equanimeous St. Brown,WR,GNB,6,207.0,Notre Dame,21.0
+1995-11-20,2018,Cedrick Wilson Jr.,WR,DAL,6,208.0,Boise St.,22.0
+1995-10-06,2018,Braxton Berrios,WR,NWE,6,210.0,Miami (FL),22.0
+1996-08-02,2018,Jordan Thomas,TE,HOU,6,211.0,Mississippi St.,22.0
+1994-07-22,2018,Danny Etling,QB,NWE,7,219.0,LSU,24.0
+1995-11-19,2018,Alex McGough,QB,SEA,7,220.0,Florida International,22.0
+1994-09-11,2018,Javon Wims,WR,CHI,7,224.0,Georgia,23.0
+1994-06-17,2018,David Williams,RB,DEN,7,226.0,Arkansas,24.0
+1994-09-16,2018,Marcell Ateman,WR,OAK,7,228.0,Oklahoma St.,23.0
+1994-09-29,2018,Bo Scarbrough,RB,DAL,7,236.0,Alabama,23.0
+1996-06-22,2018,Nick Bawden,RB,DET,7,237.0,San Diego St.,22.0
+1995-09-05,2018,Richie James,WR,SFO,7,240.0,Middle Tenn. St.,23.0
+1995-01-27,2018,Logan Woodside,QB,CIN,7,249.0,Toledo,23.0
+1995-12-21,2018,Ryan Izzo,TE,NWE,7,250.0,Florida St.,22.0
+1996-04-22,2018,Justin Jackson,RB,LAC,7,251.0,Northwestern,22.0
+1997-02-03,2018,Auden Tate,WR,CIN,7,253.0,Florida St.,21.0
+1996-06-17,2018,Austin Proehl,WR,BUF,7,255.0,North Carolina,22.0
+1995-12-07,2018,Trey Quinn,WR,WAS,7,256.0,SMU,22.0
+1994-08-20,2017,Mitchell Trubisky,QB,CHI,1,2.0,North Carolina,23.0
+1995-01-18,2017,Leonard Fournette,RB,JAX,1,4.0,LSU,22.0
+1995-01-11,2017,Corey Davis,WR,TEN,1,5.0,Western Michigan,22.0
+1994-10-04,2017,Mike Williams,WR,LAC,1,7.0,Clemson,22.0
+1996-06-07,2017,Christian McCaffrey,RB,CAR,1,8.0,Stanford,21.0
+1995-11-27,2017,John Ross,WR,CIN,1,9.0,Washington,21.0
+1995-09-17,2017,Patrick Mahomes,QB,KAN,1,10.0,Texas Tech,21.0
+1995-09-14,2017,Deshaun Watson,QB,HOU,1,12.0,Clemson,21.0
+1994-11-19,2017,O.J. Howard,TE,TAM,1,19.0,Alabama,22.0
+1994-09-02,2017,Evan Engram,TE,NYG,1,23.0,Mississippi,23.0
+1996-07-10,2017,David Njoku,TE,CLE,1,29.0,Miami (FL),21.0
+1995-03-30,2017,Zay Jones,WR,BUF,2,37.0,East Carolina,22.0
+1996-08-11,2017,Curtis Samuel,WR,CAR,2,40.0,Ohio St.,21.0
+1995-08-10,2017,Dalvin Cook,RB,MIN,2,41.0,Florida St.,22.0
+1994-06-25,2017,Gerald Everett,TE,LAR,2,44.0,South Alabama,23.0
+1994-10-24,2017,Adam Shaheen,TE,CHI,2,45.0,Ashland,22.0
+1996-07-24,2017,Joe Mixon,RB,CIN,2,48.0,Oklahoma,21.0
+1996-01-03,2017,DeShone Kizer,QB,CLE,2,52.0,Notre Dame,21.0
+1996-11-22,2017,JuJu Smith-Schuster,WR,PIT,2,62.0,USC,20.0
+1995-07-25,2017,Alvin Kamara,RB,NOR,3,67.0,Tennessee,22.0
+1993-06-15,2017,Cooper Kupp,WR,LAR,3,69.0,Eastern Washington,24.0
+1995-03-02,2017,Taywan Taylor,WR,TEN,3,72.0,Western Kentucky,22.0
+1993-12-08,2017,ArDarius Stewart,WR,NYJ,3,79.0,Alabama,23.0
+1994-12-19,2017,Carlos Henderson,WR,DEN,3,82.0,Louisiana Tech,22.0
+1996-02-27,2017,Chris Godwin,WR,TAM,3,84.0,Penn St.,21.0
+1995-08-06,2017,Kareem Hunt,RB,KAN,3,86.0,Toledo,22.0
+1995-01-22,2017,Davis Webb,QB,NYG,3,87.0,California,22.0
+1996-04-24,2017,D'Onta Foreman,RB,HOU,3,89.0,Texas,21.0
+1993-11-03,2017,Kenny Golladay,WR,DET,3,96.0,Northern Illinois,23.0
+1994-10-19,2017,Chad Williams,WR,ARI,3,98.0,Grambling St.,22.0
+1995-08-22,2017,Jonnu Smith,TE,TEN,3,100.0,Florida International,22.0
+1993-11-16,2017,C.J. Beathard,QB,SFO,3,104.0,Iowa,23.0
+1995-05-05,2017,James Conner,RB,PIT,3,105.0,Pittsburgh,22.0
+1994-02-01,2017,Amara Darboh,WR,SEA,3,106.0,Michigan,23.0
+1993-11-21,2017,Dede Westbrook,WR,JAX,4,110.0,Oklahoma,23.0
+1995-09-16,2017,Samaje Perine,RB,WAS,4,114.0,Oklahoma,21.0
+1995-02-16,2017,Josh Reynolds,WR,LAR,4,117.0,Texas A&M,22.0
+1993-09-16,2017,Mack Hollins,WR,PHI,4,118.0,North Carolina,23.0
+1995-07-26,2017,Tarik Cohen,RB,CHI,4,119.0,North Carolina A&T,22.0
+1993-09-04,2017,Joe Williams,RB,SFO,4,121.0,Utah,24.0
+1994-05-07,2017,Michael Roberts,TE,DET,4,127.0,Toledo,23.0
+1996-03-21,2017,Josh Malone,WR,CIN,4,128.0,Tennessee,21.0
+1994-12-06,2017,Donnel Pumphrey,RB,PHI,4,132.0,San Diego St.,22.0
+1994-11-04,2017,Ryan Switzer,WR,DAL,4,133.0,North Carolina,22.0
+1995-04-03,2017,Jamaal Williams,RB,GNB,4,134.0,BYU,22.0
+1995-01-26,2017,Joshua Dobbs,QB,PIT,4,135.0,Tennessee,22.0
+1993-12-29,2017,Jehu Chesson,WR,KAN,4,139.0,Michigan,23.0
+1994-10-01,2017,Wayne Gallman,RB,NYG,4,140.0,Clemson,22.0
+1995-01-18,2017,Chad Hansen,WR,NYJ,4,141.0,California,22.0
+1996-03-07,2017,Marlon Mack,RB,IND,4,143.0,South Florida,21.0
+1995-07-11,2017,Jake Butt,TE,DEN,5,145.0,Michigan,22.0
+1993-10-09,2017,George Kittle,TE,SFO,5,146.0,Iowa,23.0
+1995-01-31,2017,Jordan Leggett,TE,NYJ,5,150.0,Clemson,22.0
+1994-08-10,2017,Jeremy Sprinkle,TE,WAS,5,154.0,Arkansas,23.0
+1995-11-09,2017,Brian Hill,RB,ATL,5,156.0,Wyoming,21.0
+1995-12-26,2017,Jeremy McNichols,RB,TAM,5,162.0,Boise St.,21.0
+1994-03-20,2017,Shelton Gibson,WR,PHI,5,166.0,West Virginia,23.0
+1994-09-15,2017,Rodney Adams,WR,MIN,5,170.0,South Florida,22.0
+1994-05-04,2017,Nathan Peterman,QB,BUF,5,171.0,Pittsburgh,23.0
+1995-04-09,2017,Isaiah McKenzie,WR,DEN,5,172.0,Georgia,22.0
+1994-05-01,2017,Eric Saubert,TE,ATL,5,174.0,Drake,23.0
+1994-11-18,2017,DeAngelo Yancey,WR,GNB,5,175.0,Purdue,22.0
+1994-04-30,2017,Trent Taylor,WR,SFO,5,177.0,Louisiana Tech,23.0
+1994-09-03,2017,T.J. Logan,RB,ARI,5,179.0,North Carolina,23.0
+1994-12-02,2017,Aaron Jones,RB,GNB,5,182.0,Texas-El Paso,22.0
+1994-06-01,2017,Elijah McGuire,RB,NYJ,6,188.0,Louisiana,23.0
+1995-08-08,2017,Bucky Hodges,TE,MIN,6,201.0,Virginia Tech,22.0
+1992-11-24,2017,De'Angelo Henderson,RB,DEN,6,203.0,Coastal Carolina,24.0
+1994-07-27,2017,Brandon Wilson,RB,CIN,6,207.0,Houston,23.0
+1995-04-02,2017,Robert Davis,WR,WAS,6,209.0,Georgia St.,22.0
+1995-09-03,2017,Brad Kaaya,QB,DET,6,215.0,Miami (FL),22.0
+1994-05-13,2017,Stacy Coley,WR,MIN,7,219.0,Miami (FL),23.0
+1995-01-15,2017,David Moore,WR,SEA,7,226.0,East Central (OK),22.0
+1996-02-09,2017,Isaiah Ford,WR,MIA,7,237.0,Virginia Tech,21.0
+1994-05-26,2017,Devante Mays,RB,GNB,7,238.0,Utah St.,23.0
+1996-01-06,2017,Noah Brown,WR,DAL,7,239.0,Ohio St.,21.0
+1994-09-26,2017,Khalfani Muhammad,RB,TEN,7,241.0,California,22.0
+1996-04-22,2017,Elijah Hood,RB,OAK,7,242.0,North Carolina,21.0
+1995-10-12,2017,Malachi Dupre,WR,GNB,7,247.0,LSU,21.0
+1994-09-16,2017,Chris Carson,RB,SEA,7,249.0,Oklahoma St.,22.0
+1993-11-04,2017,Mason Schreck,TE,CIN,7,251.0,Buffalo,23.0
+1994-09-03,2017,Matthew Dayes,RB,CLE,7,252.0,North Carolina St.,23.0
+1994-03-26,2017,Chad Kelly,QB,DEN,7,253.0,Mississippi,23.0
+1994-10-14,2016,Jared Goff,QB,LAR,1,1.0,California,21.0
+1992-12-30,2016,Carson Wentz,QB,PHI,1,2.0,North Dakota St.,23.0
+1995-07-22,2016,Ezekiel Elliott,RB,DAL,1,4.0,Ohio St.,21.0
+1994-07-06,2016,Corey Coleman,WR,CLE,1,15.0,Baylor,22.0
+1994-04-16,2016,Will Fuller,WR,HOU,1,21.0,Notre Dame,22.0
+1992-12-03,2016,Josh Doctson,WR,WAS,1,22.0,TCU,23.0
+1995-06-14,2016,Laquon Treadwell,WR,MIN,1,23.0,Mississippi,21.0
+1994-02-12,2016,Paxton Lynch,QB,DEN,1,26.0,Memphis,22.0
+1994-12-07,2016,Hunter Henry,TE,SDG,2,35.0,Arkansas,21.0
+1993-02-10,2016,Sterling Shepard,WR,NYG,2,40.0,Oklahoma,23.0
+1994-01-04,2016,Derrick Henry,RB,TEN,2,45.0,Alabama,22.0
+1993-03-03,2016,Michael Thomas,WR,NOR,2,47.0,Ohio St.,23.0
+1995-02-14,2016,Christian Hackenberg,QB,NYJ,2,51.0,Penn St.,21.0
+1994-11-15,2016,Tyler Boyd,WR,CIN,2,55.0,Pittsburgh,21.0
+1994-01-26,2016,Kenyan Drake,RB,MIA,3,73.0,Alabama,22.0
+1994-10-29,2016,Austin Hooper,TE,ATL,3,81.0,Stanford,21.0
+1992-11-30,2016,Braxton Miller,WR,HOU,3,85.0,Ohio St.,23.0
+1994-01-24,2016,Leonte Carroo,WR,MIA,3,86.0,Rutgers,22.0
+1994-05-20,2016,C.J. Prosise,RB,SEA,3,90.0,Notre Dame,22.0
+1992-12-11,2016,Jacoby Brissett,QB,NWE,3,91.0,North Carolina St.,23.0
+1993-05-11,2016,Cody Kessler,QB,CLE,3,93.0,USC,23.0
+1993-03-06,2016,Nick Vannett,TE,SEA,3,94.0,Ohio St.,23.0
+1993-01-29,2016,Connor Cook,QB,OAK,4,100.0,Michigan St.,23.0
+1993-06-16,2016,Chris Moore,WR,BAL,4,107.0,Cincinnati,23.0
+1993-01-01,2016,Tyler Higbee,TE,LAR,4,110.0,Western Kentucky,23.0
+1992-07-20,2016,Malcolm Mitchell,WR,NWE,4,112.0,Georgia,24.0
+1994-03-23,2016,Ricardo Louis,WR,CLE,4,114.0,Auburn,22.0
+1995-03-07,2016,Pharoh Cooper,WR,LAR,4,117.0,South Carolina,21.0
+1993-10-07,2016,Tyler Ervin,RB,HOU,4,119.0,San Jose St.,22.0
+1994-09-21,2016,Demarcus Robinson,WR,KAN,4,126.0,Florida,21.0
+1994-01-21,2016,Kenneth Dixon,RB,BAL,4,134.0,Louisiana Tech,22.0
+1993-07-29,2016,Dak Prescott,QB,DAL,4,135.0,Mississippi St.,23.0
+1992-05-27,2016,Devontae Booker,RB,DEN,4,136.0,Utah,24.0
+1993-01-29,2016,Seth Devalve,TE,CLE,4,138.0,Princeton,23.0
+1992-10-29,2016,Cardale Jones,QB,BUF,4,139.0,Ohio St.,23.0
+1994-12-23,2016,Tajae Sharpe,WR,TEN,5,140.0,Massachusetts,21.0
+1993-02-22,2016,DeAndre Washington,RB,OAK,5,143.0,Texas Tech,23.0
+1994-11-16,2016,Paul Perkins,RB,NYG,5,149.0,UCLA,21.0
+1994-11-02,2016,Jordan Howard,RB,CHI,5,150.0,Indiana,21.0
+1994-01-20,2016,Wendell Smallwood,RB,PHI,5,153.0,West Virginia,22.0
+1993-09-01,2016,Jordan Payton,WR,CLE,5,154.0,UCLA,23.0
+1994-02-02,2016,Jonathan Williams,RB,BUF,5,156.0,Arkansas,22.0
+1992-10-20,2016,Kevin Hogan,QB,KAN,5,162.0,Stanford,23.0
+1993-07-04,2016,Trevor Davis,WR,GNB,5,163.0,California,23.0
+1994-03-01,2016,Tyreek Hill,WR,KAN,5,165.0,West Alabama,22.0
+1994-08-26,2016,Alex Collins,RB,SEA,5,171.0,Arkansas,22.0
+1994-10-07,2016,Rashard Higgins,WR,CLE,5,172.0,Colorado St.,21.0
+1993-07-30,2016,Temarrick Hemingway,TE,LAR,6,177.0,South Carolina St.,23.0
+1993-12-13,2016,Keenan Reynolds,RB,BAL,6,182.0,Navy,22.0
+1992-12-31,2016,Jerell Adams,TE,NYG,6,184.0,South Carolina,23.0
+1992-10-30,2016,Jakeem Grant,WR,MIA,6,186.0,Texas Tech,23.0
+1993-10-07,2016,Nate Sudfeld,QB,WAS,6,187.0,Indiana,22.0
+1993-05-19,2016,David Morgan,TE,MIN,6,188.0,Texas-San Antonio,23.0
+1993-01-21,2016,Jake Rudock,QB,DET,6,191.0,Michigan,23.0
+1994-01-25,2016,Kolby Listenbee,WR,BUF,6,192.0,TCU,22.0
+1994-04-17,2016,Cody Core,WR,CIN,6,199.0,Mississippi,22.0
+1992-09-05,2016,Brandon Allen,QB,JAX,6,201.0,Arkansas,24.0
+1994-08-16,2016,Mike Thomas,WR,LAR,6,206.0,Southern Miss,22.0
+1993-04-23,2016,Jeff Driskel,QB,SFO,6,207.0,Louisiana Tech,23.0
+1993-09-28,2016,Kelvin Taylor,RB,SFO,6,211.0,Florida,22.0
+1993-12-23,2016,Aaron Burbridge,WR,SFO,6,213.0,Michigan St.,22.0
+1993-12-01,2016,Darius Jackson,RB,DAL,6,216.0,Eastern Michigan,22.0
+1994-01-07,2016,Rico Gathers,TE,DAL,6,217.0,Baylor,22.0
+1991-10-06,2016,Brandon Doughty,QB,MIA,7,223.0,Western Kentucky,24.0
+1993-06-26,2016,Devin Lucien,WR,NWE,7,225.0,Arizona St.,23.0
+1994-07-07,2016,Demarcus Ayers,WR,PIT,7,229.0,Houston,22.0
+1993-09-28,2016,Daniel Braverman,WR,CHI,7,230.0,Western Michigan,22.0
+1995-03-30,2016,Thomas Duarte,TE,MIA,7,231.0,UCLA,21.0
+1994-04-24,2016,Dwayne Washington,RB,DET,7,236.0,Washington,22.0
+1992-10-09,2016,Daniel Lasco,RB,NOR,7,237.0,California,23.0
+1994-01-29,2016,Devin Fuller,WR,ATL,7,238.0,UCLA,22.0
+1992-10-16,2016,Charone Peake,WR,NYJ,7,241.0,Clemson,23.0
+1994-02-16,2016,Keith Marshall,RB,WAS,7,242.0,Georgia,22.0
+1994-06-25,2016,Kenny Lawler,WR,SEA,7,243.0,California,22.0
+1993-02-01,2016,Zac Brooks,RB,SEA,7,247.0,Clemson,23.0
+1993-02-23,2016,Beau Sandland,TE,CAR,7,252.0,Montana St.,23.0
+1994-01-06,2015,Jameis Winston,QB,TAM,1,1.0,Florida St.,21.0
+1993-10-30,2015,Marcus Mariota,QB,TEN,1,2.0,Oregon,21.0
+1994-06-17,2015,Amari Cooper,WR,OAK,1,4.0,Alabama,21.0
+1992-06-25,2015,Kevin White,WR,CHI,1,7.0,West Virginia,23.0
+1994-08-03,2015,Todd Gurley,RB,STL,1,10.0,Georgia,21.0
+1993-01-20,2015,DeVante Parker,WR,MIA,1,14.0,Louisville,22.0
+1993-04-13,2015,Melvin Gordon,RB,SDG,1,15.0,Wisconsin,22.0
+1993-05-24,2015,Nelson Agholor,WR,PHI,1,20.0,USC,22.0
+1993-09-10,2015,Breshad Perriman,WR,BAL,1,26.0,Central Florida,21.0
+1993-01-05,2015,Phillip Dorsett,WR,IND,1,29.0,Miami (FL),22.0
+1993-10-02,2015,T.J. Yeldon,RB,JAX,2,36.0,Alabama,21.0
+1992-03-03,2015,Devin Smith,WR,NYJ,2,37.0,Ohio St.,23.0
+1993-04-12,2015,Dorial Green-Beckham,WR,TEN,2,40.0,Oklahoma,22.0
+1994-05-21,2015,Devin Funchess,WR,CAR,2,41.0,Michigan,21.0
+1993-06-13,2015,Ameer Abdullah,RB,DET,2,54.0,Nebraska,22.0
+1994-04-12,2015,Maxx Williams,TE,BAL,2,55.0,Minnesota,21.0
+1991-10-01,2015,Clive Walford,TE,OAK,3,68.0,Miami (FL),23.0
+1992-09-28,2015,Tyler Lockett,WR,SEA,3,69.0,Kansas St.,22.0
+1994-01-25,2015,Jaelen Strong,WR,HOU,3,70.0,Arizona St.,21.0
+1993-04-16,2015,Tevin Coleman,RB,ATL,3,73.0,Indiana,22.0
+1991-05-29,2015,Garrett Grayson,QB,NOR,3,75.0,Colorado St.,24.0
+1992-10-25,2015,Chris Conley,WR,KAN,3,76.0,Georgia,22.0
+1993-09-23,2015,Duke Johnson,RB,CLE,3,77.0,Miami (FL),21.0
+1992-10-15,2015,Tyler Kroft,TE,CIN,3,85.0,Rutgers,22.0
+1991-12-16,2015,David Johnson,RB,ARI,3,86.0,Northern Iowa,23.0
+1993-03-31,2015,Sammie Coates,WR,PIT,3,87.0,Auburn,22.0
+1992-04-25,2015,Sean Mannion,QB,STL,3,89.0,Oregon St.,23.0
+1992-11-24,2015,Jeff Heuerman,TE,DEN,3,92.0,Ohio St.,22.0
+1993-01-22,2015,Ty Montgomery,WR,GNB,3,94.0,Stanford,22.0
+1993-03-07,2015,Matt Jones,RB,WAS,3,95.0,Florida,22.0
+1991-05-31,2015,Bryce Petty,QB,NYJ,4,103.0,Baylor,24.0
+1993-06-17,2015,Jamison Crowder,WR,WAS,4,105.0,Duke,22.0
+1991-12-06,2015,Jeremy Langford,RB,CHI,4,106.0,Michigan St.,23.0
+1991-12-18,2015,Justin Hardy,WR,ATL,4,107.0,East Carolina,23.0
+1991-08-07,2015,Blake Bell,TE,SFO,4,117.0,Oklahoma,24.0
+1991-06-12,2015,Vince Mayle,WR,CLE,4,123.0,Washington St.,24.0
+1991-08-27,2015,Javorius Allen,RB,BAL,4,125.0,USC,24.0
+1993-02-19,2015,Mike Davis,RB,SFO,4,126.0,South Carolina,22.0
+1991-12-03,2015,DeAndre Smelter,WR,SFO,4,132.0,Georgia Tech,23.0
+1993-06-03,2015,David Cobb,RB,TEN,5,138.0,Minnesota,22.0
+1992-09-23,2015,Rashad Greene,WR,JAX,5,139.0,Florida St.,22.0
+1992-03-24,2015,MyCole Pruitt,TE,MIN,5,143.0,Southern Illinois,23.0
+1993-11-29,2015,Stefon Diggs,WR,MIN,5,146.0,Maryland,21.0
+1993-06-15,2015,Brett Hundley,QB,GNB,5,147.0,UCLA,22.0
+1993-06-15,2015,Jay Ajayi,RB,MIA,5,149.0,Boise St.,22.0
+1993-05-04,2015,Karlos Williams,RB,BUF,5,155.0,Florida St.,22.0
+1992-07-02,2015,Tony Lippett,WR,MIA,5,156.0,Michigan St.,23.0
+1993-01-14,2015,C.J. Uzomah,TE,CIN,5,157.0,Auburn,22.0
+1992-04-24,2015,JJ Nelson,WR,ARI,5,159.0,Ala-Birmingham,23.0
+1994-06-04,2015,Jesse James,TE,PIT,5,160.0,Penn St.,21.0
+1992-02-25,2015,Kenny Bell,WR,TAM,5,162.0,Nebraska,23.0
+1993-02-17,2015,Nick Boyle,TE,BAL,5,171.0,Delaware,22.0
+1992-01-14,2015,James O'Shaughnessy,TE,KAN,5,173.0,Illinois St.,23.0
+1990-06-23,2015,Cameron Artis-Payne,RB,CAR,5,174.0,Auburn,25.0
+1992-06-05,2015,Keith Mumphery,WR,HOU,5,175.0,Michigan St.,23.0
+1992-01-03,2015,Kaelin Clay,WR,TAM,6,184.0,Utah,23.0
+1992-01-10,2015,Geremy Davis,WR,NYG,6,186.0,Connecticut,23.0
+1993-05-26,2015,Evan Spencer,WR,WAS,6,187.0,Ohio St.,22.0
+1992-08-31,2015,Nick O'Leary,TE,BUF,6,194.0,Florida St.,23.0
+1992-08-11,2015,Malcolm Johnson,TE,CLE,6,195.0,Mississippi St.,23.0
+1992-05-16,2015,Randall Telfer,TE,CLE,6,198.0,USC,23.0
+1991-09-20,2015,A.J. Derby,TE,NWE,6,202.0,Arkansas,23.0
+1992-09-13,2015,Darren Waller,WR,BAL,6,204.0,Georgia Tech,22.0
+1992-08-24,2015,Josh Robinson,RB,IND,6,205.0,Mississippi St.,23.0
+1993-02-26,2015,Kennard Backman,TE,GNB,6,213.0,Ala-Birmingham,22.0
+1992-01-14,2015,Neal Sterling,WR,JAX,7,220.0,Monmouth,23.0
+1993-04-09,2015,Ben Koyack,TE,JAX,7,229.0,Notre Dame,22.0
+1991-10-03,2015,Marcus Murphy,RB,NOR,7,230.0,Missouri,23.0
+1991-10-21,2015,Da'Ron Brown,WR,KAN,7,233.0,Northern Illinois,23.0
+1992-12-05,2015,Dezmin Lewis,WR,BUF,7,234.0,Central Arkansas,22.0
+1991-10-31,2015,Kenny Hilliard,RB,HOU,7,235.0,LSU,23.0
+1992-02-25,2015,Mario Alford,WR,CIN,7,238.0,West Virginia,23.0
+1992-12-01,2015,Tre McBride,WR,TEN,7,245.0,William & Mary,22.0
+1993-09-16,2015,Geoff Swaim,TE,DAL,7,246.0,Texas,21.0
+1991-12-26,2015,Trevor Siemian,QB,DEN,7,250.0,Northwestern,23.0
+1992-10-02,2015,Rory Anderson,TE,SFO,7,254.0,South Carolina,22.0
+1991-08-26,2015,Gerald Christian,TE,ARI,7,256.0,Louisville,24.0
+1992-04-28,2014,Blake Bortles,QB,JAX,1,3.0,Central Florida,22.0
+1993-06-14,2014,Sammy Watkins,WR,BUF,1,4.0,Clemson,21.0
+1993-08-21,2014,Mike Evans,WR,TAM,1,7.0,Texas A&M,21.0
+1993-04-10,2014,Eric Ebron,TE,DET,1,10.0,North Carolina,21.0
+1992-11-05,2014,Odell Beckham Jr.,WR,NYG,1,12.0,LSU,21.0
+1993-09-25,2014,Brandin Cooks,WR,NOR,1,20.0,Oregon St.,20.0
+1992-12-06,2014,Johnny Manziel,QB,CLE,1,22.0,Texas A&M,21.0
+1991-02-05,2014,Kelvin Benjamin,WR,CAR,1,28.0,Florida St.,23.0
+1992-11-10,2014,Teddy Bridgewater,QB,MIN,1,32.0,Louisville,21.0
+1991-03-28,2014,Derek Carr,QB,OAK,2,36.0,Fresno St.,23.0
+1992-09-29,2014,Austin Seferian-Jenkins,TE,TAM,2,38.0,Washington,21.0
+1991-11-25,2014,Marqise Lee,WR,JAX,2,39.0,USC,22.0
+1992-07-16,2014,Jordan Matthews,WR,PHI,2,42.0,Vanderbilt,22.0
+1992-04-13,2014,Paul Richardson,WR,SEA,2,45.0,Colorado,22.0
+1992-06-26,2014,Jace Amaro,TE,NYJ,2,49.0,Texas Tech,22.0
+1992-09-18,2014,Troy Niklas,TE,ARI,2,52.0,Notre Dame,21.0
+1992-12-24,2014,Davante Adams,WR,GNB,2,53.0,Fresno St.,21.0
+1992-09-15,2014,Bishop Sankey,RB,TEN,2,54.0,Washington,21.0
+1992-10-20,2014,Jeremy Hill,RB,CIN,2,55.0,LSU,21.0
+1992-10-10,2014,Cody Latimer,WR,DEN,2,56.0,Indiana,21.0
+1990-09-20,2014,Carlos Hyde,RB,SFO,2,57.0,Ohio St.,23.0
+1993-08-24,2014,Allen Robinson,WR,JAX,2,61.0,Penn St.,21.0
+1991-11-02,2014,Jimmy Garoppolo,QB,NWE,2,62.0,Eastern Illinois,22.0
+1992-11-28,2014,Jarvis Landry,WR,MIA,2,63.0,LSU,21.0
+1991-10-22,2014,C.J. Fiedorowicz,TE,HOU,3,65.0,Iowa,22.0
+1990-09-19,2014,Charles Sims,RB,TAM,3,69.0,West Virginia,23.0
+1993-08-06,2014,Tre Mason,RB,STL,3,75.0,Auburn,21.0
+1991-10-14,2014,Josh Huff,WR,PHI,3,86.0,Oregon,22.0
+1993-08-06,2014,Donte Moncrief,WR,IND,3,90.0,Mississippi,21.0
+1990-04-03,2014,John Brown,WR,ARI,3,91.0,Pittsburg St.,24.0
+1991-01-28,2014,Terrance West,RB,CLE,3,94.0,Towson,23.0
+1992-05-03,2014,Jerick McKinnon,RB,MIN,3,96.0,Georgia Southern,22.0
+1991-08-09,2014,Dri Archer,WR,PIT,3,97.0,Kent St.,23.0
+1992-01-22,2014,Richard Rodgers,TE,GNB,3,98.0,California,22.0
+1991-11-16,2014,Crockett Gillmore,TE,BAL,3,99.0,Colorado St.,22.0
+1992-03-15,2014,Devonta Freeman,RB,ATL,4,103.0,Florida St.,22.0
+1992-09-30,2014,Jalen Saunders,WR,NYJ,4,104.0,Oklahoma,21.0
+1991-08-22,2014,Bruce Ellington,WR,SFO,4,106.0,South Carolina,23.0
+1992-08-28,2014,Andre Williams,RB,NYG,4,113.0,Boston Col.,22.0
+1991-03-07,2014,Shaquelle Evans,WR,NYJ,4,115.0,UCLA,23.0
+1992-10-30,2014,Ka'Deem Carey,RB,CHI,4,117.0,Arizona,21.0
+1991-12-20,2014,Martavis Bryant,WR,PIT,4,118.0,Clemson,22.0
+1991-07-01,2014,Logan Thomas,QB,ARI,4,120.0,Virginia Tech,23.0
+1989-09-23,2014,Kevin Norwood,WR,SEA,4,123.0,Alabama,24.0
+1993-01-05,2014,De'Anthony Thomas,RB,KAN,4,124.0,Oregon,21.0
+1992-02-03,2014,James White,RB,NWE,4,130.0,Wisconsin,22.0
+1990-04-26,2014,Tom Savage,QB,HOU,4,135.0,Pittsburgh,24.0
+1991-12-23,2014,Lorenzo Taliaferro,RB,BAL,4,138.0,Coastal Carolina,22.0
+1990-12-19,2014,Ryan Grant,WR,WAS,5,142.0,Tulane,23.0
+1991-03-30,2014,Devin Street,WR,DAL,5,146.0,Pittsburgh,23.0
+1990-06-17,2014,Arthur Lynch,TE,MIA,5,155.0,Georgia,24.0
+1990-11-10,2014,Aaron Murray,QB,KAN,5,163.0,Georgia,23.0
+1990-09-13,2014,A.J. McCarron,QB,CIN,5,164.0,Alabama,23.0
+1990-12-17,2014,Jared Abbrederis,WR,GNB,5,176.0,Wisconsin,23.0
+1991-07-16,2014,Zach Mettenberger,QB,TEN,6,178.0,LSU,23.0
+1991-04-27,2014,Alfred Blue,RB,HOU,6,181.0,LSU,23.0
+1990-10-04,2014,David Fales,QB,CHI,6,183.0,San Jose St.,23.0
+1992-06-02,2014,Robert Herron,WR,TAM,6,185.0,Wyoming,22.0
+1991-07-29,2014,Lache Seastrunk,RB,WAS,6,186.0,Baylor,23.0
+1992-07-19,2014,T.J. Jones,WR,DET,6,189.0,Notre Dame,22.0
+1992-01-23,2014,Matt Hazel,WR,MIA,6,190.0,Coastal Carolina,22.0
+1991-02-14,2014,Keith Wenning,QB,BAL,6,194.0,Ball St.,23.0
+1991-11-23,2014,Walt Powell,WR,ARI,6,196.0,Murray St.,22.0
+1991-04-10,2014,Marion Grice,RB,SDG,6,201.0,Arizona St.,23.0
+1991-04-20,2014,Tyler Gaffney,RB,CAR,6,204.0,Stanford,23.0
+1992-05-31,2014,Quincy Enunwa,WR,NYJ,6,209.0,Nebraska,22.0
+1990-09-25,2014,Tajh Boyd,QB,NYJ,6,213.0,Clemson,23.0
+1991-01-01,2014,Garrett Gilbert,QB,STL,6,214.0,SMU,23.0
+1990-10-22,2014,Ted Bolser,TE,WAS,7,217.0,Indiana,23.0
+1991-01-25,2014,Michael Campanaro,WR,BAL,7,218.0,Wake Forest,23.0
+1992-07-17,2014,Storm Johnson,RB,JAX,7,222.0,Central Florida,22.0
+1989-05-01,2014,Kiero Small,RB,SEA,7,227.0,Arkansas,25.0
+1990-06-08,2014,Rob Blanchflower,TE,PIT,7,230.0,Massachusetts,24.0
+1991-06-09,2014,Jeff Janis,WR,GNB,7,236.0,Saginaw Valley St.,23.0
+1991-12-31,2014,James Wright,WR,CIN,7,239.0,LSU,22.0
+1991-01-02,2014,Tevin Reese,WR,SDG,7,240.0,Baylor,23.0
+1990-02-09,2014,Jeremy Gallon,WR,NWE,7,244.0,Michigan,24.0
+1990-03-15,2013,Tavon Austin,WR,STL,1,8.0,West Virginia,23.0
+1990-03-19,2013,EJ Manuel,QB,BUF,1,16.0,Florida St.,23.0
+1990-09-08,2013,Tyler Eifert,TE,CIN,1,21.0,Notre Dame,22.0
+1992-06-06,2013,DeAndre Hopkins,WR,HOU,1,27.0,Clemson,21.0
+1991-03-17,2013,Cordarrelle Patterson,WR,MIN,1,29.0,Tennessee,22.0
+1991-05-20,2013,Justin Hunter,WR,TEN,2,34.0,Tennessee,22.0
+1990-11-10,2013,Zach Ertz,TE,PHI,2,35.0,Stanford,22.0
+1991-11-22,2013,Giovani Bernard,RB,CIN,2,37.0,North Carolina,21.0
+1990-10-10,2013,Geno Smith,QB,NYJ,2,39.0,West Virginia,22.0
+1992-04-10,2013,Robert Woods,WR,BUF,2,41.0,USC,21.0
+1991-02-03,2013,Gavin Escobar,TE,DAL,2,47.0,San Diego St.,22.0
+1992-02-18,2013,Le'Veon Bell,RB,PIT,2,48.0,Michigan St.,21.0
+1990-06-13,2013,Vance McDonald,TE,SFO,2,55.0,Rice,23.0
+1990-12-05,2013,Montee Ball,RB,DEN,2,58.0,Wisconsin,22.0
+1991-07-23,2013,Aaron Dobson,WR,NWE,2,59.0,Marshall,22.0
+1990-06-02,2013,Eddie Lacy,RB,GNB,2,61.0,Alabama,23.0
+1990-11-09,2013,Christine Michael,RB,SEA,2,62.0,Texas A&M,22.0
+1989-10-05,2013,Travis Kelce,TE,KAN,3,63.0,Cincinnati,23.0
+1989-12-12,2013,Mike Glennon,QB,TAM,3,73.0,North Carolina St.,23.0
+1989-09-08,2013,Terrance Williams,WR,DAL,3,74.0,Baylor,23.0
+1992-04-27,2013,Keenan Allen,WR,SDG,3,76.0,California,21.0
+1990-11-19,2013,Marquise Goodwin,WR,BUF,3,78.0,Texas,22.0
+1991-02-07,2013,Markus Wheaton,WR,PIT,3,79.0,Oregon St.,22.0
+1990-07-03,2013,Jordan Reed,TE,WAS,3,85.0,Florida,23.0
+1990-11-11,2013,Stedman Bailey,WR,STL,3,92.0,West Virginia,22.0
+1991-10-05,2013,Knile Davis,RB,KAN,3,96.0,Arkansas,21.0
+1990-09-08,2013,Matt Barkley,QB,PHI,4,98.0,USC,22.0
+1991-11-11,2013,Ace Sanders,WR,JAX,4,101.0,South Carolina,21.0
+1991-05-06,2013,Josh Boyce,WR,NWE,4,102.0,TCU,22.0
+1991-02-18,2013,Dion Sims,TE,MIA,4,106.0,Michigan St.,22.0
+1990-03-10,2013,Ryan Nassib,QB,NYG,4,110.0,Syracuse,23.0
+1989-08-16,2013,Tyler Wilson,QB,OAK,4,112.0,Arkansas,24.0
+1989-04-04,2013,Landry Jones,QB,PIT,4,115.0,Oklahoma,24.0
+1989-09-10,2013,Chris Harper,WR,SEA,4,123.0,Kansas St.,23.0
+1989-10-23,2013,Johnathan Franklin,RB,GNB,4,125.0,UCLA,23.0
+1990-08-09,2013,Quinton Patton,WR,SFO,4,128.0,Louisiana Tech,23.0
+1991-04-23,2013,Kyle Juszczyk,RB,BAL,4,130.0,Harvard,22.0
+1991-10-29,2013,Marcus Lattimore,RB,SFO,4,131.0,South Carolina,21.0
+1991-07-30,2013,Levine Toilolo,TE,ATL,4,133.0,Stanford,22.0
+1990-09-22,2013,Denard Robinson,WR,JAX,5,135.0,Michigan,22.0
+1991-06-09,2013,Stepfan Taylor,RB,ARI,5,140.0,Stanford,22.0
+1992-04-22,2013,Kenny Stills,WR,NOR,5,144.0,Oklahoma,21.0
+1991-12-29,2013,Joseph Randle,RB,DAL,5,151.0,Oklahoma St.,21.0
+1990-10-20,2013,Chris Thompson,RB,WAS,5,154.0,Florida St.,22.0
+1990-01-15,2013,Luke Willson,TE,SEA,5,158.0,Rice,23.0
+1991-04-09,2013,Zac Stacy,RB,STL,5,160.0,Vanderbilt,22.0
+1990-07-14,2013,Tavarres King,WR,DEN,5,161.0,Georgia,23.0
+1990-11-01,2013,Mike Gillislee,RB,MIA,5,164.0,Florida,22.0
+1990-06-23,2013,Corey Fuller,WR,DET,6,171.0,Virginia Tech,23.0
+1990-11-05,2013,Nick Kasa,TE,OAK,6,172.0,Colorado,22.0
+1990-09-20,2013,Ryan Swope,WR,ARI,6,174.0,Texas A&M,22.0
+1990-01-18,2013,Latavius Murray,RB,OAK,6,181.0,Central Florida,23.0
+1989-04-28,2013,Kenjon Barner,RB,CAR,6,182.0,Oregon,24.0
+1990-09-08,2013,Mychal Rivera,TE,OAK,6,184.0,Tennessee,22.0
+1991-03-10,2013,Justin Brown,WR,PIT,6,186.0,Oklahoma,22.0
+1989-02-03,2013,Andre Ellington,RB,ARI,6,187.0,Clemson,24.0
+1991-04-13,2013,Mike James,RB,TAM,6,189.0,Miami (FL),22.0
+1990-07-02,2013,Rex Burkhead,RB,CIN,6,190.0,Nebraska,23.0
+1991-11-23,2013,Spencer Ware,RB,SEA,6,194.0,LSU,21.0
+1990-11-05,2013,Alan Bonner,WR,HOU,6,195.0,Jacksonville St.,22.0
+1990-11-13,2013,Cobi Hamilton,WR,CIN,6,197.0,Arkansas,22.0
+1991-05-04,2013,Theo Riddick,RB,DET,6,199.0,Notre Dame,22.0
+1990-01-11,2013,Ryan Griffin,TE,HOU,6,201.0,Connecticut,23.0
+1990-01-29,2013,Brice Butler,WR,OAK,7,209.0,San Diego St.,23.0
+1990-09-08,2013,Michael Williams,TE,DET,7,211.0,Alabama,22.0
+1990-09-10,2013,Tommy Bohanon,RB,NYJ,7,215.0,Wake Forest,22.0
+1989-02-27,2013,Charles Johnson,WR,GNB,7,216.0,Grand Valley St.,24.0
+1989-05-07,2013,D.C. Jefferson,TE,ARI,7,219.0,Rutgers,24.0
+1988-03-13,2013,Brad Sorensen,QB,SDG,7,221.0,Southern Utah,25.0
+1990-06-30,2013,Chris Gragg,TE,BUF,7,222.0,Arkansas,23.0
+1990-02-23,2013,Kevin Dorsey,WR,GNB,7,224.0,Maryland,23.0
+1991-11-23,2013,Jawan Jamison,RB,WAS,7,228.0,Rutgers,21.0
+1991-06-09,2013,Kerwynn Williams,RB,IND,7,230.0,Utah St.,22.0
+1990-02-08,2013,Zac Dysert,QB,DEN,7,234.0,Miami (OH),23.0
+1992-09-14,2013,Marquess Wilson,WR,CHI,7,236.0,Washington St.,20.0
+1988-10-24,2013,B.J. Daniels,QB,SFO,7,237.0,South Florida,24.0
+1989-12-28,2013,Aaron Mellette,WR,BAL,7,238.0,Elon,23.0
+1990-04-28,2013,Sean Renfree,QB,ATL,7,249.0,Duke,23.0
+1988-11-14,2013,Michael Cox,RB,NYG,7,253.0,Massachusetts,24.0
+1991-01-14,2013,Justice Cunningham,TE,IND,7,254.0,South Carolina,22.0
+1989-09-12,2012,Andrew Luck,QB,IND,1,1.0,Stanford,22.0
+1990-02-12,2012,Robert Griffin III,QB,WAS,1,2.0,Baylor,22.0
+1990-07-10,2012,Trent Richardson,RB,CLE,1,3.0,Alabama,22.0
+1990-01-09,2012,Justin Blackmon,WR,JAX,1,5.0,Oklahoma St.,22.0
+1988-07-27,2012,Ryan Tannehill,QB,MIA,1,8.0,Texas A&M,24.0
+1989-11-27,2012,Michael Floyd,WR,ARI,1,13.0,Notre Dame,22.0
+1989-11-12,2012,Kendall Wright,WR,TEN,1,20.0,Baylor,22.0
+1983-10-14,2012,Brandon Weeden,QB,CLE,1,22.0,Oklahoma St.,28.0
+1989-09-30,2012,A.J. Jenkins,WR,SFO,1,30.0,Illinois,22.0
+1989-01-13,2012,Doug Martin,RB,TAM,1,31.0,Boise St.,23.0
+1991-06-15,2012,David Wilson,RB,NYG,1,32.0,Virginia Tech,21.0
+1989-06-05,2012,Brian Quick,WR,STL,2,33.0,Appalachian St.,23.0
+1988-09-20,2012,Coby Fleener,TE,IND,2,34.0,Stanford,23.0
+1991-04-25,2012,Stephen Hill,WR,NYJ,2,43.0,Georgia Tech,21.0
+1990-02-14,2012,Alshon Jeffery,WR,CHI,2,45.0,South Carolina,22.0
+1989-12-14,2012,Isaiah Pead,RB,STL,2,50.0,Cincinnati,22.0
+1988-04-09,2012,Ryan Broyles,WR,DET,2,54.0,Oklahoma,24.0
+1990-11-22,2012,Brock Osweiler,QB,DEN,2,57.0,Arizona St.,21.0
+1989-10-22,2012,LaMichael James,RB,SFO,2,61.0,Oregon,22.0
+1991-05-07,2012,Rueben Randle,WR,NYG,2,63.0,LSU,21.0
+1990-02-24,2012,Dwayne Allen,TE,IND,3,64.0,Clemson,22.0
+1991-09-14,2012,Ronnie Hillman,RB,DEN,3,67.0,San Diego St.,20.0
+1990-03-15,2012,DeVier Posey,WR,HOU,3,68.0,Ohio St.,22.0
+1989-07-04,2012,T.J. Graham,WR,BUF,3,69.0,North Carolina St.,23.0
+1988-11-29,2012,Russell Wilson,QB,SEA,3,75.0,Wisconsin,23.0
+1989-11-01,2012,Michael Egnew,TE,MIA,3,78.0,Missouri,22.0
+1989-08-22,2012,Mohamed Sanu,WR,CIN,3,83.0,Rutgers,23.0
+1991-05-10,2012,Bernard Pierce,RB,BAL,3,84.0,Temple,21.0
+1989-01-20,2012,Nick Foles,QB,PHI,3,88.0,Arizona,23.0
+1989-11-14,2012,T.Y. Hilton,WR,IND,3,92.0,Florida International,22.0
+1989-12-06,2012,Chris Givens,WR,STL,4,96.0,Wake Forest,22.0
+1991-04-25,2012,Lamar Miller,RB,MIA,4,97.0,Miami (FL),21.0
+1989-12-29,2012,Travis Benjamin,WR,CLE,4,100.0,Miami (FL),22.0
+1988-08-19,2012,Kirk Cousins,QB,WAS,4,102.0,Michigan St.,24.0
+1989-11-22,2012,Joe Adams,WR,CAR,4,104.0,Arkansas,22.0
+1989-12-02,2012,Robert Turbin,RB,SEA,4,106.0,Utah St.,22.0
+1988-09-02,2012,Devon Wylie,WR,KAN,4,107.0,Fresno St.,24.0
+1990-05-29,2012,Ladarius Green,TE,SDG,4,110.0,Louisiana,22.0
+1988-09-21,2012,Evan Rodriguez,TE,CHI,4,111.0,Temple,23.0
+1991-01-27,2012,Orson Charles,TE,CIN,4,116.0,Georgia,21.0
+1989-11-25,2012,Jarius Wright,WR,MIN,4,118.0,Arkansas,22.0
+1990-03-15,2012,Keshawn Martin,WR,HOU,4,121.0,Michigan St.,22.0
+1988-11-04,2012,Nick Toon,WR,NOR,4,122.0,Wisconsin,23.0
+1988-09-23,2012,Adrien Robinson,TE,NYG,4,127.0,Cincinnati,23.0
+1988-10-03,2012,Rhett Ellison,RB,MIN,4,128.0,USC,23.0
+1990-03-10,2012,Greg Childs,WR,MIN,4,134.0,Arkansas,22.0
+1989-10-19,2012,Taylor Thompson,TE,TEN,5,145.0,SMU,22.0
+1988-06-27,2012,Danny Coale,WR,DAL,5,152.0,Virginia Tech,24.0
+1989-12-26,2012,Bradie Ewing,RB,ATL,5,157.0,Wisconsin,22.0
+1988-03-02,2012,Chris Rainey,RB,PIT,5,159.0,Florida,24.0
+1990-03-12,2012,Marvin Jones,WR,CIN,5,166.0,California,22.0
+1989-12-12,2012,Juron Criner,WR,OAK,5,168.0,Arizona,22.0
+1990-07-16,2012,Vick Ballard,RB,IND,5,170.0,Mississippi St.,22.0
+1988-12-12,2012,Alfred Morris,RB,WAS,6,173.0,Florida Atlantic,23.0
+1989-11-18,2012,Cyrus Gray,RB,KAN,6,182.0,Texas A&M,22.0
+1989-05-29,2012,B.J. Cunningham,WR,MIA,6,183.0,Michigan St.,23.0
+1989-06-02,2012,Ryan Lindley,QB,ARI,6,185.0,San Diego St.,23.0
+1989-07-14,2012,James Hanna,TE,DAL,6,186.0,Oklahoma,23.0
+1989-03-21,2012,Dan Herron,RB,CIN,6,191.0,Ohio St.,23.0
+1989-07-04,2012,Marvin McNutt,WR,PHI,6,194.0,Iowa,23.0
+1989-10-07,2012,Tommy Streeter,WR,BAL,6,198.0,Miami (FL),22.0
+1988-10-07,2012,Terrance Ganaway,RB,NYJ,6,202.0,Baylor,23.0
+1989-03-15,2012,LaVon Brazill,WR,IND,6,206.0,Ohio,23.0
+1988-08-09,2012,Michael Smith,RB,TAM,7,212.0,Utah St.,24.0
+1989-10-12,2012,Rishard Matthews,WR,MIA,7,227.0,Nevada,22.0
+1991-05-14,2012,Bryce Brown,RB,PHI,7,229.0,Kansas St.,21.0
+1988-10-11,2012,Toney Clemons,WR,PIT,7,231.0,Colorado,23.0
+1988-11-04,2012,Drake Dunsmore,TE,TAM,7,233.0,Northwestern,23.0
+1989-04-06,2012,Jeremy Ebert,WR,NWE,7,235.0,Northwestern,23.0
+1988-12-27,2012,Junior Hemingway,WR,KAN,7,238.0,Michigan,23.0
+1989-02-22,2012,David Paulson,TE,PIT,7,240.0,Oregon,23.0
+1988-09-16,2012,B.J. Coleman,QB,GNB,7,243.0,Chattanooga,23.0
+1988-06-04,2012,Jordan White,WR,NYJ,7,244.0,Western Michigan,24.0
+1989-05-20,2012,Brad Smelley,TE,CLE,7,247.0,Alabama,23.0
+1991-06-01,2012,Edwin Baker,RB,SDG,7,250.0,Michigan St.,21.0
+1990-04-12,2012,Daryl Richardson,RB,STL,7,252.0,Abilene Christian,22.0
+1988-07-28,2012,Chandler Harnish,QB,IND,7,253.0,Northern Illinois,24.0
+1989-05-11,2011,Cam Newton,QB,CAR,1,1.0,Auburn,22.0
+1988-07-31,2011,A.J. Green,WR,CIN,1,4.0,Georgia,23.0
+1989-02-08,2011,Julio Jones,WR,ATL,1,6.0,Alabama,22.0
+1988-06-15,2011,Jake Locker,QB,TEN,1,8.0,Washington,23.0
+1989-10-15,2011,Blaine Gabbert,QB,JAX,1,10.0,Missouri,21.0
+1988-02-25,2011,Christian Ponder,QB,MIN,1,12.0,Florida St.,23.0
+1989-08-10,2011,Jonathan Baldwin,WR,KAN,1,26.0,Pittsburgh,22.0
+1989-12-21,2011,Mark Ingram,RB,NOR,1,28.0,Alabama,21.0
+1987-10-29,2011,Andy Dalton,QB,CIN,2,35.0,TCU,23.0
+1987-11-03,2011,Colin Kaepernick,QB,SFO,2,36.0,Nevada,23.0
+1990-04-09,2011,Ryan Williams,RB,ARI,2,38.0,Virginia Tech,21.0
+1989-11-09,2011,Kyle Rudolph,TE,MIN,2,43.0,Notre Dame,21.0
+1989-08-21,2011,Titus Young,WR,DET,2,44.0,Boise St.,22.0
+1988-01-30,2011,Lance Kendricks,TE,STL,2,47.0,Wisconsin,23.0
+1989-05-02,2011,Shane Vereen,RB,NWE,2,56.0,California,22.0
+1990-03-30,2011,Mikel Leshoure,RB,DET,2,57.0,Illinois,21.0
+1989-01-26,2011,Torrey Smith,WR,BAL,2,58.0,Maryland,22.0
+1989-05-30,2011,Greg Little,WR,CLE,2,59.0,North Carolina,22.0
+1987-10-29,2011,Daniel Thomas,RB,MIA,2,62.0,Kansas St.,23.0
+1990-08-22,2011,Randall Cobb,WR,GNB,2,64.0,Kentucky,21.0
+1988-03-17,2011,Rob Housler,TE,ARI,3,69.0,Florida Atlantic,23.0
+1988-02-12,2011,DeMarco Murray,RB,DAL,3,71.0,Oklahoma,23.0
+1989-01-27,2011,Stevan Ridley,RB,NWE,3,73.0,LSU,22.0
+1988-06-05,2011,Ryan Mallett,QB,NWE,3,74.0,Arkansas,23.0
+1988-05-07,2011,Austin Pettis,WR,STL,3,78.0,Boise St.,23.0
+1989-01-30,2011,Leonard Hankerson,WR,WAS,3,79.0,Miami (FL),22.0
+1989-01-25,2011,Vincent Brown,WR,SDG,3,82.0,San Diego St.,22.0
+1989-06-14,2011,Jerrel Jernigan,WR,NYG,3,83.0,Troy,22.0
+1988-06-23,2011,Alex Green,RB,GNB,3,96.0,Hawaii,23.0
+1988-08-07,2011,Jordan Cameron,TE,CLE,4,102.0,USC,23.0
+1988-07-17,2011,Luke Stocker,TE,TAM,4,104.0,Tennessee,23.0
+1988-12-07,2011,Roy Helu,RB,WAS,4,105.0,Nebraska,22.0
+1988-03-17,2011,Kris Durham,WR,SEA,4,107.0,Georgia,23.0
+1986-06-13,2011,Clyde Gates,WR,MIA,4,111.0,Abilene Christian,25.0
+1988-08-25,2011,Greg Salas,WR,STL,4,112.0,Hawaii,23.0
+1987-12-22,2011,Cecil Shorts,WR,JAX,4,114.0,Mount Union,23.0
+1988-09-16,2011,Kendall Hunter,RB,SFO,4,115.0,Oklahoma St.,22.0
+1987-06-22,2011,Delone Carter,RB,IND,4,119.0,Syracuse,24.0
+1989-09-22,2011,Tandon Doss,WR,BAL,4,123.0,Indiana,21.0
+1988-10-04,2011,Owen Marecic,RB,CLE,4,124.0,Stanford,22.0
+1988-07-26,2011,Taiwan Jones,RB,OAK,4,125.0,Eastern Washington,23.0
+1988-10-27,2011,Bilal Powell,RB,NYJ,4,126.0,Louisville,22.0
+1988-06-27,2011,Julius Thomas,TE,DEN,4,129.0,Portland St.,23.0
+1989-09-11,2011,Jamie Harper,RB,TEN,4,130.0,Clemson,21.0
+1988-02-20,2011,Kealoha Pilares,WR,CAR,5,132.0,Hawaii,23.0
+1988-02-03,2011,Johnny White,RB,BUF,5,133.0,North Carolina,23.0
+1987-09-03,2011,Ricky Stanzi,QB,KAN,5,135.0,Iowa,24.0
+1988-12-11,2011,Anthony Sherman,RB,ARI,5,136.0,Connecticut,22.0
+1988-09-10,2011,D.J. Williams,TE,GNB,5,141.0,Arkansas,22.0
+1990-02-06,2011,Jacquizz Rodgers,RB,ATL,5,145.0,Oregon St.,21.0
+1988-12-09,2011,Denarius Moore,WR,OAK,5,148.0,Tennessee,22.0
+1990-09-27,2011,Dion Lewis,RB,PHI,5,149.0,Pittsburgh,20.0
+1987-05-28,2011,T.J. Yates,QB,HOU,5,152.0,North Carolina,24.0
+1988-11-08,2011,Jeremy Kerley,WR,NYJ,5,153.0,TCU,22.0
+1989-08-09,2011,Niles Paul,WR,WAS,5,155.0,Nebraska,22.0
+1987-11-21,2011,Lee Smith,TE,NWE,5,159.0,Marshall,23.0
+1988-01-12,2011,Nathan Enderle,QB,CHI,5,160.0,Idaho,23.0
+1989-07-26,2011,Ryan Whalen,WR,CIN,6,167.0,Stanford,22.0
+1989-02-13,2011,Charles Clay,TE,MIA,6,174.0,Tulsa,22.0
+1987-09-16,2011,Dwayne Harris,WR,DAL,6,176.0,East Carolina,23.0
+1987-11-26,2011,Evan Royster,RB,WAS,6,177.0,Penn St.,23.0
+1988-09-24,2011,Aldrick Robinson,WR,WAS,6,178.0,SMU,22.0
+1989-08-03,2011,Tyrod Taylor,QB,BAL,6,180.0,Virginia Tech,22.0
+1987-06-07,2011,Richard Gordon,TE,OAK,6,181.0,Miami (FL),24.0
+1988-08-03,2011,Ronald Johnson,WR,SFO,6,182.0,USC,23.0
+1990-02-24,2011,Jordan Todman,RB,SDG,6,183.0,Connecticut,21.0
+1988-08-31,2011,Allen Bradford,RB,TAM,6,187.0,USC,23.0
+1988-08-03,2011,Virgil Green,TE,DEN,7,204.0,Nevada,23.0
+1988-05-10,2011,Greg McElroy,QB,NYJ,7,208.0,Alabama,23.0
+1987-11-16,2011,Ryan Taylor,TE,GNB,7,218.0,North Carolina,23.0
+1988-05-02,2011,Shaun Chapas,RB,DAL,7,220.0,Georgia,23.0
+1988-05-02,2011,Da'Rel Scott,RB,NYG,7,221.0,Maryland,23.0
+1989-04-20,2011,Shane Bannon,RB,KAN,7,223.0,Yale,22.0
+1988-08-06,2011,Anthony Allen,RB,BAL,7,225.0,Georgia Tech,23.0
+1988-02-11,2011,Scotty McKnight,WR,NYJ,7,227.0,Colorado,23.0
+1987-12-21,2011,Baron Batch,RB,PIT,7,232.0,Texas Tech,23.0
+1989-12-11,2011,Stephen Burton,WR,MIN,7,236.0,Long Beach CC,21.0
+1987-09-07,2011,Daniel Hardy,TE,TAM,7,238.0,Idaho,24.0
+1987-11-14,2011,Stanley Havili,RB,PHI,7,240.0,USC,23.0
+1987-09-25,2011,David Ausberry,WR,OAK,7,241.0,USC,23.0
+1988-05-15,2011,Jay Finley,RB,CIN,7,246.0,Baylor,23.0
+1985-12-19,2011,DeMarco Sampson,WR,ARI,7,249.0,San Diego St.,25.0
+1987-11-08,2010,Sam Bradford,QB,STL,1,1.0,Oklahoma,22.0
+1987-08-05,2010,C.J. Spiller,RB,BUF,1,9.0,Clemson,23.0
+1987-10-10,2010,Ryan Mathews,RB,SDG,1,12.0,Fresno St.,22.0
+1988-06-16,2010,Jermaine Gresham,TE,CIN,1,21.0,Oklahoma,22.0
+1987-12-25,2010,Demaryius Thomas,WR,DEN,1,22.0,Georgia Tech,22.0
+1988-11-04,2010,Dez Bryant,WR,DAL,1,24.0,Oklahoma St.,21.0
+1987-08-14,2010,Tim Tebow,QB,DEN,1,25.0,Florida,23.0
+1989-01-30,2010,Jahvid Best,RB,DET,1,30.0,California,21.0
+1989-08-25,2010,Dexter McCluster,WR,KAN,2,36.0,Mississippi,21.0
+1988-09-08,2010,Arrelious Benn,WR,TAM,2,39.0,Illinois,21.0
+1989-05-14,2010,Rob Gronkowski,TE,NWE,2,42.0,Arizona,21.0
+1987-09-21,2010,Jimmy Clausen,QB,CAR,2,48.0,Notre Dame,22.0
+1987-03-28,2010,Toby Gerhart,RB,MIN,2,51.0,Stanford,23.0
+1988-08-21,2010,Ben Tate,RB,HOU,2,58.0,Auburn,22.0
+1987-02-01,2010,Montario Hardesty,RB,CLE,2,59.0,Tennessee,23.0
+1988-08-02,2010,Golden Tate,WR,SEA,2,60.0,Notre Dame,22.0
+1987-07-25,2010,Ed Dickson,TE,BAL,3,70.0,Oregon,23.0
+1988-05-26,2010,Damian Williams,WR,TEN,3,77.0,USC,22.0
+1986-11-04,2010,Brandon LaFell,WR,CAR,3,78.0,LSU,23.0
+1987-03-17,2010,Emmanuel Sanders,WR,PIT,3,82.0,SMU,23.0
+1985-12-23,2010,Jordan Shipley,WR,CIN,3,84.0,Texas,24.0
+1986-09-05,2010,Colt McCoy,QB,CLE,3,85.0,Texas,24.0
+1987-03-15,2010,Eric Decker,WR,DEN,3,87.0,Minnesota,23.0
+1988-01-09,2010,Andre Roberts,WR,ARI,3,88.0,The Citadel,22.0
+1988-03-08,2010,Armanti Edwards,WR,CAR,3,89.0,Appalachian St.,22.0
+1987-10-08,2010,Taylor Price,WR,NWE,3,90.0,Ohio,22.0
+1987-06-08,2010,Tony Moeaki,TE,KAN,3,93.0,Iowa,23.0
+1986-11-24,2010,Jimmy Graham,TE,NOR,3,95.0,Miami (FL),23.0
+1986-12-02,2010,Mardy Gilyard,WR,STL,4,99.0,Cincinnati,23.0
+1987-05-18,2010,Mike Williams,WR,TAM,4,101.0,Syracuse,23.0
+1987-11-02,2010,Marcus Easley,WR,BUF,4,107.0,Connecticut,22.0
+1987-07-27,2010,Jacoby Ford,WR,OAK,4,108.0,Clemson,23.0
+1988-04-16,2010,Joe McKnight,RB,NYJ,4,112.0,USC,22.0
+1989-11-06,2010,Aaron Hernandez,TE,NWE,4,113.0,Florida,20.0
+1985-06-29,2010,Dennis Pitta,TE,BAL,4,114.0,BYU,25.0
+1986-08-04,2010,Garrett Graham,TE,HOU,4,118.0,Wisconsin,24.0
+1987-07-25,2010,Mike Kafka,QB,PHI,4,122.0,Northwestern,23.0
+1987-07-02,2010,Clay Harbor,TE,PHI,4,125.0,Missouri State,23.0
+1988-07-04,2010,Michael Hoomanawanui,TE,STL,5,132.0,Illinois,22.0
+1987-06-08,2010,John Conner,RB,NYJ,5,139.0,Kentucky,23.0
+1988-10-06,2010,Andrew Quarless,TE,GNB,5,154.0,Penn St.,21.0
+1988-03-17,2010,John Skelton,QB,ARI,5,155.0,Fordham,22.0
+1987-03-22,2010,David Reed,WR,BAL,5,156.0,Utah,23.0
+1987-09-09,2010,Riley Cooper,WR,PHI,5,159.0,Florida,22.0
+1987-03-31,2010,Brody Eldridge,TE,IND,5,162.0,Oklahoma,23.0
+1986-11-12,2010,Kerry Meier,WR,ATL,5,165.0,Kansas,23.0
+1987-07-25,2010,Jonathan Crompton,QB,SDG,5,168.0,Tennessee,23.0
+1986-11-17,2010,Fendi Onobun,TE,STL,6,170.0,Arizona,23.0
+1987-09-24,2010,Anthony Dixon,RB,SFO,6,173.0,Mississippi St.,22.0
+1987-01-28,2010,Rusty Smith,QB,TEN,6,176.0,Florida Atlantic,23.0
+1988-04-06,2010,Carlton Mitchell,WR,CLE,6,177.0,South Florida,22.0
+1986-11-18,2010,Deji Karim,RB,JAX,6,180.0,Southern Illinois,23.0
+1987-03-19,2010,Dan LeFevour,QB,CHI,6,181.0,Central Michigan,23.0
+1988-06-27,2010,Nate Byham,TE,SFO,6,182.0,Pittsburgh,22.0
+1987-12-12,2010,Anthony McCoy,TE,SEA,6,185.0,USC,22.0
+1989-07-26,2010,Jonathan Dwyer,RB,PIT,6,188.0,Georgia Tech,21.0
+1989-08-31,2010,Dezmon Briscoe,WR,CIN,6,191.0,Kansas,21.0
+1986-02-25,2010,James Starks,RB,GNB,6,193.0,Buffalo,24.0
+1988-07-10,2010,Antonio Brown,WR,PIT,6,195.0,Central Michigan,22.0
+1986-04-27,2010,Trindon Holliday,WR,HOU,6,197.0,LSU,24.0
+1987-08-27,2010,David Gettis,WR,CAR,6,198.0,Baylor,23.0
+1986-11-14,2010,Joe Webb,WR,MIN,6,199.0,Ala-Birmingham,23.0
+1986-03-10,2010,Tony Pike,QB,CAR,6,204.0,Cincinnati,24.0
+1988-07-19,2010,Kyle Williams,WR,SFO,6,206.0,Arizona St.,22.0
+1987-03-11,2010,Levi Brown,QB,BUF,7,209.0,Troy,23.0
+1986-10-09,2010,Mickey Shuler,TE,MIN,7,214.0,Penn St.,23.0
+1988-08-25,2010,Terrence Austin,WR,WAS,7,219.0,UCLA,22.0
+1987-05-02,2010,Marc Mariani,WR,TEN,7,222.0,Montana,23.0
+1988-03-31,2010,Dorin Dickerson,WR,HOU,7,227.0,Pittsburgh,22.0
+1986-12-31,2010,Jim Dray,TE,ARI,7,233.0,Stanford,23.0
+1988-06-19,2010,Dedrick Epps,TE,SDG,7,235.0,Miami (FL),22.0
+1987-08-15,2010,Ryan D'Imperio,RB,MIN,7,237.0,Rutgers,23.0
+1986-01-30,2010,Sean Canfield,QB,NOR,7,239.0,Oregon St.,24.0
+1986-07-02,2010,Jameson Konz,TE,SEA,7,245.0,Kent St.,24.0
+1986-09-29,2010,Zac Robinson,QB,NWE,7,250.0,Oklahoma St.,23.0
+1985-02-14,2010,Tim Toone,WR,DET,7,255.0,Weber St.,25.0
+1988-02-07,2009,Matthew Stafford,QB,DET,1,1.0,Georgia,21.0
+1986-11-11,2009,Mark Sanchez,QB,NYJ,1,5.0,USC,22.0
+1987-02-26,2009,Darrius Heyward-Bey,WR,OAK,1,7.0,Maryland,22.0
+1987-09-14,2009,Michael Crabtree,WR,SFO,1,10.0,Texas Tech,21.0
+1987-07-16,2009,Knowshon Moreno,RB,DEN,1,12.0,Georgia,22.0
+1988-01-13,2009,Josh Freeman,QB,TAM,1,17.0,Kansas St.,21.0
+1988-05-11,2009,Jeremy Maclin,WR,PHI,1,19.0,Missouri,21.0
+1985-02-23,2009,Brandon Pettigrew,TE,DET,1,20.0,Oklahoma St.,24.0
+1988-05-28,2009,Percy Harvin,WR,MIN,1,22.0,Florida,21.0
+1987-04-11,2009,Donald Brown,RB,IND,1,27.0,Connecticut,22.0
+1988-01-14,2009,Hakeem Nicks,WR,NYG,1,29.0,North Carolina,21.0
+1988-09-19,2009,Kenny Britt,WR,TEN,1,30.0,Rutgers,20.0
+1988-08-07,2009,Beanie Wells,RB,ARI,1,31.0,Ohio St.,21.0
+1987-12-03,2009,Brian Robiskie,WR,CLE,2,36.0,Ohio St.,21.0
+1986-02-25,2009,Pat White,QB,MIA,2,44.0,West Virginia,23.0
+1986-11-24,2009,Mohamed Massaquoi,WR,CLE,2,50.0,Georgia,22.0
+1988-07-12,2009,LeSean McCoy,RB,PHI,2,53.0,Pittsburgh,21.0
+1986-09-06,2009,Richard Quinn,TE,DEN,2,64.0,North Carolina,23.0
+1985-08-21,2009,Shonn Greene,RB,NYJ,3,65.0,Iowa,24.0
+1987-05-01,2009,Glen Coffee,RB,SFO,3,74.0,Alabama,22.0
+1986-07-06,2009,Derrick Williams,WR,DET,3,82.0,Penn St.,23.0
+1987-10-05,2009,Brandon Tate,WR,NWE,3,83.0,North Carolina,21.0
+1986-08-01,2009,Mike Wallace,WR,PIT,3,84.0,Mississippi,23.0
+1986-01-01,2009,Ramses Barden,WR,NYG,3,85.0,Cal Poly-San Luis Obispo,23.0
+1987-05-19,2009,Patrick Turner,WR,MIA,3,87.0,USC,22.0
+1987-04-07,2009,Jared Cook,TE,TEN,3,89.0,South Carolina,22.0
+1986-01-04,2009,Deon Butler,WR,SEA,3,91.0,Penn St.,23.0
+1986-11-10,2009,Chase Coffman,TE,CIN,3,98.0,Missouri,22.0
+1987-08-22,2009,Juaquin Iglesias,WR,CHI,3,99.0,Oklahoma,22.0
+1987-01-24,2009,Travis Beckum,TE,NYG,3,100.0,Wisconsin,22.0
+1985-09-27,2009,Stephen McGee,QB,DAL,4,101.0,Texas A&M,23.0
+1987-06-04,2009,Mike Thomas,WR,JAX,4,107.0,Arizona,22.0
+1986-11-22,2009,Brian Hartline,WR,MIA,4,108.0,Ohio St.,22.0
+1987-05-23,2009,Mike Goodson,RB,CAR,4,111.0,Texas A&M,22.0
+1985-10-05,2009,Shawn Nelson,TE,BUF,4,121.0,Southern Miss,23.0
+1985-01-02,2009,Anthony Hill,TE,HOU,4,122.0,North Carolina St.,24.0
+1987-05-11,2009,Louis Murphy,WR,OAK,4,124.0,Florida,22.0
+1985-11-11,2009,Austin Collie,WR,IND,4,127.0,BYU,23.0
+1986-08-22,2009,Tony Fiammetta,RB,CAR,4,128.0,Syracuse,23.0
+1986-12-15,2009,Andre Brown,RB,NYG,4,129.0,North Carolina St.,22.0
+1986-06-21,2009,Gartrell Johnson,RB,SDG,4,134.0,Colorado St.,23.0
+1986-11-03,2009,Johnny Knox,WR,CHI,5,140.0,Abilene Christian,22.0
+1987-01-31,2009,Kenny McKinley,WR,DEN,5,141.0,South Carolina,22.0
+1985-12-21,2009,Jarett Dillard,WR,JAX,5,144.0,Rice,23.0
+1986-09-30,2009,Quinn Johnson,RB,GNB,5,145.0,LSU,22.0
+1985-12-09,2009,Davon Drew,TE,BAL,5,149.0,East Carolina,23.0
+1985-06-02,2009,Rhett Bomar,QB,NYG,5,151.0,Sam Houston St.,24.0
+1984-09-22,2009,James Casey,TE,HOU,5,152.0,Rice,24.0
+1985-06-10,2009,Cornelius Ingram,TE,PHI,5,153.0,Florida,24.0
+1986-04-09,2009,Brooks Foster,WR,STL,5,160.0,North Carolina,23.0
+1986-05-14,2009,John Nalbone,TE,MIA,5,161.0,Monmouth,23.0
+1985-09-06,2009,Frank Summers,RB,PIT,5,169.0,UNLV,24.0
+1987-05-25,2009,Nate Davis,QB,SFO,5,171.0,Ball St.,22.0
+1987-02-02,2009,Javon Ringer,RB,TEN,5,173.0,Michigan St.,22.0
+1984-10-21,2009,Tom Brandstater,QB,DEN,6,174.0,Fresno St.,24.0
+1984-09-21,2009,Quinten Lawrence,WR,KAN,6,175.0,McNeese St.,24.0
+1986-01-06,2009,Mike Teel,QB,SEA,6,178.0,Rutgers,23.0
+1984-10-04,2009,Zach Miller,TE,JAX,6,180.0,Nebraska-Omaha,24.0
+1986-02-23,2009,Bear Pascoe,TE,SFO,6,184.0,Fresno St.,23.0
+1986-10-10,2009,Cedric Peerman,RB,BAL,6,185.0,Virginia,22.0
+1985-10-10,2009,Aaron Brown,RB,DET,6,192.0,TCU,23.0
+1987-08-13,2009,Brandon Gibson,WR,PHI,6,194.0,Washington St.,22.0
+1986-01-01,2009,James Davis,RB,CLE,6,195.0,Clemson,23.0
+1985-09-24,2009,Keith Null,QB,STL,6,196.0,West Texas A&M,23.0
+1985-06-24,2009,Curtis Painter,QB,IND,6,201.0,Purdue,24.0
+1985-09-04,2009,Brandon Myers,TE,OAK,6,202.0,Iowa,24.0
+1986-07-16,2009,Dominique Edison,WR,TEN,6,206.0,S.F. Austin,23.0
+1987-06-11,2009,John Phillips,TE,DAL,6,208.0,Virginia,22.0
+1984-02-10,2009,Bernard Scott,RB,CIN,6,209.0,Abilene Christian,25.0
+1986-05-20,2009,Chris Ogbonnaya,RB,STL,7,211.0,Texas,23.0
+1986-04-08,2009,Javarris Williams,RB,KAN,7,212.0,Tennessee St.,23.0
+1984-03-09,2009,Fui Vakapuna,RB,CIN,7,215.0,BYU,25.0
+1987-08-22,2009,Eddie Williams,RB,WAS,7,221.0,Idaho,22.0
+1986-10-14,2009,Manuel Johnson,WR,DAL,7,229.0,Oklahoma,22.0
+1986-05-22,2009,Julian Edelman,WR,NWE,7,232.0,Kent St.,23.0
+1986-01-03,2009,Sammie Stroughter,WR,TAM,7,233.0,Oregon St.,23.0
+1985-11-06,2009,Jake O'Connell,TE,KAN,7,237.0,Miami (OH),23.0
+1987-04-26,2009,LaRod Stephens-Howling,RB,ARI,7,240.0,Pittsburgh,22.0
+1987-08-26,2009,David Johnson,TE,PIT,7,241.0,Arkansas St.,22.0
+1985-03-11,2009,Marko Mitchell,WR,WAS,7,243.0,Nevada,24.0
+1987-03-18,2009,Cameron Morrah,TE,SEA,7,248.0,California,22.0
+1985-03-26,2009,Rashad Jennings,RB,JAX,7,250.0,Liberty,24.0
+1987-02-17,2009,Tiquan Underwood,WR,JAX,7,253.0,Rutgers,22.0
+1985-01-21,2009,Dan Gronkowski,TE,DET,7,255.0,Maryland,24.0
+1985-05-17,2008,Matt Ryan,QB,ATL,1,3.0,Boston Col.,23.0
+1987-08-27,2008,Darren McFadden,RB,OAK,1,4.0,Arkansas,21.0
+1987-03-21,2008,Jonathan Stewart,RB,CAR,1,13.0,Oregon,21.0
+1985-01-16,2008,Joe Flacco,QB,BAL,1,18.0,Delaware,23.0
+1987-05-08,2008,Felix Jones,RB,DAL,1,22.0,Arkansas,21.0
+1987-06-19,2008,Rashard Mendenhall,RB,PIT,1,23.0,Illinois,21.0
+1985-09-23,2008,Chris Johnson,RB,TEN,1,24.0,East Carolina,22.0
+1984-09-25,2008,Dustin Keller,TE,NYJ,1,30.0,Purdue,23.0
+1984-06-12,2008,Donnie Avery,WR,STL,2,33.0,Houston,24.0
+1986-11-15,2008,Devin Thomas,WR,WAS,2,34.0,Michigan St.,21.0
+1985-05-31,2008,Jordy Nelson,WR,GNB,2,36.0,Kansas St.,23.0
+1984-05-12,2008,John Carlson,TE,SEA,2,38.0,Notre Dame,24.0
+1985-12-24,2008,James Hardy,WR,BUF,2,41.0,Indiana,22.0
+1986-05-21,2008,Eddie Royal,WR,DEN,2,42.0,Virginia Tech,22.0
+1985-12-10,2008,Matt Forte,RB,CHI,2,44.0,Tulane,22.0
+1986-02-04,2008,Jerome Simpson,WR,CIN,2,46.0,Coastal Carolina,22.0
+1986-01-15,2008,Fred Davis,TE,WAS,2,48.0,USC,22.0
+1986-12-01,2008,DeSean Jackson,WR,PHI,2,49.0,California,21.0
+1986-12-30,2008,Malcolm Kelly,WR,WAS,2,51.0,Oklahoma,21.0
+1984-12-25,2008,Limas Sweed,WR,PIT,2,53.0,Texas,23.0
+1987-01-22,2008,Ray Rice,RB,BAL,2,55.0,Rutgers,21.0
+1985-09-23,2008,Brian Brohm,QB,GNB,2,56.0,Louisville,22.0
+1985-07-02,2008,Chad Henne,QB,MIA,2,57.0,Michigan,23.0
+1986-08-05,2008,Dexter Jackson,WR,TAM,2,58.0,Appalachian St.,22.0
+1987-03-10,2008,Martellus Bennett,TE,DAL,2,61.0,Texas A&M,21.0
+1986-12-17,2008,Kevin Smith,RB,DET,3,64.0,Central Florida,21.0
+1987-03-23,2008,Earl Bennett,WR,CHI,3,70.0,Vanderbilt,21.0
+1986-12-27,2008,Jamaal Charles,RB,KAN,3,73.0,Texas,21.0
+1984-11-28,2008,Brad Cottam,TE,KAN,3,76.0,Tennessee,23.0
+1985-10-28,2008,Early Doucet,WR,ARI,3,81.0,LSU,22.0
+1984-09-16,2008,Harry Douglas,WR,ATL,3,84.0,Louisville,23.0
+1984-09-01,2008,Craig Stevens,TE,TEN,3,85.0,California,24.0
+1986-01-04,2008,Steve Slaton,RB,HOU,3,89.0,West Virginia,22.0
+1987-03-26,2008,Jermichael Finley,TE,GNB,3,91.0,Texas,21.0
+1985-05-25,2008,Kevin O'Connell,QB,NWE,3,94.0,San Diego St.,23.0
+1986-05-25,2008,Mario Manningham,WR,NYG,3,95.0,Michigan,22.0
+1985-04-15,2008,Andre Caldwell,WR,CIN,3,97.0,Florida,23.0
+1985-10-13,2008,Will Franklin,WR,KAN,4,105.0,Missouri,22.0
+1985-01-11,2008,Marcus Smith,WR,BAL,4,106.0,New Mexico,23.0
+1985-05-04,2008,Martin Rucker,TE,CLE,4,111.0,Missouri,23.0
+1984-11-20,2008,Tashard Choice,RB,DAL,4,122.0,Georgia Tech,23.0
+1985-07-10,2008,Arman Shields,WR,OAK,4,125.0,Richmond,23.0
+1986-07-12,2008,Lavelle Hawkins,WR,TEN,4,126.0,California,22.0
+1985-03-15,2008,Jacob Tamme,TE,IND,4,127.0,Kentucky,23.0
+1984-10-29,2008,Keenan Burton,WR,STL,4,128.0,Kentucky,23.0
+1983-08-24,2008,Derek Fine,TE,BUF,4,132.0,Kansas,25.0
+1985-02-19,2008,Kenny Moore,WR,DET,5,136.0,Wake Forest,23.0
+1986-08-10,2008,Ryan Torain,RB,DEN,5,139.0,Arizona St.,22.0
+1985-09-22,2008,Gary Barnidge,TE,CAR,5,141.0,Louisville,22.0
+1986-05-23,2008,Tim Hightower,RB,ARI,5,149.0,Richmond,22.0
+1985-09-09,2008,Matthew Slater,WR,NWE,5,153.0,UCLA,22.0
+1985-01-11,2008,Dennis Dixon,QB,PIT,5,156.0,Oregon,23.0
+1985-10-11,2008,Kellen Davis,TE,CHI,5,158.0,Michigan St.,22.0
+1986-05-15,2008,Josh Johnson,QB,TAM,5,160.0,San Diego,22.0
+1986-06-12,2008,Erik Ainge,QB,NYJ,5,162.0,Tennessee,22.0
+1984-05-28,2008,Marcus Thomas,RB,SDG,5,166.0,Texas-El Paso,24.0
+1986-02-21,2008,Marcus Henry,WR,NYJ,6,171.0,Kansas,22.0
+1986-05-15,2008,Thomas Brown,RB,ATL,6,172.0,Georgia,22.0
+1985-06-20,2008,Josh Morgan,WR,SFO,6,174.0,Virginia Tech,23.0
+1985-12-30,2008,Jalen Parmele,RB,MIA,6,176.0,Toledo,22.0
+1985-02-15,2008,Xavier Omon,RB,BUF,6,179.0,NW Missouri St.,23.0
+1984-12-19,2008,Kevin Robinson,WR,KAN,6,182.0,Utah St.,23.0
+1983-08-16,2008,Colt Brennan,QB,WAS,6,186.0,Hawaii,25.0
+1985-06-12,2008,Paul Hubbard,WR,CLE,6,191.0,Wisconsin,23.0
+1984-07-10,2008,Jaymar Johnson,WR,MIN,6,193.0,Jackson St.,24.0
+1985-11-22,2008,Tom Santi,TE,IND,6,196.0,Virginia,22.0
+1984-04-25,2008,Andre Woodson,QB,NYG,6,198.0,Kentucky,24.0
+1986-04-09,2008,Mike Hart,RB,IND,6,202.0,Michigan,22.0
+1984-07-30,2008,Lex Hilliard,RB,MIA,6,204.0,Montana,24.0
+1986-08-08,2008,Pierre Garcon,WR,IND,6,205.0,Mount Union,22.0
+1984-12-11,2008,Matt Sherry,TE,CIN,6,207.0,Villanova,23.0
+1985-06-20,2008,Matt Flynn,QB,GNB,7,209.0,LSU,23.0
+1985-04-29,2008,Chauncey Washington,RB,JAX,7,213.0,USC,23.0
+1985-02-24,2008,Justin Harper,WR,BAL,7,215.0,Virginia Tech,23.0
+1985-06-21,2008,Brett Swain,WR,GNB,7,217.0,San Diego St.,23.0
+1985-06-02,2008,Alex Brink,QB,HOU,7,223.0,Washington St.,23.0
+1986-11-28,2008,Stevie Johnson,WR,BUF,7,224.0,Kentucky,21.0
+1985-11-07,2008,Chaz Schilens,WR,OAK,7,226.0,San Diego St.,22.0
+1984-10-09,2008,Keith Zinger,TE,ATL,7,232.0,LSU,23.0
+1985-10-14,2008,Justin Forsett,RB,SEA,7,233.0,California,22.0
+1985-11-07,2008,Adrian Arrington,WR,NOR,7,237.0,Michigan,22.0
+1985-08-06,2008,Cory Boyd,RB,TAM,7,238.0,South Carolina,23.0
+1984-09-03,2008,Mike Merritt,TE,KAN,7,239.0,Central Florida,24.0
+1984-02-15,2008,Allen Patrick,RB,BAL,7,240.0,Oklahoma,24.0
+1986-01-18,2008,Mario Urrutia,WR,CIN,7,246.0,Louisville,22.0
+1986-04-26,2008,Marcus Monk,WR,CHI,7,248.0,Arkansas,22.0
+1985-08-09,2007,JaMarcus Russell,QB,OAK,1,1.0,LSU,22.0
+1985-09-29,2007,Calvin Johnson,WR,DET,1,2.0,Georgia Tech,21.0
+1985-03-21,2007,Adrian Peterson,RB,MIN,1,7.0,Oklahoma,22.0
+1985-04-12,2007,Ted Ginn Jr.,WR,MIA,1,9.0,Ohio St.,22.0
+1986-04-22,2007,Marshawn Lynch,RB,BUF,1,12.0,California,21.0
+1984-10-27,2007,Brady Quinn,QB,CLE,1,22.0,Notre Dame,22.0
+1984-09-21,2007,Dwayne Bowe,WR,KAN,1,23.0,LSU,22.0
+1984-09-28,2007,Robert Meachem,WR,NOR,1,27.0,Tennessee,22.0
+1985-10-02,2007,Craig Davis,WR,SDG,1,30.0,LSU,21.0
+1985-03-11,2007,Greg Olsen,TE,CHI,1,31.0,Miami (FL),22.0
+1984-09-18,2007,Anthony Gonzalez,WR,IND,1,32.0,Ohio St.,22.0
+1984-08-24,2007,Kevin Kolb,QB,PHI,2,36.0,Houston,23.0
+1985-12-11,2007,Zach Miller,TE,OAK,2,38.0,Arizona St.,21.0
+1981-08-21,2007,John Beck,QB,MIA,2,40.0,BYU,26.0
+1984-05-07,2007,Drew Stanton,QB,DET,2,43.0,Michigan St.,23.0
+1986-09-01,2007,Sidney Rice,WR,MIN,2,44.0,South Carolina,21.0
+1986-09-11,2007,Dwayne Jarrett,WR,CAR,2,45.0,USC,20.0
+1985-06-06,2007,Chris Henry,RB,TEN,2,50.0,Arizona,22.0
+1985-05-06,2007,Steve Smith,WR,NYG,2,51.0,USC,22.0
+1984-02-03,2007,Brian Leonard,RB,STL,2,52.0,Rutgers,23.0
+1985-10-02,2007,Brandon Jackson,RB,GNB,2,63.0,Nebraska,21.0
+1984-06-14,2007,Lorenzo Booker,RB,MIA,3,71.0,Florida St.,23.0
+1984-07-11,2007,Jacoby Jones,WR,HOU,3,73.0,Lane,23.0
+1983-01-10,2007,Yamon Figurs,WR,BAL,3,74.0,Kansas St.,24.0
+1985-05-20,2007,Laurent Robinson,WR,ATL,3,75.0,Illinois St.,22.0
+1985-02-20,2007,Jason Hill,WR,SFO,3,76.0,Washington St.,22.0
+1983-11-24,2007,Matt Spaeth,TE,PIT,3,77.0,Minnesota,23.0
+1984-03-31,2007,James Jones,WR,GNB,3,78.0,San Jose St.,23.0
+1984-11-21,2007,Mike Sims-Walker,WR,JAX,3,79.0,Central Florida,22.0
+1983-12-02,2007,Paul Williams,WR,TEN,3,80.0,Fresno St.,23.0
+1985-11-24,2007,Tony Hunt,RB,PHI,3,90.0,Penn St.,21.0
+1983-10-30,2007,Trent Edwards,QB,BUF,3,92.0,Stanford,23.0
+1984-08-17,2007,Garrett Wolfe,RB,CHI,3,93.0,Northern Illinois,23.0
+1983-09-08,2007,Johnnie Lee Higgins,WR,OAK,3,99.0,Texas-El Paso,23.0
+1984-06-16,2007,Michael Bush,RB,OAK,4,100.0,Louisville,23.0
+1984-08-16,2007,Isaiah Stanback,QB,DAL,4,103.0,Washington,23.0
+1985-12-19,2007,Antonio Pittman,RB,NOR,4,107.0,Ohio St.,21.0
+1983-06-02,2007,Dwayne Wright,RB,BUF,4,111.0,Fresno St.,24.0
+1984-11-04,2007,Ryne Robinson,WR,CAR,4,118.0,Miami (OH),22.0
+1984-01-23,2007,Chris Davis,WR,TEN,4,128.0,Florida St.,23.0
+1985-07-23,2007,Scott Chandler,TE,SDG,4,129.0,Iowa,22.0
+1984-08-08,2007,Martrez Milner,TE,ATL,4,133.0,Georgia,23.0
+1984-12-27,2007,Le'Ron McClain,RB,BAL,4,137.0,Alabama,22.0
+1983-08-20,2007,Steve Breaston,WR,ARI,5,142.0,Michigan,24.0
+1986-04-20,2007,Aundrae Allison,WR,MIN,5,146.0,East Carolina,21.0
+1984-12-15,2007,Kolby Smith,RB,KAN,5,148.0,Louisville,22.0
+1984-01-11,2007,Kevin Boss,TE,NYG,5,153.0,Western Oregon,23.0
+1984-10-25,2007,Dante Rosario,TE,CAR,5,155.0,Oregon,22.0
+1985-07-07,2007,David Clowney,WR,GNB,5,157.0,Virginia Tech,22.0
+1985-01-25,2007,Brent Celek,TE,PHI,5,162.0,Cincinnati,22.0
+1983-12-08,2007,Roy Hall,WR,IND,5,169.0,Ohio St.,23.0
+1983-09-16,2007,Legedu Naanee,WR,SDG,5,172.0,Boise St.,23.0
+1984-07-20,2007,Troy Smith,QB,BAL,5,174.0,Ohio St.,23.0
+1984-07-06,2007,Reagan Maui'a,RB,MIA,6,181.0,Hawaii,23.0
+1984-04-07,2007,Courtney Taylor,WR,SEA,6,197.0,Auburn,23.0
+1984-05-30,2007,Jordan Palmer,QB,WAS,6,205.0,Texas-El Paso,23.0
+1984-07-24,2007,Jordan Kent,WR,SEA,6,210.0,Oregon,23.0
+1984-08-23,2007,Ben Patrick,TE,ARI,7,215.0,Delaware,23.0
+1984-04-14,2007,Tyler Thigpen,QB,MIN,7,217.0,Coastal Carolina,23.0
+1985-03-11,2007,Derek Schouman,TE,BUF,7,222.0,Boise St.,22.0
+1982-11-10,2007,Dallas Baker,WR,PIT,7,227.0,Florida,24.0
+1983-10-09,2007,DeShawn Wynn,RB,GNB,7,228.0,Florida,23.0
+1983-12-18,2007,John Broussard,WR,JAX,7,229.0,San Jose St.,23.0
+1984-12-06,2007,Syndric Steptoe,WR,CLE,7,234.0,Arizona,22.0
+1983-10-04,2007,Chansi Stuckey,WR,NYJ,7,235.0,Clemson,23.0
+1984-07-10,2007,Clark Harris,TE,GNB,7,243.0,Rutgers,23.0
+1983-12-29,2007,Jason Snelling,RB,ATL,7,244.0,Virginia,23.0
+1982-12-26,2007,Kenneth Darby,RB,TAM,7,246.0,Alabama,24.0
+1985-08-27,2007,Derek Stanley,WR,STL,7,249.0,WisconsinâWhitewater,22.0
+1986-03-19,2007,Ahmad Bradshaw,RB,NYG,7,250.0,Marshall,21.0
+1985-02-18,2007,Jonathan Holland,WR,OAK,7,254.0,Louisiana Tech,22.0
+1985-03-02,2006,Reggie Bush,RB,NOR,1,2.0,USC,21.0
+1983-05-18,2006,Vince Young,QB,TEN,1,3.0,Texas,23.0
+1984-01-31,2006,Vernon Davis,TE,SFO,1,6.0,Maryland,22.0
+1983-05-11,2006,Matt Leinart,QB,ARI,1,10.0,USC,23.0
+1983-04-29,2006,Jay Cutler,QB,DEN,1,11.0,Vanderbilt,23.0
+1985-02-05,2006,Laurence Maroney,RB,NWE,1,21.0,Minnesota,21.0
+1984-03-03,2006,Santonio Holmes,WR,PIT,1,25.0,Ohio St.,22.0
+1983-04-25,2006,DeAngelo Williams,RB,CAR,1,27.0,Memphis,23.0
+1984-05-19,2006,Marcedes Lewis,TE,JAX,1,28.0,UCLA,22.0
+1983-05-03,2006,Joseph Addai,RB,IND,1,30.0,LSU,23.0
+1985-03-06,2006,Chad Jackson,WR,NWE,2,36.0,Florida,21.0
+1983-12-28,2006,Sinorice Moss,WR,NYG,2,44.0,Miami (FL),22.0
+1984-12-20,2006,LenDale White,RB,TEN,2,45.0,USC,21.0
+1983-11-09,2006,Joe Klopfenstein,TE,STL,2,46.0,Colorado,22.0
+1983-06-07,2006,Kellen Clemens,QB,NYJ,2,49.0,Oregon,23.0
+1983-09-21,2006,Greg Jennings,WR,GNB,2,52.0,Western Michigan,22.0
+1984-04-20,2006,Anthony Fasano,TE,DAL,2,53.0,Notre Dame,22.0
+1985-03-23,2006,Maurice Jones-Drew,RB,JAX,2,60.0,UCLA,21.0
+1983-02-15,2006,Tony Scheffler,TE,DEN,2,61.0,Western Michigan,23.0
+1983-04-21,2006,Tarvaris Jackson,QB,MIN,2,64.0,Alabama St.,23.0
+1983-09-10,2006,Leonard Pope,TE,ARI,3,72.0,Georgia,22.0
+1984-05-08,2006,Brian Calhoun,RB,DET,3,74.0,Wisconsin,22.0
+1984-02-11,2006,Travis Wilson,WR,CLE,3,78.0,Oklahoma,22.0
+1983-07-29,2006,Jerious Norwood,RB,ATL,3,79.0,Mississippi St.,23.0
+1982-08-06,2006,Charlie Whitehurst,QB,SDG,3,81.0,Clemson,24.0
+1984-09-21,2006,Derek Hagan,WR,MIA,3,82.0,Arizona St.,21.0
+1984-02-24,2006,Brandon Williams,WR,SFO,3,84.0,Wisconsin,22.0
+1983-02-06,2006,Brodie Croyle,QB,KAN,3,85.0,Alabama,23.0
+1983-07-05,2006,David Thomas,TE,NWE,3,86.0,Texas,23.0
+1985-02-21,2006,Maurice Stovall,WR,TAM,3,90.0,Notre Dame,21.0
+1984-02-07,2006,Dominique Byrd,TE,STL,3,93.0,USC,22.0
+1982-09-19,2006,Willie Reid,WR,PIT,3,95.0,Florida St.,23.0
+1982-11-09,2006,Owen Daniels,TE,HOU,4,98.0,Wisconsin,23.0
+1983-02-06,2006,Michael Robinson,WR,SFO,4,100.0,Penn St.,23.0
+1983-12-12,2006,Brad Smith,QB,NYJ,4,103.0,Missouri,22.0
+1983-04-20,2006,Jason Avant,WR,PHI,4,109.0,Michigan,23.0
+1983-03-28,2006,Demetrius Williams,WR,BAL,4,111.0,Oregon,23.0
+1982-08-29,2006,Leon Washington,RB,NYJ,4,117.0,Florida St.,24.0
+1984-03-23,2006,Brandon Marshall,WR,DEN,4,119.0,Central Florida,22.0
+1984-09-12,2006,Skyler Green,WR,DAL,4,125.0,LSU,21.0
+1984-10-08,2006,Domenik Hixon,WR,DEN,4,130.0,Akron,21.0
+1982-12-29,2006,Marques Hagans,WR,STL,5,144.0,Virginia,23.0
+1983-02-26,2006,Jerome Harrison,RB,CLE,5,145.0,Washington St.,23.0
+1982-08-15,2006,Ingle Martin,QB,GNB,5,148.0,Furman,24.0
+1983-02-09,2006,Jason Pociask,TE,NYJ,5,150.0,Wisconsin,23.0
+1983-02-19,2006,Jeff King,TE,CAR,5,155.0,Virginia Tech,23.0
+1983-02-12,2006,David Kirtman,RB,SEA,5,163.0,USC,23.0
+1982-04-14,2006,Quinn Sypniewski,TE,BAL,5,166.0,Colorado,24.0
+1983-09-08,2006,Wali Lundy,RB,HOU,6,170.0,Virginia,22.0
+1983-01-02,2006,Mike Hass,WR,NOR,6,171.0,Oregon St.,23.0
+1984-08-12,2006,Delanie Walker,WR,SFO,6,175.0,Central Missouri St.,22.0
+1982-11-17,2006,Adam Jennings,WR,ATL,6,184.0,Fresno St.,23.0
+1982-01-31,2006,Jeff Webb,WR,KAN,6,190.0,San Diego St.,24.0
+1983-09-20,2006,Reggie McNeal,QB,CIN,6,193.0,Texas A&M,22.0
+1983-01-27,2006,Bruce Gradkowski,QB,TAM,6,194.0,Toledo,23.0
+1984-06-19,2006,J.D. Runnels,RB,CHI,6,195.0,Oklahoma,22.0
+1983-01-31,2006,Ethan Kilmer,WR,CIN,7,209.0,Penn St.,23.0
+1983-06-22,2006,Todd Watkins,WR,ARI,7,218.0,BYU,23.0
+1982-09-17,2006,Justin Hamilton,RB,CLE,7,222.0,Virginia Tech,23.0
+1984-05-23,2006,Devin Aromashodu,WR,MIA,7,233.0,Auburn,22.0
+1982-07-08,2006,Tim Massaquoi,TE,TAM,7,244.0,Michigan,24.0
+1984-07-15,2006,Quinton Ganther,RB,TEN,7,246.0,Utah,22.0
+1983-10-30,2006,Ben Obomanu,WR,SEA,7,249.0,Auburn,22.0
+1983-07-28,2006,David Anderson,WR,HOU,7,251.0,Colorado St.,23.0
+1983-06-05,2006,Marques Colston,WR,NOR,7,252.0,Hofstra,23.0
+1984-05-07,2005,Alex Smith,QB,SFO,1,1.0,Utah,21.0
+1981-12-12,2005,Ronnie Brown,RB,MIA,1,2.0,Auburn,23.0
+1983-02-21,2005,Braylon Edwards,WR,CLE,1,3.0,Michigan,22.0
+1982-12-28,2005,Cedric Benson,RB,CHI,1,4.0,Texas,22.0
+1982-04-21,2005,Cadillac Williams,RB,TAM,1,5.0,Auburn,23.0
+1983-04-30,2005,Troy Williamson,WR,MIN,1,7.0,South Carolina,22.0
+1984-01-04,2005,Mike Williams,WR,DET,1,10.0,USC,21.0
+1983-04-22,2005,Matt Jones,WR,JAX,1,21.0,Arkansas,22.0
+1982-07-02,2005,Mark Clayton,WR,BAL,1,22.0,Oklahoma,23.0
+1983-12-02,2005,Aaron Rodgers,QB,GNB,1,24.0,California,21.0
+1981-12-31,2005,Jason Campbell,QB,WAS,1,25.0,Auburn,23.0
+1981-11-02,2005,Roddy White,WR,ATL,1,27.0,Ala-Birmingham,23.0
+1982-10-22,2005,Heath Miller,TE,PIT,1,30.0,Virginia,22.0
+1981-01-13,2005,Reggie Brown,WR,PHI,2,35.0,Georgia,24.0
+1982-01-29,2005,Mark Bradley,WR,CHI,2,39.0,Oklahoma,23.0
+1983-01-23,2005,J.J. Arrington,RB,ARI,2,44.0,California,22.0
+1983-06-23,2005,Eric Shelton,RB,CAR,2,54.0,Louisville,22.0
+1982-07-16,2005,Roscoe Parrish,WR,BUF,2,55.0,Miami (FL),23.0
+1982-12-15,2005,Terrence Murphy,WR,GNB,2,58.0,Texas A&M,22.0
+1983-01-14,2005,Vincent Jackson,WR,SDG,2,61.0,Northern Colorado,22.0
+1983-05-14,2005,Frank Gore,RB,SFO,3,65.0,Miami (FL),22.0
+1981-08-28,2005,Charlie Frye,QB,CLE,3,67.0,Akron,24.0
+1983-01-10,2005,Courtney Roby,WR,TEN,3,68.0,Indiana,22.0
+1982-05-11,2005,Andrew Walter,QB,OAK,3,69.0,Arizona St.,23.0
+1982-05-22,2005,Alex Smith,TE,TAM,3,71.0,Stanford,23.0
+1980-02-04,2005,Vernand Morency,RB,HOU,3,73.0,Oklahoma St.,25.0
+1982-12-17,2005,Ryan Moats,RB,PHI,3,77.0,Louisiana Tech,22.0
+1983-05-17,2005,Chris Henry,WR,CIN,3,83.0,West Virginia,22.0
+1982-02-05,2005,Kevin Everett,TE,BUF,3,86.0,Miami (FL),23.0
+1982-03-20,2005,Brandon Jones,WR,TEN,3,96.0,Oklahoma,23.0
+1982-11-14,2005,Kyle Orton,QB,CHI,4,106.0,Purdue,22.0
+1983-06-10,2005,Marion Barber III,RB,DAL,4,109.0,Minnesota,22.0
+1982-07-06,2005,Brandon Jacobs,RB,NYG,4,110.0,Southern Illinois,23.0
+1982-10-29,2005,Ciatrick Fason,RB,MIN,4,112.0,Florida,22.0
+1983-07-26,2005,Jerome Mathis,WR,HOU,4,114.0,Hampton,22.0
+1983-06-27,2005,Craphonso Thorpe,WR,KAN,4,116.0,Florida St.,22.0
+1982-08-10,2005,Alvin Pearman,RB,JAX,4,127.0,Virginia,23.0
+1983-06-20,2005,Darren Sproles,RB,SDG,4,130.0,Kansas St.,22.0
+1981-03-14,2005,Roydell Williams,WR,TEN,4,136.0,Tulane,24.0
+1982-11-16,2005,Airese Currie,WR,CHI,5,140.0,Clemson,22.0
+1982-04-14,2005,Damien Nash,RB,TEN,5,142.0,Missouri,23.0
+1982-08-18,2005,Jerome Collins,TE,STL,5,144.0,Notre Dame,23.0
+1983-08-18,2005,Dan Orlovsky,QB,DET,5,145.0,Connecticut,22.0
+1981-07-11,2005,Rasheed Marshall,WR,SFO,5,174.0,West Virginia,24.0
+1981-01-06,2005,Bo Scaife,TE,TEN,6,179.0,Texas,24.0
+1982-06-28,2005,Cedric Houston,RB,NYJ,6,182.0,Tennessee,23.0
+1982-04-03,2005,Chad Owens,WR,JAX,6,185.0,Hawaii,23.0
+1982-01-20,2005,Tab Perry,WR,CIN,6,190.0,UCLA,23.0
+1984-04-18,2005,Dante Ridgeway,WR,STL,6,192.0,Ball St.,21.0
+1982-07-26,2005,Joel Dreessen,TE,NYJ,6,198.0,Colorado St.,23.0
+1981-05-18,2005,DeAndra Cobb,RB,ATL,6,201.0,Michigan St.,24.0
+1983-06-15,2005,Derek Anderson,QB,BAL,6,213.0,Oregon St.,22.0
+1983-07-08,2005,Marcus Maxwell,WR,SFO,7,223.0,Oregon,22.0
+1982-09-06,2005,Paris Warren,WR,TAM,7,225.0,Utah,23.0
+1982-01-24,2005,LeRon McCoy,WR,ARI,7,226.0,Indiana (PA),23.0
+1982-05-17,2005,Matt Cassel,QB,NWE,7,230.0,USC,23.0
+1982-03-13,2005,Lionel Gates,RB,BUF,7,236.0,Louisville,23.0
+1982-08-10,2005,Harry Williams,WR,NYJ,7,240.0,Tuskegee,23.0
+1982-04-03,2005,Noah Herron,RB,PIT,7,244.0,Northwestern,23.0
+1983-02-04,2005,Patrick Estes,TE,SFO,7,248.0,Virginia,22.0
+1982-10-31,2005,Billy Bajema,TE,SFO,7,249.0,Oklahoma St.,22.0
+1982-11-24,2005,Ryan Fitzpatrick,QB,STL,7,250.0,Harvard,22.0
+1981-01-03,2004,Eli Manning,QB,SDG,1,1.0,Mississippi,23.0
+1983-08-31,2004,Larry Fitzgerald,WR,ARI,1,3.0,Pittsburgh,21.0
+1981-12-08,2004,Philip Rivers,QB,NYG,1,4.0,North Carolina St.,22.0
+1983-07-21,2004,Kellen Winslow,TE,CLE,1,6.0,Miami (FL),21.0
+1981-12-20,2004,Roy Williams,WR,DET,1,7.0,Texas,22.0
+1983-05-17,2004,Reggie Williams,WR,JAX,1,9.0,Washington,21.0
+1982-03-02,2004,Ben Roethlisberger,QB,PIT,1,11.0,Miami (OH),22.0
+1981-03-11,2004,Lee Evans,WR,BUF,1,13.0,Wisconsin,23.0
+1982-10-13,2004,Michael Clayton,WR,TAM,1,15.0,LSU,21.0
+1981-03-12,2004,J.P. Losman,QB,BUF,1,22.0,Tulane,23.0
+1983-07-22,2004,Steven Jackson,RB,STL,1,24.0,Oregon St.,21.0
+1981-12-27,2004,Chris Perry,RB,CIN,1,26.0,Michigan,22.0
+1982-06-18,2004,Michael Jenkins,WR,ATL,1,29.0,Ohio St.,22.0
+1982-08-21,2004,Kevin Jones,RB,DET,1,30.0,Virginia Tech,22.0
+1980-10-17,2004,Rashaun Woods,WR,SFO,1,31.0,Oklahoma St.,23.0
+1980-12-18,2004,Ben Watson,TE,NWE,1,32.0,Georgia,23.0
+1982-09-01,2004,Ben Troupe,TE,TEN,2,40.0,Florida,22.0
+1981-03-02,2004,Tatum Bell,RB,DEN,2,41.0,Oklahoma St.,23.0
+1981-08-14,2004,Julius Jones,RB,DAL,2,43.0,Notre Dame,23.0
+1982-03-26,2004,Devery Henderson,WR,NOR,2,50.0,LSU,22.0
+1981-12-19,2004,Darius Watts,WR,DEN,2,54.0,Marshall,22.0
+1981-05-09,2004,Greg Jones,RB,JAX,2,55.0,Florida St.,23.0
+1981-08-22,2004,Kris Wilson,TE,KAN,2,61.0,Pittsburgh,23.0
+1982-05-21,2004,Keary Colbert,WR,CAR,2,62.0,USC,22.0
+1980-07-05,2004,Ben Hartsock,TE,IND,3,68.0,Ohio St.,24.0
+1981-11-30,2004,Derrick Hamilton,WR,SFO,3,77.0,Clemson,22.0
+1980-12-27,2004,Bernard Berrian,WR,CHI,3,78.0,Fresno St.,23.0
+1982-07-11,2004,Chris Cooley,TE,WAS,3,81.0,Utah St.,22.0
+1982-04-16,2004,Devard Darling,WR,BAL,3,82.0,Washington St.,22.0
+1981-06-25,2004,Matt Schaub,QB,ATL,3,90.0,Virginia,23.0
+1981-01-03,2004,Carlos Francis,WR,OAK,4,99.0,Texas Tech,23.0
+1981-03-25,2004,Samie Parker,WR,KAN,4,105.0,Oregon,23.0
+1981-07-12,2004,Luke McCown,QB,CLE,4,106.0,Louisiana Tech,23.0
+1982-06-16,2004,Jerricho Cotchery,WR,NYJ,4,108.0,North Carolina St.,22.0
+1980-10-02,2004,Tim Euhus,TE,BUF,4,109.0,Oregon St.,23.0
+1982-07-24,2004,Mewelde Moore,RB,MIN,4,119.0,Tulane,22.0
+1979-01-14,2004,Ernest Wilford,WR,JAX,4,120.0,Virginia Tech,25.0
+1981-01-09,2004,Cedric Cobbs,RB,NWE,4,128.0,Arkansas,23.0
+1981-12-07,2004,Johnnie Morant,WR,OAK,5,134.0,Syracuse,22.0
+1980-03-27,2004,Sean Ryan,TE,DAL,5,144.0,Boston Col.,24.0
+1981-07-01,2004,Craig Krenzel,QB,CHI,5,148.0,Ohio St.,23.0
+1982-09-14,2004,Maurice Mann,WR,CIN,5,149.0,Nevada,21.0
+1980-11-11,2004,Mark Wilson,TE,WAS,5,151.0,California,23.0
+1982-02-13,2004,Michael Turner,RB,SDG,5,154.0,Northern Illinois,22.0
+1981-07-03,2004,D.J. Hackett,WR,SEA,5,157.0,Colorado,23.0
+1981-09-05,2004,Drew Carter,WR,CAR,5,163.0,Ohio St.,23.0
+1983-12-26,2004,P.K. Sam,WR,NWE,5,164.0,Florida St.,20.0
+1981-02-25,2004,Jamaar Taylor,WR,NYG,6,168.0,Texas A&M,23.0
+1981-06-16,2004,Ryan Krause,TE,SDG,6,169.0,Nebraska-Omaha,23.0
+1981-12-24,2004,Triandos Luke,WR,DEN,6,171.0,Alabama,22.0
+1981-10-17,2004,Nate Lawrie,TE,TAM,6,181.0,Yale,22.0
+1980-11-26,2004,Andy Hall,QB,PHI,6,185.0,Delaware,23.0
+1980-10-01,2004,Troy Fleming,RB,TEN,6,191.0,Tennessee,23.0
+1980-12-03,2004,Jim Sorgi,QB,IND,6,193.0,Wisconsin,23.0
+1979-12-13,2004,Matt Kranchick,TE,PIT,6,194.0,Penn St.,24.0
+1982-09-24,2004,Clarence Moore,WR,BAL,6,199.0,Northern Arizona,21.0
+1980-09-09,2004,John Navarre,QB,ARI,7,202.0,Michigan,23.0
+1980-11-03,2004,Mark Jones,WR,TAM,7,206.0,Tennessee,23.0
+1980-11-21,2004,Adimchinobe Echemandu,RB,CLE,7,208.0,California,23.0
+1981-12-22,2004,Sloan Thomas,WR,HOU,7,211.0,Texas,22.0
+1981-11-28,2004,Jonathan Smith,WR,BUF,7,214.0,Georgia Tech,22.0
+1979-04-07,2004,Patrick Crayton,WR,DAL,7,216.0,NW Oklahoma St.,25.0
+1980-06-30,2004,Cody Pickett,QB,SFO,7,217.0,Washington,24.0
+1981-04-26,2004,Quincy Wilson,RB,ATL,7,219.0,West Virginia,23.0
+1981-04-08,2004,Jeff Dugan,TE,MIN,7,220.0,Maryland,23.0
+1979-02-12,2004,Matt Mauck,QB,DEN,7,225.0,LSU,25.0
+1982-01-05,2004,Casey Cramer,RB,TAM,7,228.0,Dartmouth,22.0
+1980-03-30,2004,Michael Gaines,TE,CAR,7,232.0,Central Florida,24.0
+1980-08-30,2004,Derrick Ward,RB,NYJ,7,235.0,Ottawa (KS),24.0
+1981-03-22,2004,Bruce Perry,RB,PHI,7,242.0,Maryland,23.0
+1980-11-19,2004,Courtney Anderson,TE,OAK,7,245.0,San Jose St.,23.0
+1981-04-14,2004,Brandon Miree,RB,DEN,7,247.0,Pittsburgh,23.0
+1980-07-03,2004,Bradlee Van Pelt,QB,DEN,7,250.0,Colorado St.,24.0
+1979-12-27,2003,Carson Palmer,QB,CIN,1,1.0,USC,23.0
+1981-05-23,2003,Charles Rogers,WR,DET,1,2.0,Michigan St.,22.0
+1981-07-11,2003,Andre Johnson,WR,HOU,1,3.0,Miami (FL),22.0
+1980-01-14,2003,Byron Leftwich,QB,JAX,1,7.0,Marshall,23.0
+1981-03-07,2003,Bryant Johnson,WR,ARI,1,17.0,Penn St.,22.0
+1981-06-17,2003,Kyle Boller,QB,BAL,1,19.0,California,22.0
+1980-08-23,2003,Rex Grossman,QB,CHI,1,22.0,Florida,23.0
+1981-10-21,2003,Willis McGahee,RB,BUF,1,23.0,Miami (FL),21.0
+1979-06-12,2003,Dallas Clark,TE,IND,1,24.0,Iowa,24.0
+1979-11-19,2003,Larry Johnson,RB,KAN,1,27.0,Penn St.,23.0
+1980-01-05,2003,Bennie Joppru,TE,HOU,2,41.0,Michigan,23.0
+1981-05-30,2003,Taylor Jacobs,WR,WAS,2,44.0,Florida,22.0
+1979-02-11,2003,Bethel Johnson,WR,NWE,2,45.0,Texas A&M,24.0
+1980-10-03,2003,Anquan Boldin,WR,ARI,2,54.0,Florida St.,22.0
+1980-11-09,2003,Tyrone Calico,WR,TEN,2,60.0,Middle Tenn. St.,22.0
+1980-05-13,2003,L.J. Smith,TE,PHI,2,61.0,Rutgers,23.0
+1981-11-29,2003,Teyo Johnson,TE,OAK,2,63.0,Stanford,21.0
+1979-08-21,2003,Kelley Washington,WR,CIN,3,65.0,Tennessee,24.0
+1982-05-06,2003,Jason Witten,TE,DAL,3,69.0,Tennessee,21.0
+1981-08-19,2003,Nate Burleson,WR,MIN,3,71.0,Nevada,22.0
+1978-07-17,2003,Kevin Curtis,WR,STL,3,74.0,Utah St.,25.0
+1981-02-11,2003,Mike Seidman,TE,CAR,3,76.0,UCLA,22.0
+1982-05-31,2003,Musa Smith,RB,BAL,3,77.0,Georgia,21.0
+1979-10-03,2003,Dave Ragone,QB,HOU,3,88.0,Louisville,23.0
+1980-06-18,2003,Visanthe Shiancoe,TE,NYG,3,91.0,Morgan St.,23.0
+1981-04-17,2003,Chris Brown,RB,TEN,3,93.0,Colorado,22.0
+1980-03-08,2003,Billy McMullen,WR,PHI,3,95.0,Virginia,23.0
+1980-08-29,2003,Chris Simms,QB,TAM,3,97.0,Texas,23.0
+1978-01-05,2003,Artose Pinner,RB,DET,4,99.0,Kentucky,25.0
+1980-10-01,2003,Domanick Williams,RB,HOU,4,101.0,LSU,22.0
+1981-04-01,2003,George Wrighster,TE,JAX,4,104.0,Oregon,22.0
+1980-12-08,2003,Onterrio Smith,RB,MIN,4,105.0,Oregon,22.0
+1981-06-13,2003,Shaun McDonald,WR,STL,4,106.0,Arizona St.,22.0
+1981-01-12,2003,Quentin Griffin,RB,DEN,4,108.0,Oklahoma,22.0
+1980-08-06,2003,Seneca Wallace,QB,SEA,4,110.0,Iowa St.,23.0
+1980-08-11,2003,Lee Suggs,RB,CLE,4,115.0,Virginia Tech,23.0
+1981-07-05,2003,Brandon Lloyd,WR,SFO,4,124.0,Illinois,22.0
+1980-12-14,2003,Sam Aiken,WR,BUF,4,127.0,North Carolina,22.0
+1980-09-24,2003,LaBrandon Toefield,RB,JAX,4,132.0,LSU,22.0
+1981-02-25,2003,Bobby Wade,WR,CHI,5,139.0,Arizona,22.0
+1981-01-25,2003,Justin Gage,WR,CHI,5,143.0,Missouri,22.0
+1980-08-31,2003,Donald Lee,TE,MIA,5,156.0,Mississippi St.,23.0
+1980-03-23,2003,Adrian Madise,WR,DEN,5,158.0,TCU,23.0
+1980-03-14,2003,Aaron Walker,TE,SFO,5,161.0,Florida,23.0
+1979-11-28,2003,Brian St. Pierre,QB,PIT,5,163.0,Boston Col.,23.0
+1980-08-27,2003,Doug Gabriel,WR,OAK,5,167.0,Central Florida,23.0
+1980-02-19,2003,David Kircus,WR,DET,6,175.0,Grand Valley St.,23.0
+1980-01-15,2003,Zuriel Smith,WR,DAL,6,186.0,Hampton,23.0
+1980-02-13,2003,Drew Henson,QB,HOU,6,192.0,Michigan,23.0
+1980-08-15,2003,LaTarence Dunbar,WR,ATL,6,196.0,TCU,23.0
+1980-02-22,2003,Arnaz Battle,WR,SFO,6,197.0,Notre Dame,23.0
+1980-02-14,2003,Willie Ponder,WR,NYG,6,199.0,SE Missouri St.,23.0
+1979-11-15,2003,Brooks Bollinger,QB,NYJ,6,200.0,Wisconsin,23.0
+1979-08-09,2003,Kliff Kingsbury,QB,NWE,6,201.0,Texas Tech,24.0
+1980-02-11,2003,Brock Forsey,RB,CHI,6,206.0,Boise St.,23.0
+1980-01-03,2003,David Tyree,WR,NYG,6,211.0,Syracuse,23.0
+1981-06-17,2003,Keenan Howry,WR,MIN,7,221.0,Oregon,22.0
+1979-09-15,2003,Trent Smith,TE,BAL,7,223.0,Oklahoma,23.0
+1981-04-14,2003,Taco Wallace,WR,SEA,7,224.0,Kansas St.,22.0
+1979-12-07,2003,Walter Young,WR,CAR,7,226.0,Illinois,23.0
+1980-03-10,2003,Talman Gardner,WR,NOR,7,231.0,Florida St.,23.0
+1981-02-08,2003,Gibran Hamdan,QB,WAS,7,232.0,Indiana,22.0
+1981-04-22,2003,Ken Dorsey,QB,SFO,7,241.0,Miami (FL),22.0
+1980-08-13,2003,Richard Angulo,TE,STL,7,254.0,Western New Mexico,23.0
+1981-08-04,2003,Kevin Walter,WR,NYG,7,255.0,Eastern Michigan,22.0
+1980-10-08,2003,Carl Ford,WR,GNB,7,256.0,Toledo,22.0
+1979-07-21,2002,David Carr,QB,HOU,1,1.0,Fresno St.,23.0
+1978-10-21,2002,Joey Harrington,QB,DET,1,3.0,Oregon,23.0
+1980-11-10,2002,Donte' Stallworth,WR,NOR,1,13.0,Tennessee,21.0
+1980-08-18,2002,Jeremy Shockey,TE,NYG,1,14.0,Miami (FL),22.0
+1979-12-17,2002,William Green,RB,CLE,1,16.0,Boston Col.,22.0
+1981-02-17,2002,T.J. Duckett,RB,ATL,1,18.0,Michigan St.,21.0
+1980-02-16,2002,Ashley Lelie,WR,DEN,1,19.0,Hawaii,22.0
+1978-10-14,2002,Javon Walker,WR,GNB,1,20.0,Florida St.,23.0
+1978-11-16,2002,Daniel Graham,TE,NWE,1,21.0,Colorado,23.0
+1979-11-13,2002,Jerramy Stevens,TE,SEA,1,28.0,Washington,22.0
+1979-02-14,2002,Patrick Ramsey,QB,WAS,1,32.0,Tulane,23.0
+1980-12-01,2002,Jabar Gaffney,WR,HOU,2,33.0,Florida,21.0
+1980-01-10,2002,DeShaun Foster,RB,CAR,2,34.0,UCLA,22.0
+1980-05-01,2002,Josh Reed,WR,BUF,2,36.0,LSU,22.0
+1979-09-21,2002,Tim Carter,WR,NYG,2,46.0,Auburn,22.0
+1979-06-12,2002,Andre' Davis,WR,CLE,2,47.0,Virginia Tech,23.0
+1979-03-28,2002,Reche Caldwell,WR,SDG,2,48.0,Florida,23.0
+1981-09-01,2002,Clinton Portis,RB,DEN,2,51.0,Miami (FL),21.0
+1979-12-01,2002,Maurice Morris,RB,SEA,2,54.0,Oregon,22.0
+1979-01-02,2002,Doug Jolley,TE,OAK,2,55.0,BYU,23.0
+1979-08-27,2002,Ladell Betts,RB,WAS,2,56.0,Iowa,23.0
+1979-08-17,2002,Antwaan Randle El,WR,PIT,2,62.0,Indiana,23.0
+1981-03-09,2002,Antonio Bryant,WR,DAL,2,63.0,Pittsburgh,21.0
+1979-07-18,2002,Deion Branch,WR,NWE,2,65.0,Louisville,23.0
+1978-11-04,2002,Matt Schobel,TE,CIN,3,67.0,TCU,23.0
+1979-07-04,2002,Josh McCown,QB,ARI,3,81.0,Sam Houston St.,23.0
+1980-01-07,2002,Lamar Gordon,RB,STL,3,84.0,North Dakota St.,22.0
+1979-02-08,2002,Cliff Russell,WR,WAS,3,87.0,Utah,23.0
+1979-11-18,2002,Chris Baker,TE,NYJ,3,88.0,Michigan St.,22.0
+1979-09-02,2002,Brian Westbrook,RB,PHI,3,91.0,Villanova,23.0
+1979-07-21,2002,Jonathan Wells,RB,HOU,4,99.0,Ohio St.,23.0
+1979-03-15,2002,Justin Peelle,TE,SDG,4,103.0,Oregon,23.0
+1978-02-14,2002,David Garrard,QB,JAX,4,108.0,East Carolina,24.0
+1979-06-28,2002,Randy McMichael,TE,MIA,4,114.0,Georgia,23.0
+1978-04-14,2002,Rohan Davey,QB,NWE,4,117.0,LSU,24.0
+1979-02-12,2002,Chris Luzar,TE,JAX,4,118.0,Virginia,23.0
+1978-06-26,2002,Travis Stephens,RB,TAM,4,119.0,Tennessee,24.0
+1979-03-16,2002,Darnell Sanders,TE,CLE,4,122.0,Ohio St.,23.0
+1980-05-23,2002,Ron Johnson,WR,BAL,4,123.0,Minnesota,22.0
+1979-02-08,2002,Najeh Davenport,RB,GNB,4,135.0,Miami (FL),23.0
+1978-09-18,2002,Randy Fasani,QB,CAR,5,137.0,Stanford,23.0
+1980-01-10,2002,John Owens,TE,DET,5,138.0,Notre Dame,22.0
+1977-12-30,2002,Herb Haygood,WR,DEN,5,144.0,Michigan St.,24.0
+1978-12-15,2002,Kyle Johnson,RB,CAR,5,145.0,Syracuse,23.0
+1979-07-28,2002,Jason McAddley,WR,ARI,5,149.0,Alabama,23.0
+1979-11-15,2002,Jake Schifino,WR,TEN,5,151.0,Akron,22.0
+1979-12-03,2002,Terry Jones,TE,BAL,5,155.0,Alabama,22.0
+1980-01-23,2002,Kurt Kittner,QB,ATL,5,158.0,Illinois,22.0
+1979-05-15,2002,Robert Royal,TE,WAS,5,160.0,LSU,23.0
+1979-04-21,2002,Craig Nall,QB,GNB,5,164.0,LSU,23.0
+1979-02-17,2002,Verron Haynes,RB,PIT,5,166.0,Georgia,23.0
+1980-02-24,2002,Ryan Hannam,TE,SEA,5,169.0,Northern Iowa,22.0
+1979-11-25,2002,Sam Simmons,WR,MIA,5,170.0,Northwestern,22.0
+1979-03-19,2002,Keith Heinrich,TE,CAR,6,174.0,Sam Houston St.,23.0
+1979-03-18,2002,Kahlil Hill,WR,ATL,6,184.0,Iowa,23.0
+1979-12-11,2002,Josh Scobey,RB,ARI,6,185.0,Kansas St.,22.0
+1979-08-25,2002,J.T. O'Sullivan,QB,NOR,6,186.0,UC Davis,23.0
+1979-01-20,2002,Jeb Putzier,TE,DEN,6,191.0,Boise St.,23.0
+1979-09-21,2002,John Gilmore,TE,NOR,6,196.0,Penn St.,22.0
+1978-08-23,2002,Larry Ned,RB,OAK,6,197.0,San Diego St.,24.0
+1979-07-01,2002,Adrian Peterson,RB,CHI,6,199.0,Georgia Southern,23.0
+1979-06-05,2002,Mark Anelli,TE,SFO,6,201.0,Wisconsin,23.0
+1978-09-18,2002,Lee Mays,WR,PIT,6,202.0,Texas-El Paso,23.0
+1979-10-05,2002,Jamin Elliott,WR,CHI,6,203.0,Delaware,22.0
+1980-04-20,2002,Brian Allen,RB,IND,6,204.0,Stanford,22.0
+1980-05-09,2002,Javin Hunter,WR,BAL,6,206.0,Notre Dame,22.0
+1979-09-22,2002,Chester Taylor,RB,BAL,6,207.0,Toledo,22.0
+1979-03-23,2002,Bryan Fletcher,TE,CHI,6,210.0,UCLA,23.0
+1980-03-05,2002,Kendall Newson,WR,JAX,7,222.0,Middle Tenn. St.,22.0
+1979-11-05,2002,Mike Banks,TE,ARI,7,223.0,Iowa St.,22.0
+1979-06-19,2002,Darrell Hill,WR,TEN,7,225.0,Northern Illinois,23.0
+1979-02-02,2002,Daryl Jones,WR,NYG,7,226.0,Miami (FL),23.0
+1979-09-07,2002,Jeff Kelly,QB,SEA,7,232.0,Southern Miss,23.0
+1979-05-28,2002,Ronald Curry,WR,OAK,7,235.0,North Carolina,23.0
+1978-01-05,2002,Leonard Henry,RB,MIA,7,241.0,East Carolina,24.0
+1979-08-21,2002,Chris Massey,RB,STL,7,243.0,Marshall,23.0
+1980-02-23,2002,Matt Murphy,TE,DET,7,252.0,Maryland,22.0
+1980-08-16,2002,David Givens,WR,NWE,7,253.0,Notre Dame,22.0
+1980-06-26,2001,Michael Vick,QB,ATL,1,1.0,Virginia Tech,21.0
+1979-06-23,2001,LaDainian Tomlinson,RB,SDG,1,5.0,TCU,22.0
+1979-03-13,2001,David Terrell,WR,CHI,1,8.0,Michigan,22.0
+1980-03-19,2001,Koren Robinson,WR,SEA,1,9.0,North Carolina St.,21.0
+1977-10-26,2001,Rod Gardner,WR,WAS,1,15.0,Clemson,23.0
+1979-06-01,2001,Santana Moss,WR,NYJ,1,16.0,Miami (FL),22.0
+1978-12-27,2001,Deuce McAllister,RB,NOR,1,23.0,Mississippi,22.0
+1978-11-28,2001,Freddie Mitchell,WR,PHI,1,25.0,UCLA,22.0
+1978-08-13,2001,Michael Bennett,RB,MIN,1,27.0,Wisconsin,23.0
+1978-11-17,2001,Reggie Wayne,WR,IND,1,30.0,Miami (FL),22.0
+1980-03-16,2001,Todd Heap,TE,BAL,1,31.0,Arizona St.,21.0
+1979-01-15,2001,Drew Brees,QB,SDG,2,32.0,Purdue,22.0
+1977-09-23,2001,Quincy Morgan,WR,CLE,2,33.0,Kansas St.,23.0
+1977-12-23,2001,Alge Crumpler,TE,ATL,2,35.0,North Carolina,23.0
+1978-01-09,2001,Chad Johnson,WR,CIN,2,36.0,Oregon St.,23.0
+1977-11-07,2001,Anthony Thomas,RB,CHI,2,38.0,Michigan,23.0
+1979-12-17,2001,Robert Ferguson,WR,GNB,2,41.0,Texas A&M,21.0
+1978-11-11,2001,LaMont Jordan,RB,NYJ,2,49.0,Maryland,22.0
+1978-08-12,2001,Chris Chambers,WR,MIA,2,52.0,Wisconsin,23.0
+1977-10-13,2001,Quincy Carter,QB,DAL,2,53.0,Georgia,23.0
+1978-10-29,2001,Travis Henry,RB,BUF,2,58.0,Tennessee,22.0
+1979-03-22,2001,Marques Tuiasosopo,QB,OAK,2,59.0,Washington,22.0
+1976-08-04,2001,James Jackson,RB,CLE,3,65.0,Miami (FL),25.0
+1977-10-05,2001,Sean Brewer,TE,CIN,3,66.0,San Jose St.,23.0
+1979-05-12,2001,Steve Smith Sr.,WR,CAR,3,74.0,Utah,22.0
+1977-02-06,2001,Snoop Minnis,WR,KAN,3,77.0,Florida St.,24.0
+1979-01-07,2001,Kevan Barlow,RB,SFO,3,80.0,Pittsburgh,22.0
+1979-06-30,2001,Travis Minor,RB,MIA,3,85.0,Florida St.,22.0
+1978-06-07,2001,Shad Meier,TE,TEN,3,90.0,Kansas St.,23.0
+1979-10-01,2001,Rudi Johnson,RB,CIN,4,100.0,Auburn,21.0
+1972-07-31,2001,Chris Weinke,QB,CAR,4,106.0,Florida St.,29.0
+1978-10-09,2001,George Layne,RB,KAN,4,108.0,TCU,22.0
+1978-03-06,2001,Sage Rosenfels,QB,WAS,4,109.0,Iowa St.,23.0
+1978-09-21,2001,Milton Wynn,WR,STL,4,116.0,Washington St.,22.0
+1978-12-18,2001,Jabari Holloway,TE,NWE,4,119.0,Notre Dame,22.0
+1978-10-06,2001,Correll Buckhalter,RB,PHI,4,121.0,Nebraska,22.0
+1978-12-01,2001,Justin McCareins,WR,TEN,4,124.0,Northern Illinois,22.0
+1978-10-05,2001,Jesse Palmer,QB,NYG,4,125.0,Florida,22.0
+1980-01-04,2001,Brandon Manumaleuna,TE,STL,4,129.0,Arizona,21.0
+1979-03-19,2001,Cedric James,WR,MIN,4,131.0,TCU,22.0
+1978-04-22,2001,Vinny Sutherland,WR,ATL,5,136.0,Purdue,23.0
+1979-04-23,2001,Alex Bannister,WR,SEA,5,140.0,Eastern Kentucky,22.0
+1979-01-17,2001,Bill Baber,TE,KAN,5,141.0,Virginia,22.0
+1979-08-09,2001,Tony Stewart,TE,PHI,5,147.0,Penn St.,22.0
+1979-11-24,2001,Scotty Anderson,WR,DET,5,148.0,Grambling St.,21.0
+1979-02-08,2001,Mike McMahon,QB,DET,5,149.0,Rutgers,22.0
+1979-08-23,2001,Derrick Blaylock,RB,KAN,5,150.0,S.F. Austin,22.0
+1976-12-17,2001,Darnerien McCants,WR,WAS,5,154.0,Delaware St.,24.0
+1977-05-16,2001,A.J. Feeley,QB,PHI,5,155.0,Oregon,24.0
+1978-01-14,2001,Eddie Berlin,WR,TEN,5,159.0,Northern Iowa,23.0
+1979-03-20,2001,Jonathan Carter,WR,NYG,5,162.0,Troy,22.0
+1978-12-17,2001,Cedrick Wilson,WR,SFO,6,169.0,Tennessee,22.0
+1978-05-12,2001,Dee Brown,RB,CAR,6,175.0,Syracuse,23.0
+1977-12-23,2001,Kevin Kasper,WR,DEN,6,190.0,Iowa,23.0
+1978-03-17,2001,Dan Alexander,RB,TEN,6,192.0,Nebraska,23.0
+1977-09-01,2001,Dan O'Leary,TE,BUF,6,195.0,Notre Dame,24.0
+1979-03-13,2001,David Martin,TE,GNB,6,198.0,Tennessee,22.0
+1977-09-26,2001,T.J. Houshmandzadeh,WR,CIN,7,204.0,Oregon St.,23.0
+1978-03-19,2001,Reggie Germany,WR,BUF,7,214.0,Ohio St.,23.0
+1979-04-25,2001,Chris Taylor,WR,PIT,7,218.0,Texas A&M,22.0
+1979-09-15,2001,Eric Johnson,TE,SFO,7,224.0,Yale,21.0
+1977-09-18,2001,Mike Roberg,TE,CAR,7,227.0,Idaho,23.0
+1978-10-04,2001,Ken-Yon Rambo,WR,OAK,7,229.0,Ohio St.,22.0
+1978-06-26,2001,Quentin McCord,WR,ATL,7,236.0,Kentucky,23.0
+1973-11-26,2001,Andre King,WR,CLE,7,245.0,Miami (FL),27.0
+1977-06-19,2000,Peter Warrick,WR,CIN,1,4.0,Florida St.,23.0
+1979-08-29,2000,Jamal Lewis,RB,BAL,1,5.0,Tennessee,21.0
+1978-08-19,2000,Thomas Jones,RB,ARI,1,7.0,Virginia,22.0
+1977-08-12,2000,Plaxico Burress,WR,PIT,1,8.0,Michigan St.,23.0
+1978-03-30,2000,Travis Taylor,WR,BAL,1,10.0,Florida,22.0
+1978-03-14,2000,Ron Dayne,RB,NYG,1,11.0,Wisconsin,22.0
+1978-01-06,2000,Bubba Franks,TE,GNB,1,14.0,Miami (FL),22.0
+1976-06-26,2000,Chad Pennington,QB,NYJ,1,18.0,Marshall,24.0
+1977-08-30,2000,Shaun Alexander,RB,SEA,1,19.0,Alabama,23.0
+1977-10-06,2000,Sylvester Morris,WR,KAN,1,21.0,Jackson St.,22.0
+1977-08-08,2000,Anthony Becht,TE,NYJ,1,27.0,West Virginia,23.0
+1978-01-16,2000,R. Jay Soward,WR,JAX,1,29.0,USC,22.0
+1977-03-03,2000,Trung Canidate,RB,STL,1,31.0,Arizona,23.0
+1977-12-22,2000,Dennis Northcutt,WR,CLE,2,32.0,Arizona,22.0
+1977-04-23,2000,Todd Pinkston,WR,PHI,2,36.0,Southern Miss,23.0
+1978-07-14,2000,Jerry Porter,WR,OAK,2,47.0,West Virginia,22.0
+1976-12-08,2000,Travis Prentice,RB,CLE,3,63.0,Miami (OH),23.0
+1977-04-27,2000,Ron Dugans,WR,CIN,3,66.0,Florida St.,23.0
+1977-07-28,2000,Erron Kinney,TE,TEN,3,68.0,Florida,23.0
+1979-08-23,2000,Dez White,WR,CHI,3,69.0,Georgia Tech,21.0
+1977-11-12,2000,Chris Cole,WR,DEN,3,70.0,Texas A&M,22.0
+1976-05-28,2000,Ron Dixon,WR,NYG,3,73.0,Lambuth,24.0
+1977-07-07,2000,Chris Redman,QB,BAL,3,75.0,Louisville,23.0
+1977-09-28,2000,J.R. Redmond,RB,NWE,3,76.0,Arizona St.,22.0
+1977-12-29,2000,Laveranues Coles,WR,NYJ,3,78.0,Florida St.,22.0
+1977-11-05,2000,JaJuan Dawson,WR,CLE,3,79.0,Tulane,22.0
+1978-12-06,2000,Darrell Jackson,WR,SEA,3,80.0,Florida,21.0
+1978-08-21,2000,Reuben Droughns,RB,DET,3,81.0,Oregon,22.0
+1976-08-05,2000,Dustin Lyman,TE,CHI,3,87.0,Wake Forest,24.0
+1977-08-22,2000,Doug Chapman,RB,MIN,3,88.0,Marshall,23.0
+1976-10-18,2000,Curtis Keaton,RB,CIN,4,97.0,James Madison,23.0
+1978-06-02,2000,Gari Scott,WR,PHI,4,99.0,Michigan St.,22.0
+1977-05-21,2000,Danny Farmer,WR,PIT,4,103.0,UCLA,23.0
+1976-12-05,2000,Aaron Shea,TE,CLE,4,110.0,Michigan,23.0
+1977-11-03,2000,Trevor Gaylor,WR,SDG,4,111.0,Miami (OH),22.0
+1976-09-09,2000,Frank Moreau,RB,KAN,4,115.0,Louisville,23.0
+1977-04-24,2000,Avion Black,WR,BUF,4,121.0,Tennessee St.,23.0
+1978-01-31,2000,Paul Smith,RB,SFO,5,132.0,Texas-El Paso,22.0
+1977-03-01,2000,Dave Stachelski,TE,NWE,5,141.0,Boise St.,23.0
+1976-12-14,2000,Windrell Hayes,WR,NYJ,5,143.0,USC,23.0
+1978-01-05,2000,Michael Wiley,RB,DAL,5,144.0,Ohio St.,22.0
+1978-09-20,2000,Dante Hall,WR,KAN,5,153.0,Texas A&M,21.0
+1977-03-23,2000,Sammy Morris,RB,BUF,5,156.0,Texas Tech,23.0
+1977-12-11,2000,James Whalen,TE,TAM,5,157.0,Kentucky,22.0
+1977-11-16,2000,Austin Wheatley,TE,NOR,5,158.0,Iowa,22.0
+1978-07-25,2000,Tee Martin,QB,PIT,5,163.0,Tennessee,22.0
+1977-12-04,2000,Jay Tant,TE,ARI,5,164.0,Northwestern,22.0
+1976-12-15,2000,Troy Walters,WR,MIN,5,165.0,Stanford,23.0
+1977-04-04,2000,Chad Morton,RB,NOR,5,166.0,USC,23.0
+1977-04-05,2000,Marc Bulger,QB,NOR,6,168.0,West Virginia,23.0
+1977-02-11,2000,Frank Murphy,WR,CHI,6,170.0,Kansas St.,23.0
+1977-12-19,2000,Mareno Philyaw,WR,ATL,6,172.0,Troy,22.0
+1978-03-06,2000,James Williams,WR,SEA,6,175.0,Marshall,22.0
+1978-08-10,2000,Spergon Wynn,QB,CLE,6,183.0,Texas St.,22.0
+1973-09-21,2000,Mike Anderson,RB,DEN,6,189.0,Utah,26.0
+1976-02-03,2000,Emanuel Smith,WR,JAX,6,196.0,Arkansas,24.0
+1977-08-03,2000,Tom Brady,QB,NWE,6,199.0,Michigan,23.0
+1978-07-06,2000,Todd Husak,QB,WAS,6,202.0,Stanford,22.0
+1976-08-19,2000,Brad St. Louis,TE,CIN,7,210.0,Missouri State,24.0
+1977-03-15,2000,Tim Rattay,QB,SFO,7,212.0,Louisiana Tech,23.0
+1976-09-02,2000,Mike Green,RB,TEN,7,213.0,Houston,24.0
+1977-05-03,2000,Jarious Jackson,QB,DEN,7,214.0,Notre Dame,23.0
+1976-10-15,2000,Mondriel Fulcher,TE,OAK,7,227.0,Miami (FL),23.0
+1976-10-14,2000,Brian Jennings,TE,SFO,7,230.0,Arizona St.,23.0
+1978-08-15,2000,Drew Haddad,WR,BUF,7,233.0,Buffalo,22.0
+1977-03-13,2000,Joe Hamilton,QB,TAM,7,234.0,Georgia Tech,23.0
+1977-11-19,2000,Charles Lee,WR,GNB,7,242.0,Central Florida,22.0
+1978-04-02,2000,Shyrone Stith,RB,JAX,7,243.0,Virginia Tech,22.0
+1977-02-24,2000,Rondell Mealey,RB,GNB,7,252.0,LSU,23.0
+1993-10-16,2016,Moritz Boehringer,WR,MIN,6,180.0,,22.0
+,2025,Tommy Mellott,QB,LVR,6,213.0,Montana St.,
+,2025,Junior Bergen,WR,SFO,7,252.0,Montana,
+,2015,Bud Sasser,WR,STL,6,201.0,Missouri,
+,2015,Andre Debose,WR,OAK,7,221.0,Florida,
+1984-03-21,2007,Jeff Rowe,QB,CIN,5,151.0,Nevada,23.0
+1982-12-21,2006,P.J. Daniels,RB,BAL,4,132.0,Georgia Tech,23.0
+,2026,Fernando Mendoza,QB,LVR,1,1.0,Indiana,22.0
+,2026,Jeremiyah Love,RB,ARI,1,3.0,Notre Dame,21.0
+,2026,Carnell Tate,WR,TEN,1,4.0,Ohio St.,21.0
+,2026,Jordyn Tyson,WR,NOR,1,8.0,Arizona St.,22.0
+,2026,Ty Simpson,QB,LAR,1,13.0,Alabama,23.0
+,2026,Kenyon Sadiq,TE,NYJ,1,16.0,Oregon,21.0
+,2026,Makai Lemon,WR,PHI,1,20.0,USC,22.0
+,2026,KC Concepcion,WR,CLE,1,24.0,Texas A&M,21.0
+,2026,Omar Cooper Jr.,WR,NYJ,1,30.0,Indiana,22.0
+,2026,Jadarian Price,RB,SEA,1,32.0,Notre Dame,22.0
+,2026,De'Zhaun Stribling,WR,SFO,2,33.0,Mississippi,23.0
+,2026,Denzel Boston,WR,CLE,2,39.0,Washington,22.0
+,2026,Germie Bernard,WR,PIT,2,47.0,Alabama,22.0
+,2026,Eli Stowers,TE,PHI,2,54.0,Vanderbilt,23.0
+,2026,Nate Boerkircher,TE,JAX,2,56.0,Texas A&M,25.0
+,2026,Marlin Klein,TE,HOU,2,59.0,Michigan,23.0
+,2026,Max Klare,TE,LAR,2,61.0,Ohio St.,23.0
+,2026,Carson Beck,QB,ARI,3,65.0,Miami (FL),24.0
+,2026,Sam Roush,TE,CHI,3,69.0,Stanford,23.0
+,2026,Antonio Williams,WR,WAS,3,71.0,Clemson,22.0
+,2026,Oscar Delp,TE,NOR,3,73.0,Georgia,23.0
+,2026,Malachi Fields,WR,NYG,3,74.0,Notre Dame,23.0
+,2026,Caleb Douglas,WR,MIA,3,75.0,Texas Tech,22.0
+,2026,Drew Allar,QB,PIT,3,76.0,Penn St.,22.0
+,2026,Zachariah Branch,WR,ATL,3,79.0,Georgia,22.0
+,2026,Ja'Kobi Lane,WR,BAL,3,80.0,USC,22.0
+,2026,Chris Brazzell II,WR,CAR,3,83.0,Tennessee,22.0
+,2026,Ted Hurst,WR,TAM,3,84.0,Georgia St.,22.0
+,2026,Will Kacmarek,TE,MIA,3,87.0,Ohio St.,23.0
+,2026,Zavion Thomas,WR,CHI,3,89.0,LSU,21.0
+,2026,Kaelon Black,RB,SFO,3,90.0,Indiana,24.0
+,2026,Chris Bell,WR,MIA,3,94.0,Louisville,22.0
+,2026,Eli Raridon,TE,NWE,3,95.0,Notre Dame,22.0
+,2026,Brenen Thompson,WR,LAC,4,105.0,Mississippi St.,23.0
+,2026,Jonah Coleman,RB,DEN,4,108.0,Washington,23.0
+,2026,Cade Klubnik,QB,NYJ,4,110.0,Clemson,22.0
+,2026,Elijah Sarratt,WR,BAL,4,115.0,Indiana,23.0
+,2026,Kaden Wetjen,WR,PIT,4,121.0,Iowa,24.0
+,2026,Mike Washington Jr.,RB,LVR,4,122.0,Arkansas,23.0
+,2026,Skyler Bell,WR,BUF,4,125.0,Connecticut,24.0
+,2026,Matthew Hibner,TE,BAL,4,133.0,SMU,24.0
+,2026,Bryce Lance,WR,NOR,4,136.0,North Dakota St.,24.0
+,2026,Colbie Young,WR,CIN,4,140.0,Georgia,24.0
+,2026,Reggie Virgil,WR,ARI,5,143.0,Texas Tech,22.0
+,2026,Justin Joly,TE,DEN,5,152.0,North Carolina St.,22.0
+,2026,Max Bredeson,TE,MIN,5,159.0,Michigan,23.0
+,2026,Emmett Johnson,RB,KAN,5,161.0,Nebraska,22.0
+,2026,Nicholas Singleton,RB,TEN,5,165.0,Penn St.,22.0
+,2026,Kendrick Law,WR,DET,5,168.0,Kentucky,23.0
+,2026,Riley Nowakowski,TE,PIT,5,169.0,Indiana,24.0
+,2026,Joe Royer,TE,CLE,5,170.0,Cincinnati,24.0
+,2026,Josh Cuevas,TE,BAL,5,173.0,Alabama,22.0
+,2026,Adam Randall,RB,BAL,5,174.0,Clemson,22.0
+,2026,Cyrus Allen,WR,KAN,5,176.0,Cincinnati,23.0
+,2026,Kevin Coleman Jr.,WR,MIA,5,177.0,Missouri,22.0
+,2026,Cole Payton,QB,PHI,5,178.0,North Dakota St.,23.0
+,2026,Seydou Traore,TE,MIA,5,180.0,Mississippi St.,24.0
+,2026,Taylen Green,QB,CLE,6,182.0,Arkansas,23.0
+,2026,Bauer Sharp,TE,TAM,6,185.0,LSU,23.0
+,2026,Kaytron Allen,RB,WAS,6,187.0,Penn St.,23.0
+,2026,Barion Brown,WR,NOR,6,190.0,LSU,22.0
+,2026,Josh Cameron,WR,JAX,6,191.0,Baylor,23.0
+,2026,Malik Benson,WR,LVR,6,195.0,Oregon,23.0
+,2026,CJ Daniels,WR,LAR,6,197.0,Miami (FL),24.0
+,2026,Demond Claiborne,RB,MIN,6,198.0,Wake Forest,22.0
+,2026,Emmanuel Henderson Jr.,WR,SEA,6,199.0,Kansas,22.0
+,2026,Lewis Bond,WR,HOU,6,204.0,Boston Col.,23.0
+,2026,Anthony Smith,WR,DAL,7,218.0,East Carolina,24.0
+,2026,Jack Endries,TE,CIN,7,221.0,Texas,22.0
+,2026,Athan Kaliakmanis,QB,WAS,7,223.0,Rutgers,23.0
+,2026,Jaren Kanak,TE,TEN,7,225.0,Oklahoma,22.0
+,2026,Behren Morton,QB,NWE,7,234.0,Texas Tech,24.0
+,2026,Seth McGowan,RB,IND,7,237.0,Kentucky,24.0
+,2026,Jam Miller,RB,NWE,7,245.0,Alabama,22.0
+,2026,Carsen Ryan,TE,CLE,7,248.0,BYU,23.0
+,2026,Deion Burks,WR,IND,7,254.0,Oklahoma,23.0
+,2026,Dallen Bentley,TE,DEN,7,256.0,Utah,25.0
+,2026,Tanner Koziol,TE,JAX,5,164.0,Houston,
+,2026,CJ Williams,WR,JAX,6,203.0,Stanford,
+,2026,Garrett Nussmeier,QB,KAN,7,249.0,LSU,
