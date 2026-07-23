@@ -1343,7 +1343,7 @@ function dynastyBoardRows() {
     const current = warMap.get(`${playerKey(item.Player)}|${item.Pos}`);
     const meta = metaMap.get(`${playerKey(item.Player)}|${item.Pos}`);
     const isCurrentRookie = meta?.draftYear !== null && meta?.draftYear >= settings().year;
-    if (!isCurrentRookie && !playerHasRecentStats(item.Player, item.Pos)) continue;
+    const isStaleHistoricalMatch = !isCurrentRookie && !playerHasRecentStats(item.Player, item.Pos);
     const currentWar = number(current?.WAR, 0);
     const currentSuperflexWar = number(current?.["SuperFlex WAR"], currentWar);
     const actualAge = ageForProjection(meta, settings().year);
@@ -1376,6 +1376,7 @@ function dynastyBoardRows() {
       pickLabel: "",
       bestCasePos: item.Pos,
       comps: [],
+      staleHistoricalMatch: isStaleHistoricalMatch,
       model: actualAge === null && age !== null
         ? "projection/history blend + inferred position age curve"
         : age === null
@@ -2336,6 +2337,7 @@ function renderDynastyDetail(row) {
           <div><span>Curve basis</span><strong>${isPick ? "Class rank" : escapeHtml(ageCurvePeakText(row.Pos))}</strong></div>
         </div>
         ${!isPick && row.historicalAgePoints?.length ? `<p class="muted"><strong>Gold dots:</strong> previous season WAR at the player age recorded for that season.</p>` : ""}
+        ${!isPick && row.staleHistoricalMatch ? `<p class="muted"><strong>Historical check:</strong> no matched stat season found in the last two years, so this row is kept but relies more heavily on current projection/ADP data.</p>` : ""}
         ${comps}
       </div>
       ${dynastyCurveSvg(row, curveRows)}
