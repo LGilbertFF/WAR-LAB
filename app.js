@@ -1150,6 +1150,7 @@ function dynastyHistoricalWarPoints(row) {
   const playedMetric = `Played ${yMetric}`;
   const meta = getPlayerMapStrict(draftMetadataMap(), row.Player, row.Pos);
   if (dynastyIsCurrentRookie(row, meta)) return [];
+  const key = playerKey(row.Player);
   const currentAge = number(row.age, null);
   return (state.historicalModel?.playerRows || [])
     .filter((hist) => hist.PlayerKey === key && hist.Pos === row.Pos)
@@ -1461,12 +1462,14 @@ function applyRookieDevelopment(yearly, item, meta, currentWar, metric = "WAR") 
   const profile = dynastyRookieDevelopmentProfile(item, meta, currentWar, metric);
   if (!profile || adjusted.length < 2) return { yearlyWar: adjusted, profile: null };
   const current = Math.max(0, number(currentWar, 0));
+  adjusted[0] = current;
   const y2Target = current * profile.y2Multiplier;
   adjusted[1] = Math.max(adjusted[1] ?? 0, ((adjusted[1] ?? 0) * 0.45) + (y2Target * 0.55));
   if (adjusted.length >= 3) {
     const y3Target = current * profile.y3Multiplier;
     adjusted[2] = Math.max(adjusted[2] ?? 0, ((adjusted[2] ?? 0) * 0.45) + (y3Target * 0.55));
   }
+  adjusted[0] = current;
   return { yearlyWar: adjusted, profile };
 }
 
