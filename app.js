@@ -1010,6 +1010,12 @@ function dynastyPlayerYearlyWar(pos, currentWar, age, horizon) {
   });
 }
 
+function dynastyAnchorCurrentYear(yearly, currentWar) {
+  const anchored = [...(yearly || [])];
+  if (anchored.length) anchored[0] = Math.max(0, number(currentWar, 0));
+  return anchored;
+}
+
 function dynastyAgeCurveRows(row, extraYears = 4) {
   const horizon = Math.max(dynastySettings().horizon, 5);
   const pos = row.Pos === "RDP" ? row.bestCasePos || "WR" : row.Pos;
@@ -1027,14 +1033,19 @@ function dynastyAgeCurveRows(row, extraYears = 4) {
   const currentAgeFactor = Math.max(dynastyAgeFactor(pos, age) ?? 1, 0.2);
   const startAge = Math.max(18, Math.floor(age) - 2);
   const endAge = Math.ceil(age) + horizon + extraYears;
-  return Array.from({ length: Math.max(1, endAge - startAge + 1) }, (_, index) => {
-    const curveAge = startAge + index;
+  const curveAges = Array.from(new Set([
+    ...Array.from({ length: Math.max(1, endAge - startAge + 1) }, (_, index) => startAge + index),
+    Number(age.toFixed(2))
+  ])).sort((a, b) => a - b);
+  return curveAges.map((curveAge) => {
     const ageFactor = dynastyAgeFactor(pos, curveAge) ?? 0;
     const veteranDecline = curveAge >= age ? dynastyVeteranDecline(pos, age, curveAge) : 1;
     return {
       Year: settings().year + (curveAge - age),
       Age: curveAge,
-      WAR: Math.max(0, baseWar * (ageFactor / currentAgeFactor) * veteranDecline),
+      WAR: Math.abs(curveAge - age) < 0.001
+        ? Math.max(0, number(row.currentWar, baseWar))
+        : Math.max(0, baseWar * (ageFactor / currentAgeFactor) * veteranDecline),
       Label: `Age ${curveAge}`
     };
   });
@@ -1046,6 +1057,7 @@ function dynastyHistoricalWarPoints(row) {
   const playedMetric = `Played ${yMetric}`;
   const key = playerKey(row.Player);
   const meta = draftMetadataMap().get(`${key}|${row.Pos}`);
+  if (meta?.draftYear !== null && meta?.draftYear >= settings().year) return [];
   const currentAge = number(row.age, null);
   return (state.historicalModel?.playerRows || [])
     .filter((hist) => hist.PlayerKey === key && hist.Pos === row.Pos)
@@ -1393,9 +1405,15 @@ function dynastyBoardRows() {
     const blendedSuperflexWarBase = dynastyShowsSuperflex()
       ? dynastyPlayerBaseWar(item.Player, item.Pos, currentSuperflexWar, "SuperFlex WAR")
       : 0;
-    const yearly = dynastyPlayerYearlyWar(item.Pos, blendedWarBase, age, cfg.horizon);
+    const yearly = dynastyAnchorCurrentYear(
+      dynastyPlayerYearlyWar(item.Pos, blendedWarBase, age, cfg.horizon),
+      currentWar
+    );
     const yearlySuperflexWar = dynastyShowsSuperflex()
-      ? dynastyPlayerYearlyWar(item.Pos, blendedSuperflexWarBase, age, cfg.horizon)
+      ? dynastyAnchorCurrentYear(
+          dynastyPlayerYearlyWar(item.Pos, blendedSuperflexWarBase, age, cfg.horizon),
+          currentSuperflexWar
+        )
       : [];
     const dynastyWar = yearly.reduce((sum, value) => sum + value, 0);
     const dynastySuperflexWar = yearlySuperflexWar.reduce((sum, value) => sum + value, 0);
@@ -2421,7 +2439,7 @@ function dynastyCurveSvg(row, curveRows) {
   const ticks = curveRows.filter((_, index) => index === 0 || index === curveRows.length - 1 || index % Math.max(1, Math.ceil(curveRows.length / 5)) === 0);
   const tickMarkup = ticks.map((point) => {
     const index = curveRows.indexOf(point);
-    return `<text x="${x(index).toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(row.Pos === "RDP" ? point.Label : String(point.Age))}</text>`;
+    return `<text x="${x(index).toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(row.Pos === "RDP" ? point.Label : fmt(point.Age, Number.isInteger(point.Age) ? 0 : 1))}</text>`;
   }).join("");
   const yTicks = Array.from(new Set([minY, 0, maxY].map((value) => Number(value.toFixed(3))))).map((value) => `
     <g>
