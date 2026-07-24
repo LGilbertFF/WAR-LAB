@@ -1105,7 +1105,7 @@ function dynastyPlayerYearlyWar(pos, currentWar, age, horizon) {
 
 function dynastyAnchorCurrentYear(yearly, currentWar) {
   const anchored = [...(yearly || [])];
-  if (anchored.length) anchored[0] = Math.max(0, number(currentWar, 0));
+  if (anchored.length) anchored[0] = number(currentWar, 0);
   return anchored;
 }
 
@@ -1461,12 +1461,13 @@ function applyRookieDevelopment(yearly, item, meta, currentWar, metric = "WAR") 
   const adjusted = [...(yearly || [])];
   const profile = dynastyRookieDevelopmentProfile(item, meta, currentWar, metric);
   if (!profile || adjusted.length < 2) return { yearlyWar: adjusted, profile: null };
-  const current = Math.max(0, number(currentWar, 0));
+  const current = number(currentWar, 0);
   adjusted[0] = current;
-  const y2Target = current * profile.y2Multiplier;
+  const developmentBase = Math.max(0, current);
+  const y2Target = developmentBase * profile.y2Multiplier;
   adjusted[1] = Math.max(adjusted[1] ?? 0, ((adjusted[1] ?? 0) * 0.45) + (y2Target * 0.55));
   if (adjusted.length >= 3) {
-    const y3Target = current * profile.y3Multiplier;
+    const y3Target = developmentBase * profile.y3Multiplier;
     adjusted[2] = Math.max(adjusted[2] ?? 0, ((adjusted[2] ?? 0) * 0.45) + (y3Target * 0.55));
   }
   adjusted[0] = current;
@@ -1655,16 +1656,16 @@ function dynastyBoardRows() {
     const actualAge = ageForProjection(meta, settings().year);
     const age = actualAge ?? (isRookie ? defaultRookieAge(item.Pos) : inferredDynastyAge(item.Player, item.Pos));
     const projectedWar = number(current?.WAR, null);
-    const fallbackWar = isRookie && (projectedWar === null || projectedWar <= 0)
+    const fallbackWar = isRookie && projectedWar === null
       ? currentRookieProjectionFallback(item, meta, "WAR")
       : null;
-    const currentWar = Math.max(0, projectedWar !== null && projectedWar > 0 ? projectedWar : fallbackWar ?? projectedWar ?? 0);
+    const currentWar = projectedWar !== null ? projectedWar : Math.max(0, fallbackWar ?? 0);
     const projectedSuperflexWar = number(current?.["SuperFlex WAR"], null);
-    const fallbackSuperflexWar = isRookie && dynastyShowsSuperflex() && (projectedSuperflexWar === null || projectedSuperflexWar <= 0)
+    const fallbackSuperflexWar = isRookie && dynastyShowsSuperflex() && projectedSuperflexWar === null
       ? currentRookieProjectionFallback(item, meta, "SuperFlex WAR")
       : null;
-    const currentSuperflexWar = Math.max(0, projectedSuperflexWar !== null && projectedSuperflexWar > 0 ? projectedSuperflexWar : fallbackSuperflexWar ?? projectedSuperflexWar ?? currentWar);
-    const currentWarEstimated = (projectedWar === null || projectedWar <= 0) && fallbackWar !== null;
+    const currentSuperflexWar = projectedSuperflexWar !== null ? projectedSuperflexWar : Math.max(0, fallbackSuperflexWar ?? currentWar);
+    const currentWarEstimated = projectedWar === null && fallbackWar !== null;
     const blendedWarBase = dynastyPlayerBaseWar(item.Player, item.Pos, currentWar, "WAR", isRookie);
     const blendedSuperflexWarBase = dynastyShowsSuperflex()
       ? dynastyPlayerBaseWar(item.Player, item.Pos, currentSuperflexWar, "SuperFlex WAR", isRookie)
