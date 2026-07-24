@@ -1115,10 +1115,17 @@ summary::marker {
 .dynasty-grid text,
 .dynasty-axis-labels text,
 .dynasty-axis-title,
-.dynasty-chart-label {
+.dynasty-chart-label,
+.dynasty-history-point text,
+.dynasty-curve-legend text {
   fill: rgba(240, 240, 240, 0.78);
   font-size: 12px;
   font-weight: 800;
+}
+
+.dynasty-zero-line {
+  stroke: rgba(240, 240, 240, 0.46);
+  stroke-width: 1.2;
 }
 
 .dynasty-curve-area {
@@ -1137,6 +1144,28 @@ summary::marker {
   fill: #8fba7a;
   stroke: #111111;
   stroke-width: 3;
+}
+
+.dynasty-history-point circle,
+.dynasty-curve-legend circle {
+  fill: #d0a85b;
+  stroke: #111111;
+  stroke-width: 2;
+}
+
+.dynasty-history-point text {
+  fill: #d0a85b;
+  font-size: 10px;
+}
+
+.dynasty-curve-legend line {
+  stroke: #8fba7a;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.dynasty-curve-legend text {
+  font-size: 10px;
 }
 
 .adp-player-cell {

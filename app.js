@@ -1030,6 +1030,31 @@ function dynastyAgeCurveRows(row, extraYears = 4) {
   });
 }
 
+function dynastyHistoricalWarPoints(row) {
+  if (row.Pos === "RDP") return [];
+  const yMetric = dynastyShowsSuperflex() ? "SuperFlex WAR" : "WAR";
+  const key = playerKey(row.Player);
+  const meta = draftMetadataMap().get(`${key}|${row.Pos}`);
+  const currentAge = number(row.age, null);
+  return (state.historicalModel?.playerRows || [])
+    .filter((hist) => hist.PlayerKey === key && hist.Pos === row.Pos)
+    .map((hist) => {
+      const year = number(hist.Year, null);
+      const war = number(hist[yMetric], null);
+      if (year === null || war === null) return null;
+      const age = ageForProjection(meta, year) ?? (currentAge === null ? null : currentAge - (settings().year - year));
+      if (age === null) return null;
+      return {
+        Year: year,
+        Age: age,
+        WAR: war,
+        Label: `${year} ${yMetric}`
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.Age - b.Age);
+}
+
 function rookiePickNumber(label, teams = 12) {
   const match = String(label || "").match(/(\d+)\.(\d+)/);
   if (!match) return null;
@@ -2361,12 +2386,24 @@ function dynastyCurveSvg(row, curveRows) {
   const width = 760;
   const height = 250;
   const pad = { l: 48, r: 18, t: 18, b: 42 };
-  const values = curveRows.map((point) => number(point.WAR, 0));
+  const historicalPoints = dynastyHistoricalWarPoints(row);
+  const values = [...curveRows, ...historicalPoints].map((point) => number(point.WAR, 0));
   const maxY = Math.max(0.5, Math.max(...values) * 1.18);
-  const x = (index) => pad.l + (index * ((width - pad.l - pad.r) / Math.max(1, curveRows.length - 1)));
-  const y = (value) => height - pad.b - ((value / maxY) * (height - pad.t - pad.b));
+  const minY = Math.min(0, Math.min(...values) * 1.18);
+  const ySpan = Math.max(0.1, maxY - minY);
+  const xDomain = row.Pos === "RDP"
+    ? { min: 0, max: Math.max(1, curveRows.length - 1) }
+    : {
+        min: Math.min(...curveRows.map((point) => number(point.Age, 0)), ...historicalPoints.map((point) => number(point.Age, 0))),
+        max: Math.max(...curveRows.map((point) => number(point.Age, 0)), ...historicalPoints.map((point) => number(point.Age, 0)))
+      };
+  const xFromDomain = (value) => pad.l + (((value - xDomain.min) / Math.max(1, xDomain.max - xDomain.min)) * (width - pad.l - pad.r));
+  const x = (index) => row.Pos === "RDP" ? xFromDomain(index) : xFromDomain(number(curveRows[index].Age, 0));
+  const xAge = (age) => xFromDomain(number(age, xDomain.min));
+  const y = (value) => height - pad.b - (((value - minY) / ySpan) * (height - pad.t - pad.b));
+  const zeroY = y(0);
   const linePoints = curveRows.map((point, index) => `${x(index).toFixed(1)},${y(point.WAR).toFixed(1)}`).join(" ");
-  const areaPoints = `${pad.l},${height - pad.b} ${linePoints} ${x(curveRows.length - 1)},${height - pad.b}`;
+  const areaPoints = `${x(0).toFixed(1)},${zeroY.toFixed(1)} ${linePoints} ${x(curveRows.length - 1).toFixed(1)},${zeroY.toFixed(1)}`;
   const currentIndex = row.Pos === "RDP" ? 0 : curveRows.reduce((best, point, index) => (
     Math.abs(number(point.Age, 0) - number(row.age, 0)) < Math.abs(number(curveRows[best].Age, 0) - number(row.age, 0)) ? index : best
   ), 0);
@@ -2375,19 +2412,42 @@ function dynastyCurveSvg(row, curveRows) {
     const index = curveRows.indexOf(point);
     return `<text x="${x(index).toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(row.Pos === "RDP" ? point.Label : String(point.Age))}</text>`;
   }).join("");
-  const yTicks = [0, maxY / 2, maxY].map((value) => `
+  const yTicks = Array.from(new Set([minY, 0, maxY].map((value) => Number(value.toFixed(3))))).map((value) => `
     <g>
       <line x1="${pad.l}" x2="${width - pad.r}" y1="${y(value).toFixed(1)}" y2="${y(value).toFixed(1)}"></line>
       <text x="8" y="${(y(value) + 4).toFixed(1)}">${fmt(value)}</text>
     </g>
   `).join("");
+  const historicalMarkup = historicalPoints.map((point, index) => {
+    const cx = xAge(point.Age);
+    const cy = y(point.WAR);
+    const labelY = Math.max(16, cy - 9 - ((index % 2) * 10));
+    return `
+      <g class="dynasty-history-point">
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5"></circle>
+        <text x="${cx.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle">${escapeHtml(String(point.Year))}</text>
+        <title>${escapeHtml(`${point.Label}: ${fmt(point.WAR)} WAR at age ${fmt(point.Age, 1)}`)}</title>
+      </g>
+    `;
+  }).join("");
+  const legend = row.Pos === "RDP" ? "" : `
+    <g class="dynasty-curve-legend">
+      <line x1="${pad.l}" x2="${pad.l + 18}" y1="16" y2="16"></line>
+      <text x="${pad.l + 24}" y="20">Projected curve</text>
+      <circle cx="${pad.l + 130}" cy="16" r="4.5"></circle>
+      <text x="${pad.l + 140}" y="20">Previous seasons</text>
+    </g>
+  `;
   return `
     <svg class="dynasty-curve-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(row.Player)} projected WAR curve">
       <g class="dynasty-grid">${yTicks}</g>
+      <line class="dynasty-zero-line" x1="${pad.l}" x2="${width - pad.r}" y1="${zeroY.toFixed(1)}" y2="${zeroY.toFixed(1)}"></line>
       <polygon class="dynasty-curve-area" points="${areaPoints}"></polygon>
       <polyline class="dynasty-curve-line" points="${linePoints}"></polyline>
+      ${historicalMarkup}
       <circle class="dynasty-current-dot" cx="${x(currentIndex).toFixed(1)}" cy="${y(curveRows[currentIndex].WAR).toFixed(1)}" r="6"></circle>
       <g class="dynasty-axis-labels">${tickMarkup}</g>
+      ${legend}
       <text class="dynasty-axis-title" x="${width / 2}" y="${height - 1}" text-anchor="middle">${row.Pos === "RDP" ? "Projected rookie season" : "Age"}</text>
       <text class="dynasty-chart-label" x="${x(currentIndex).toFixed(1)}" y="${Math.max(18, y(curveRows[currentIndex].WAR) - 12).toFixed(1)}" text-anchor="middle">${row.Pos === "RDP" ? "Year 1" : `Age ${fmt(row.age, 1)}`}</text>
     </svg>
