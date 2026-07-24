@@ -3665,6 +3665,16 @@ function playerHistory(player) {
     .sort((a, b) => b.Year - a.Year);
 }
 
+function playedWarValue(row, metric = "WAR") {
+  return number(row?.[`Played ${metric}`], number(row?.[metric], null));
+}
+
+function playedWarPerGame(row, metric = "WAR") {
+  const war = playedWarValue(row, metric);
+  const games = number(row?.Games, null);
+  return war !== null && games ? war / games : null;
+}
+
 function renderHistoryTable(player, historyRows) {
   if (!historyRows.length) {
     return `<p class="muted history-empty">No historical weekly rows found for ${escapeHtml(player.Player)}.</p>`;
@@ -3682,9 +3692,10 @@ function renderHistoryTable(player, historyRows) {
       <td>${row.Year}</td>
       <td>${fmt(row.FPTS, 1)}</td>
       <td>${fmt(row.AVG, 2)}</td>
-      <td>${fmt(row.WAR)}</td>
-      <td>${fmt(row["Flex WAR"])}</td>
-      <td>${fmt(row["SuperFlex WAR"])}</td>
+      <td>${fmt(playedWarValue(row, "WAR"))}</td>
+      <td>${fmt(playedWarPerGame(row, "WAR"), 3)}</td>
+      <td>${fmt(playedWarValue(row, "Flex WAR"))}</td>
+      <td>${fmt(playedWarValue(row, "SuperFlex WAR"))}</td>
       <td>${fmt(row.Games, 0)}</td>
     </tr>
   `).join("");
@@ -3692,11 +3703,11 @@ function renderHistoryTable(player, historyRows) {
     <div class="history-panel">
       <div class="history-header">
         <h3>Historical Performance</h3>
-        <span>${selected.Year} - ${fmt(selected.FPTS, 1)} FPTS - ${fmt(selected.AVG, 2)} / game - ${fmt(selected.WAR)} WAR</span>
+        <span>${selected.Year} - ${fmt(selected.FPTS, 1)} FPTS - ${fmt(selected.AVG, 2)} / game - ${fmt(playedWarValue(selected, "WAR"))} played-week WAR</span>
       </div>
       <div class="history-season-table">
         <table>
-          <thead><tr><th>Year</th><th>FPTS</th><th>AVG</th><th>WAR</th><th>Flex</th><th>SF</th><th>Games</th></tr></thead>
+          <thead><tr><th>Year</th><th>FPTS</th><th>AVG</th><th>Played WAR</th><th>WAR/G</th><th>Played Flex</th><th>Played SF</th><th>Games</th></tr></thead>
           <tbody>${yearlyRows}</tbody>
         </table>
       </div>
