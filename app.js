@@ -1231,6 +1231,121 @@ function currentRookieClassRankWar(pickNo, metric = "WAR") {
   return weighted / Math.max(0.001, totalWeight);
 }
 
+function historicalRookieAdp(player, pos, year, adpMap = historicalAdpMap()) {
+  return adpMap.get(`${year}|${playerAdpKey(player)}|${pos}`)?.adp ??
+    adpMap.get(`${year}|${playerAdpKey(player)}`)?.adp ??
+    null;
+}
+
+function dynastyRookieDevelopmentProfile(item, meta, currentWar, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
+  const playedMetric = `Played ${yMetric}`;
+  const targetPick = number(meta?.draftPick, null);
+  const targetAdp = number(item?.ADP, null);
+  const current = Math.max(0, number(currentWar, 0));
+  const playerRows = state.historicalModel?.playerRows || [];
+  if (!playerRows.length || current <= 0) return null;
+  const adpMap = historicalAdpMap();
+
+  const seasonMap = new Map();
+  for (const row of playerRows) {
+    const key = `${row.PlayerKey}|${row.Pos}`;
+    if (!seasonMap.has(key)) seasonMap.set(key, new Map());
+    seasonMap.get(key).set(number(row.Year, null), row);
+  }
+
+  const candidates = [];
+  for (const draftRow of state.draftMetadataRows || []) {
+    const pos = String(draftRow.pos || "").toUpperCase();
+    if (pos !== item.Pos) continue;
+    const draftYear = number(draftRow.draft_year, null);
+    const draftPick = number(draftRow.pick, null);
+    if (draftYear === null || draftYear >= settings().year || draftPick === null) continue;
+    const key = `${playerKey(draftRow.player)}|${pos}`;
+    const seasons = seasonMap.get(key);
+    if (!seasons) continue;
+    const y1 = seasons.get(draftYear);
+    const y2 = seasons.get(draftYear + 1);
+    const y3 = seasons.get(draftYear + 2);
+    const y1War = Math.max(0, number(y1?.[playedMetric], number(y1?.[yMetric], 0)));
+    const y2War = y2 ? Math.max(0, number(y2?.[playedMetric], number(y2?.[yMetric], 0))) : null;
+    const y3War = y3 ? Math.max(0, number(y3?.[playedMetric], number(y3?.[yMetric], 0))) : null;
+    if (y1War <= 0 && y2War === null && y3War === null) continue;
+    const adp = historicalRookieAdp(draftRow.player, pos, draftYear, adpMap);
+    const draftDistance = targetPick === null ? 12 : Math.abs(draftPick - targetPick);
+    const adpDistance = targetAdp === null || adp === null ? 35 : Math.abs(adp - targetAdp);
+    candidates.push({
+      Player: draftRow.player,
+      Pos: pos,
+      DraftYear: draftYear,
+      DraftPick: draftPick,
+      ADP: adp,
+      Y1: y1War,
+      Y2: y2War,
+      Y3: y3War,
+      draftDistance,
+      adpDistance,
+      score: draftDistance + (adpDistance * 0.35)
+    });
+  }
+
+  let matched = [];
+  for (const limits of [
+    { pick: 8, adp: 28 },
+    { pick: 16, adp: 45 },
+    { pick: 32, adp: 70 },
+    { pick: 64, adp: 110 },
+    { pick: 999, adp: 999 }
+  ]) {
+    matched = candidates.filter((row) => row.draftDistance <= limits.pick && row.adpDistance <= limits.adp);
+    if (matched.length >= 4 || limits.pick === 999) break;
+  }
+  if (!matched.length) return null;
+
+  const ratio = (row, value) => value === null ? null : (value + 0.08) / Math.max(0.08, row.Y1 + 0.08);
+  const weightedRatio = (yearKey, minValue, maxValue) => {
+    const rows = matched
+      .map((row) => {
+        const raw = ratio(row, row[yearKey]);
+        if (raw === null || !Number.isFinite(raw)) return null;
+        const weight = 1 / Math.max(1, row.score + 1);
+        return { raw, weight };
+      })
+      .filter(Boolean);
+    if (!rows.length) return null;
+    const avg = rows.reduce((sum, row) => sum + (row.raw * row.weight), 0) / Math.max(0.001, rows.reduce((sum, row) => sum + row.weight, 0));
+    return Math.max(minValue, Math.min(maxValue, avg));
+  };
+  const y2Multiplier = weightedRatio("Y2", 1.04, 1.85) ?? 1.08;
+  const y3Multiplier = weightedRatio("Y3", 1.0, 2.05) ?? Math.max(1, y2Multiplier * 0.98);
+  const examples = matched
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 4)
+    .map((row) => `${row.Player} (${row.DraftYear}, pick ${fmt(row.DraftPick, 0)}${row.ADP ? `, ADP ${fmt(row.ADP, 1)}` : ""})`);
+
+  return {
+    y2Multiplier,
+    y3Multiplier,
+    examples,
+    count: matched.length,
+    model: `rookie development comps: ${matched.length} same-position players by NFL draft capital${targetAdp !== null ? " and rookie ADP" : ""}`
+  };
+}
+
+function applyRookieDevelopment(yearly, item, meta, currentWar, metric = "WAR") {
+  const adjusted = [...(yearly || [])];
+  const profile = dynastyRookieDevelopmentProfile(item, meta, currentWar, metric);
+  if (!profile || adjusted.length < 2) return { yearlyWar: adjusted, profile: null };
+  const current = Math.max(0, number(currentWar, 0));
+  const y2Target = current * profile.y2Multiplier;
+  adjusted[1] = Math.max(adjusted[1] ?? 0, ((adjusted[1] ?? 0) * 0.45) + (y2Target * 0.55));
+  if (adjusted.length >= 3) {
+    const y3Target = current * profile.y3Multiplier;
+    adjusted[2] = Math.max(adjusted[2] ?? 0, ((adjusted[2] ?? 0) * 0.45) + (y3Target * 0.55));
+  }
+  return { yearlyWar: adjusted, profile };
+}
+
 function rookiePickRankProfile(pickNo, horizon, pickYear, metric = "WAR") {
   const pick = Math.max(1, number(pickNo, 1));
   const yearsOut = Math.max(0, number(pickYear, settings().year) - settings().year);
@@ -1416,16 +1531,24 @@ function dynastyBoardRows() {
     const blendedSuperflexWarBase = dynastyShowsSuperflex()
       ? dynastyPlayerBaseWar(item.Player, item.Pos, currentSuperflexWar, "SuperFlex WAR", isRookie)
       : 0;
-    const yearly = dynastyAnchorCurrentYear(
+    const baseYearly = dynastyAnchorCurrentYear(
       dynastyPlayerYearlyWar(item.Pos, blendedWarBase, age, cfg.horizon),
       currentWar
     );
-    const yearlySuperflexWar = dynastyShowsSuperflex()
+    const rookieDevelopment = isRookie
+      ? applyRookieDevelopment(baseYearly, item, meta, currentWar, "WAR")
+      : { yearlyWar: baseYearly, profile: null };
+    const yearly = rookieDevelopment.yearlyWar;
+    const baseYearlySuperflexWar = dynastyShowsSuperflex()
       ? dynastyAnchorCurrentYear(
           dynastyPlayerYearlyWar(item.Pos, blendedSuperflexWarBase, age, cfg.horizon),
           currentSuperflexWar
         )
       : [];
+    const rookieSuperflexDevelopment = isRookie && dynastyShowsSuperflex()
+      ? applyRookieDevelopment(baseYearlySuperflexWar, item, meta, currentSuperflexWar, "SuperFlex WAR")
+      : { yearlyWar: baseYearlySuperflexWar, profile: null };
+    const yearlySuperflexWar = rookieSuperflexDevelopment.yearlyWar;
     const dynastyWar = yearly.reduce((sum, value) => sum + value, 0);
     const dynastySuperflexWar = yearlySuperflexWar.reduce((sum, value) => sum + value, 0);
     rows.push({
@@ -1441,12 +1564,14 @@ function dynastyBoardRows() {
       yearlySuperflexWar,
       age,
       isRookie,
+      rookieDevelopment: rookieDevelopment.profile,
+      rookieSuperflexDevelopment: rookieSuperflexDevelopment.profile,
       pickYear: null,
       pickLabel: "",
       bestCasePos: item.Pos,
-      comps: [],
+      comps: rookieDevelopment.profile?.examples || [],
       model: isRookie
-        ? "projection anchored rookie age curve"
+        ? rookieDevelopment.profile?.model || "projection anchored rookie age curve"
         : actualAge === null && age !== null
         ? "projection/history blend + inferred position age curve"
         : age === null
@@ -2398,8 +2523,11 @@ function renderDynastyDetailRow(row) {
 function renderDynastyDetail(row) {
   const isPick = row.Pos === "RDP";
   const curveRows = dynastyAgeCurveRows(row);
-  const comps = isPick && row.comps?.length
-    ? `<p class="muted"><strong>Historical rank examples:</strong> ${row.comps.map((comp) => escapeHtml(comp)).join(", ")}</p>`
+  const comps = row.comps?.length
+    ? `<p class="muted"><strong>${isPick ? "Historical rank examples" : "Rookie development comps"}:</strong> ${row.comps.map((comp) => escapeHtml(comp)).join(", ")}</p>`
+    : "";
+  const rookieGrowth = !isPick && row.rookieDevelopment
+    ? `<div><span>Rookie Y2/Y3 comps</span><strong>${fmt(row.rookieDevelopment.y2Multiplier, 2)}x / ${fmt(row.rookieDevelopment.y3Multiplier, 2)}x</strong></div>`
     : "";
   return `
     <div class="dynasty-detail">
@@ -2414,6 +2542,7 @@ function renderDynastyDetail(row) {
           ${!isPick ? `<div><span>Blended base, played weeks</span><strong>${fmt(row.blendedWarBase)}</strong></div>` : ""}
           <div><span>ADP</span><strong>${fmt(row.ADP, 1)}</strong></div>
           <div><span>Curve basis</span><strong>${isPick ? "Class rank" : escapeHtml(ageCurvePeakText(row.Pos))}</strong></div>
+          ${rookieGrowth}
         </div>
         ${comps}
       </div>
