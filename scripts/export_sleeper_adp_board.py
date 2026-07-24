@@ -242,9 +242,12 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     for col, default in defaults.items():
         drafts[col] = numeric_column(drafts, col, default).round(3)
 
-    player_cols = [col for col in ["player_id", "full_name", "position", "team", "age", "years_exp"] if col in players.columns]
+    player_cols = [col for col in ["player_id", "full_name", "position", "team", "age", "years_exp", "status", "active"] if col in players.columns]
     players = players[player_cols].copy()
     players["player_id"] = players["player_id"].astype(str)
+    for col in ["status", "active"]:
+        if col not in players.columns:
+            players[col] = pd.NA
     if "team" in players.columns:
         players["team"] = players["team"].replace("", pd.NA)
 
@@ -298,6 +301,8 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
     merged.loc[rdp_mask, "full_name"] = "Rookie Pick " + rdp_labels
     merged.loc[rdp_mask, "position"] = "RDP"
     merged.loc[rdp_mask, "team"] = "PICK"
+    merged.loc[rdp_mask, "status"] = ""
+    merged.loc[rdp_mask, "active"] = ""
     player_team = (
         merged[merged["team"].notna()]
         .groupby("player_id")["team"]
@@ -354,6 +359,8 @@ def read_season(raw_dir: Path, players_path: Path, season: int) -> pd.DataFrame:
         "position",
         "team",
         "headshot_url",
+        "status",
+        "active",
         "league_format",
         "board_class",
         "rookie_inclusion",
@@ -629,6 +636,8 @@ def export_adp_board(
         "position",
         "team",
         "headshot_url",
+        "status",
+        "active",
         "league_format",
         "board_class",
         "rookie_inclusion",

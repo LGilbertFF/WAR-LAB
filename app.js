@@ -23,6 +23,7 @@ const state = {
   dynastySortKey: "dynastyWar",
   dynastySortDir: "desc",
   selectedDynastyKey: null,
+  dynastyExcludedSummary: { retired: 0, inactive: 0, stale: 0, total: 0 },
   projectionFocus: "projection",
   adpSortKey: "rank",
   adpSortDir: "asc",
@@ -164,6 +165,13 @@ function weekLimit() {
 
 function playerKey(name) {
   return String(name || "").toLowerCase().replace(/[^a-z]/g, "");
+}
+
+function truthyString(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (["true", "1", "yes", "y"].includes(normalized)) return true;
+  if (["false", "0", "no", "n"].includes(normalized)) return false;
+  return null;
 }
 
 function playerAdpKey(name) {
@@ -910,6 +918,49 @@ function playerHistoricalWarProfile(player, pos, metric = "WAR") {
   };
 }
 
+function playerHasRecentPlayedSeason(player, pos, season = settings().year) {
+  const key = playerKey(player);
+  const minYear = season - 2;
+  const playerRows = state.historicalModel?.playerRows || [];
+  if (!playerRows.length) return null;
+  return playerRows.some((row) => {
+    if (row.PlayerKey !== key || row.Pos !== pos) return false;
+    const year = number(row.Year, null);
+    if (year === null || year < minYear || year >= season) return false;
+    const games = number(firstValue(row, ["Games", "G"], null), null);
+    const fpts = number(firstValue(row, ["Fantasy Points", "FPTS", "TTL", "Points"], null), null);
+    const war = number(firstValue(row, ["WAR", "Flex WAR", "SuperFlex WAR"], null), null);
+    return (games !== null && games > 0) || (fpts !== null && fpts > 0) || (war !== null && war !== 0);
+  });
+}
+
+function sleeperPlayerStatus(row) {
+  return String(firstValue(row, ["status", "player_status", "sleeper_status", "fantasy_status"], "") || "").trim();
+}
+
+function sleeperPlayerActive(row) {
+  return truthyString(firstValue(row, ["active", "is_active", "player_active"], null));
+}
+
+function combineSleeperStatus(item, row) {
+  const status = sleeperPlayerStatus(row);
+  if (status && !item.status) item.status = status;
+  const active = sleeperPlayerActive(row);
+  if (active === true) item.active = true;
+  if (active === false && item.active === null) item.active = false;
+}
+
+function dynastyExclusionReason(item, current, meta) {
+  if (item.Pos === "RDP") return "";
+  const status = String(item.status || "").toLowerCase();
+  if (status.includes("retired") || status.includes("deceased")) return "retired";
+  const hasProjection = Boolean(current);
+  if (meta?.draftYear !== null && meta?.draftYear >= settings().year) return "";
+  if (item.active === false && !hasProjection) return "inactive";
+  if (!hasProjection && playerHasRecentPlayedSeason(item.Player, item.Pos, settings().year) === false) return "stale";
+  return "";
+}
+
 function weightedAverageRecent(values) {
   const weights = [0.5, 0.3, 0.2];
   const clean = values.filter((value) => Number.isFinite(value));
@@ -1218,6 +1269,8 @@ function dynastyBoardRows() {
         Pos: pos,
         Team: row.team || "",
         headshot_url: row.headshot_url || "",
+        status: "",
+        active: null,
         weightedAdp: 0,
         adpWeight: 0,
         drafts: 0,
@@ -1226,6 +1279,7 @@ function dynastyBoardRows() {
       });
     }
     const item = grouped.get(key);
+    combineSleeperStatus(item, row);
     item.weightedAdp += adp * drafts;
     item.adpWeight += drafts;
     item.drafts += drafts;
@@ -1242,6 +1296,8 @@ function dynastyBoardRows() {
         Pos: "RDP",
         Team: "PICK",
         headshot_url: "",
+        status: "",
+        active: null,
         weightedAdp: slot,
         adpWeight: 1,
         drafts: 0,
@@ -1253,6 +1309,7 @@ function dynastyBoardRows() {
   }
 
   const rows = [];
+  const excluded = { retired: 0, inactive: 0, stale: 0, total: 0 };
   for (const item of grouped.values()) {
     const adp = item.weightedAdp / Math.max(1, item.adpWeight);
     if (item.Pos === "RDP") {
@@ -1286,6 +1343,12 @@ function dynastyBoardRows() {
     }
     const current = warMap.get(`${playerKey(item.Player)}|${item.Pos}`);
     const meta = metaMap.get(`${playerKey(item.Player)}|${item.Pos}`);
+    const exclusionReason = dynastyExclusionReason(item, current, meta);
+    if (exclusionReason) {
+      excluded[exclusionReason] += 1;
+      excluded.total += 1;
+      continue;
+    }
     const currentWar = number(current?.WAR, 0);
     const currentSuperflexWar = number(current?.["SuperFlex WAR"], currentWar);
     const actualAge = ageForProjection(meta, settings().year);
@@ -1323,6 +1386,8 @@ function dynastyBoardRows() {
           : "projection/history blend + position age curve"
     });
   }
+
+  state.dynastyExcludedSummary = excluded;
 
   return rows
     .filter((row) => cfg.position === "ALL" || row.Pos === cfg.position)
@@ -2112,7 +2177,14 @@ function renderDynastyWar() {
   if (el("dynastyPlayerCount")) el("dynastyPlayerCount").textContent = rows.length;
   if (el("dynastyTopPlayer")) el("dynastyTopPlayer").textContent = top ? `${top.Player} ${fmt(top.dynastyWar)}` : "-";
   if (el("dynastyRookiePickCount")) el("dynastyRookiePickCount").textContent = picks.length;
-  if (el("dynastySource")) el("dynastySource").textContent = `${settings().year} Sleeper dynasty ADP - ${dynastySettings().horizon} years - ${state.rawProjections.length} current projection rows${missingPickNote ? ` - missing ${missingPickNote}` : ""}`;
+  const excluded = state.dynastyExcludedSummary || {};
+  const exclusionParts = [
+    excluded.retired ? `${excluded.retired} retired` : "",
+    excluded.inactive ? `${excluded.inactive} inactive/no projection` : "",
+    excluded.stale ? `${excluded.stale} no projection or recent stats` : ""
+  ].filter(Boolean);
+  const exclusionNote = exclusionParts.length ? ` - excluded ${exclusionParts.join(", ")}` : "";
+  if (el("dynastySource")) el("dynastySource").textContent = `${settings().year} Sleeper dynasty ADP - ${dynastySettings().horizon} years - ${state.rawProjections.length} current projection rows${exclusionNote}${missingPickNote ? ` - missing ${missingPickNote}` : ""}`;
   renderDynastyChart(rows);
   renderDynastyTable(rows);
 }
