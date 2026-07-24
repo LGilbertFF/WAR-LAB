@@ -164,7 +164,10 @@ function weekLimit() {
 }
 
 function playerKey(name) {
-  return String(name || "").toLowerCase().replace(/[^a-z]/g, "");
+  return String(name || "")
+    .toLowerCase()
+    .replace(/\b(jr|sr|ii|iii|iv|v)\.?\b/g, "")
+    .replace(/[^a-z]/g, "");
 }
 
 function truthyString(value) {
@@ -175,7 +178,66 @@ function truthyString(value) {
 }
 
 function playerAdpKey(name) {
-  return playerKey(String(name || "").replace(/\s+(Jr\.?|Sr\.?|II|III|IV|V)$/i, ""));
+  return playerKey(name);
+}
+
+const firstNameAliases = {
+  matthew: ["matt"],
+  matt: ["matthew"],
+  michael: ["mike"],
+  mike: ["michael"],
+  christopher: ["chris"],
+  chris: ["christopher"],
+  joshua: ["josh"],
+  josh: ["joshua"],
+  joseph: ["joe"],
+  joe: ["joseph"],
+  kenneth: ["kenny"],
+  kenny: ["kenneth"],
+  daniel: ["dan"],
+  dan: ["daniel"],
+  nicholas: ["nick"],
+  nick: ["nicholas"],
+  anthony: ["tony"],
+  tony: ["anthony"],
+  william: ["will", "billy"],
+  will: ["william"],
+  robert: ["rob", "bob"],
+  rob: ["robert"],
+  patrick: ["pat"],
+  pat: ["patrick"]
+};
+
+function playerKeyVariants(name) {
+  const base = playerKey(name);
+  const normalized = String(name || "")
+    .toLowerCase()
+    .replace(/\b(jr|sr|ii|iii|iv|v)\.?\b/g, "")
+    .replace(/[^a-z\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const parts = normalized.split(/[\s-]+/).filter(Boolean);
+  const variants = new Set([base]);
+  if (parts.length >= 2) {
+    const rest = parts.slice(1).join("");
+    for (const alias of firstNameAliases[parts[0]] || []) {
+      variants.add(playerKey(`${alias} ${parts.slice(1).join(" ")}`));
+      variants.add(`${alias}${rest}`);
+    }
+  }
+  return [...variants].filter(Boolean);
+}
+
+function setPlayerMapVariants(map, player, pos, value) {
+  for (const key of playerKeyVariants(player)) map.set(`${key}|${pos}`, value);
+}
+
+function getPlayerMapValue(map, player, pos) {
+  for (const key of playerKeyVariants(player)) {
+    const value = map.get(`${key}|${pos}`);
+    if (value !== undefined) return value;
+  }
+  return undefined;
 }
 
 function normalizeProjection(row, index, adpMap) {
@@ -840,7 +902,7 @@ function draftMetadataMap() {
   for (const row of state.draftMetadataRows) {
     const pos = String(row.pos || "").toUpperCase();
     if (!["QB", "RB", "WR", "TE"].includes(pos)) continue;
-    map.set(`${playerKey(row.player)}|${pos}`, {
+    setPlayerMapVariants(map, row.player, pos, {
       draftYear: number(row.draft_year, null),
       draftRound: number(row.round, null),
       draftPick: number(row.pick, null),
@@ -1063,8 +1125,7 @@ function dynastyHistoricalWarPoints(row) {
   if (row.Pos === "RDP") return [];
   const yMetric = dynastyShowsSuperflex() ? "SuperFlex WAR" : "WAR";
   const playedMetric = `Played ${yMetric}`;
-  const key = playerKey(row.Player);
-  const meta = draftMetadataMap().get(`${key}|${row.Pos}`);
+  const meta = getPlayerMapValue(draftMetadataMap(), row.Player, row.Pos);
   if (dynastyIsCurrentRookie(row, meta)) return [];
   const currentAge = number(row.age, null);
   return (state.historicalModel?.playerRows || [])
@@ -1120,7 +1181,7 @@ function historicalDraftClassRankCurves(horizon, metric = "WAR") {
   for (const row of state.draftMetadataRows) {
     const pos = String(row.pos || "").toUpperCase();
     if (!["QB", "RB", "WR", "TE"].includes(pos)) continue;
-    metaMap.set(`${playerKey(row.player)}|${pos}`, {
+    setPlayerMapVariants(metaMap, row.player, pos, {
       player: row.player,
       pos,
       draftYear: number(row.draft_year, null),
@@ -1209,7 +1270,7 @@ function currentRookieClassRankWar(pickNo, metric = "WAR") {
   const metaMap = draftMetadataMap();
   const rookieRows = state.results
     .map((row) => {
-      const meta = metaMap.get(`${playerKey(row.Player)}|${row.Pos}`);
+      const meta = getPlayerMapValue(metaMap, row.Player, row.Pos);
       if (!meta || meta.draftYear !== settings().year) return null;
       const value = number(row[yMetric], null);
       return value === null ? null : { ...row, MetricWar: Math.max(0, value) };
@@ -1231,6 +1292,47 @@ function currentRookieClassRankWar(pickNo, metric = "WAR") {
   return weighted / Math.max(0.001, totalWeight);
 }
 
+function currentRookieProjectionFallback(item, meta, metric = "WAR") {
+  const yMetric = historicalWarMetric(metric);
+  const targetPick = number(meta?.draftPick, null);
+  const targetAdp = number(item?.ADP, null);
+  const metaMap = draftMetadataMap();
+  const candidates = state.results
+    .map((row) => {
+      const rowMeta = getPlayerMapValue(metaMap, row.Player, row.Pos);
+      if (!rowMeta || rowMeta.draftYear !== settings().year || row.Pos !== item.Pos) return null;
+      const value = Math.max(0, number(row[yMetric], 0));
+      if (value <= 0) return null;
+      const draftPick = number(rowMeta.draftPick, null);
+      const adp = number(row.ADP, null);
+      return {
+        Player: row.Player,
+        value,
+        draftDistance: targetPick === null || draftPick === null ? 18 : Math.abs(draftPick - targetPick),
+        adpDistance: targetAdp === null || adp === null ? 45 : Math.abs(adp - targetAdp)
+      };
+    })
+    .filter(Boolean);
+  if (!candidates.length) return null;
+  let matched = [];
+  for (const limits of [
+    { pick: 16, adp: 35 },
+    { pick: 32, adp: 55 },
+    { pick: 72, adp: 90 },
+    { pick: 999, adp: 999 }
+  ]) {
+    matched = candidates.filter((row) => row.draftDistance <= limits.pick && row.adpDistance <= limits.adp);
+    if (matched.length >= 3 || limits.pick === 999) break;
+  }
+  if (!matched.length) return null;
+  const weighted = matched.reduce((sum, row) => {
+    const weight = 1 / Math.max(1, row.draftDistance + (row.adpDistance * 0.35) + 1);
+    return sum + (row.value * weight);
+  }, 0);
+  const totalWeight = matched.reduce((sum, row) => sum + (1 / Math.max(1, row.draftDistance + (row.adpDistance * 0.35) + 1)), 0);
+  return weighted / Math.max(0.001, totalWeight);
+}
+
 function historicalRookieAdp(player, pos, year, adpMap = historicalAdpMap()) {
   return adpMap.get(`${year}|${playerAdpKey(player)}|${pos}`)?.adp ??
     adpMap.get(`${year}|${playerAdpKey(player)}`)?.adp ??
@@ -1249,9 +1351,11 @@ function dynastyRookieDevelopmentProfile(item, meta, currentWar, metric = "WAR")
 
   const seasonMap = new Map();
   for (const row of playerRows) {
-    const key = `${row.PlayerKey}|${row.Pos}`;
-    if (!seasonMap.has(key)) seasonMap.set(key, new Map());
-    seasonMap.get(key).set(number(row.Year, null), row);
+    for (const key of playerKeyVariants(row.Player || row.PlayerKey)) {
+      const mapKey = `${key}|${row.Pos}`;
+      if (!seasonMap.has(mapKey)) seasonMap.set(mapKey, new Map());
+      seasonMap.get(mapKey).set(number(row.Year, null), row);
+    }
   }
 
   const candidates = [];
@@ -1261,8 +1365,7 @@ function dynastyRookieDevelopmentProfile(item, meta, currentWar, metric = "WAR")
     const draftYear = number(draftRow.draft_year, null);
     const draftPick = number(draftRow.pick, null);
     if (draftYear === null || draftYear >= settings().year || draftPick === null) continue;
-    const key = `${playerKey(draftRow.player)}|${pos}`;
-    const seasons = seasonMap.get(key);
+    const seasons = getPlayerMapValue(seasonMap, draftRow.player, pos);
     if (!seasons) continue;
     const y1 = seasons.get(draftYear);
     const y2 = seasons.get(draftYear + 1);
@@ -1422,7 +1525,8 @@ function dynastyBoardRows() {
   const cfg = dynastySettings();
   const appCfg = settings();
   const metaMap = draftMetadataMap();
-  const warMap = new Map(state.results.map((row) => [`${playerKey(row.Player)}|${row.Pos}`, row]));
+  const warMap = new Map();
+  for (const row of state.results) setPlayerMapVariants(warMap, row.Player, row.Pos, row);
   const grouped = new Map();
 
   for (const row of dynastyAdpSourceRows()) {
@@ -1514,8 +1618,8 @@ function dynastyBoardRows() {
       });
       continue;
     }
-    const current = warMap.get(`${playerKey(item.Player)}|${item.Pos}`);
-    const meta = metaMap.get(`${playerKey(item.Player)}|${item.Pos}`);
+    const current = getPlayerMapValue(warMap, item.Player, item.Pos);
+    const meta = getPlayerMapValue(metaMap, item.Player, item.Pos);
     const isRookie = dynastyIsCurrentRookie(item, meta);
     const exclusionReason = dynastyExclusionReason(item, current, meta);
     if (exclusionReason) {
@@ -1523,10 +1627,19 @@ function dynastyBoardRows() {
       excluded.total += 1;
       continue;
     }
-    const currentWar = number(current?.WAR, 0);
-    const currentSuperflexWar = number(current?.["SuperFlex WAR"], currentWar);
     const actualAge = ageForProjection(meta, settings().year);
     const age = actualAge ?? (isRookie ? defaultRookieAge(item.Pos) : inferredDynastyAge(item.Player, item.Pos));
+    const projectedWar = number(current?.WAR, null);
+    const fallbackWar = isRookie && (projectedWar === null || projectedWar <= 0)
+      ? currentRookieProjectionFallback(item, meta, "WAR")
+      : null;
+    const currentWar = Math.max(0, projectedWar !== null && projectedWar > 0 ? projectedWar : fallbackWar ?? projectedWar ?? 0);
+    const projectedSuperflexWar = number(current?.["SuperFlex WAR"], null);
+    const fallbackSuperflexWar = isRookie && dynastyShowsSuperflex() && (projectedSuperflexWar === null || projectedSuperflexWar <= 0)
+      ? currentRookieProjectionFallback(item, meta, "SuperFlex WAR")
+      : null;
+    const currentSuperflexWar = Math.max(0, projectedSuperflexWar !== null && projectedSuperflexWar > 0 ? projectedSuperflexWar : fallbackSuperflexWar ?? projectedSuperflexWar ?? currentWar);
+    const currentWarEstimated = (projectedWar === null || projectedWar <= 0) && fallbackWar !== null;
     const blendedWarBase = dynastyPlayerBaseWar(item.Player, item.Pos, currentWar, "WAR", isRookie);
     const blendedSuperflexWarBase = dynastyShowsSuperflex()
       ? dynastyPlayerBaseWar(item.Player, item.Pos, currentSuperflexWar, "SuperFlex WAR", isRookie)
@@ -1557,6 +1670,7 @@ function dynastyBoardRows() {
       ADP: adp,
       currentWar,
       currentSuperflexWar,
+      currentWarEstimated,
       blendedWarBase,
       dynastyWar,
       dynastySuperflexWar,
@@ -1571,7 +1685,7 @@ function dynastyBoardRows() {
       bestCasePos: item.Pos,
       comps: rookieDevelopment.profile?.examples || [],
       model: isRookie
-        ? rookieDevelopment.profile?.model || "projection anchored rookie age curve"
+        ? rookieDevelopment.profile?.model || (currentWarEstimated ? "rookie current-year estimate from draft capital and ADP comps" : "projection anchored rookie age curve")
         : actualAge === null && age !== null
         ? "projection/history blend + inferred position age curve"
         : age === null
@@ -2529,6 +2643,9 @@ function renderDynastyDetail(row) {
   const rookieGrowth = !isPick && row.rookieDevelopment
     ? `<div><span>Rookie Y2/Y3 comps</span><strong>${fmt(row.rookieDevelopment.y2Multiplier, 2)}x / ${fmt(row.rookieDevelopment.y3Multiplier, 2)}x</strong></div>`
     : "";
+  const currentSource = !isPick && row.currentWarEstimated
+    ? `<div><span>2026 WAR source</span><strong>Estimated</strong></div>`
+    : "";
   return `
     <div class="dynasty-detail">
       <div class="dynasty-detail-copy">
@@ -2542,6 +2659,7 @@ function renderDynastyDetail(row) {
           ${!isPick ? `<div><span>Blended base, played weeks</span><strong>${fmt(row.blendedWarBase)}</strong></div>` : ""}
           <div><span>ADP</span><strong>${fmt(row.ADP, 1)}</strong></div>
           <div><span>Curve basis</span><strong>${isPick ? "Class rank" : escapeHtml(ageCurvePeakText(row.Pos))}</strong></div>
+          ${currentSource}
           ${rookieGrowth}
         </div>
         ${comps}
