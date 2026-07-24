@@ -861,6 +861,10 @@ function ageForProjection(meta, season) {
   return meta.draftAge + (season - meta.draftYear);
 }
 
+function defaultRookieAge(pos) {
+  return { QB: 23, RB: 22, WR: 22, TE: 23 }[pos] || 22;
+}
+
 const dynastyAgeCurves = {
   QB: { peakStart: 27, peakEnd: 32, youngSlope: 0.105, oldSlope: 0.055, floor: 0.36, retention: 0.985 },
   RB: { peakStart: 23, peakEnd: 25, youngSlope: 0.16, oldSlope: 0.145, floor: 0.18, retention: 0.93 },
@@ -900,8 +904,7 @@ function inferredDynastyAge(player, pos) {
     .map((row) => row.Year);
   if (!seasons.length) return null;
   const firstYear = Math.min(...seasons);
-  const rookieAge = { QB: 23, RB: 22, WR: 22, TE: 23 }[pos] || 22;
-  return rookieAge + Math.max(0, settings().year - firstYear);
+  return defaultRookieAge(pos) + Math.max(0, settings().year - firstYear);
 }
 
 function playerHistoricalWarProfile(player, pos, metric = "WAR") {
@@ -960,12 +963,16 @@ function combineSleeperStatus(item, row) {
   if (active === false && item.active === null) item.active = false;
 }
 
+function dynastyIsCurrentRookie(item, meta) {
+  return Boolean(item?.isRookie) || (meta?.draftYear !== null && meta?.draftYear >= settings().year);
+}
+
 function dynastyExclusionReason(item, current, meta) {
   if (item.Pos === "RDP") return "";
   const status = String(item.status || "").toLowerCase();
   if (status.includes("retired") || status.includes("deceased")) return "retired";
   const hasProjection = Boolean(current);
-  if (meta?.draftYear !== null && meta?.draftYear >= settings().year) return "";
+  if (dynastyIsCurrentRookie(item, meta)) return "";
   if (item.active === false && !hasProjection) return "inactive";
   if (!hasProjection && playerHasRecentPlayedSeason(item.Player, item.Pos, settings().year) === false) return "stale";
   return "";
@@ -979,8 +986,9 @@ function weightedAverageRecent(values) {
   return clean.reduce((sum, value, index) => sum + (value * (weights[index] || 0.1)), 0) / Math.max(0.001, totalWeight);
 }
 
-function dynastyPlayerBaseWar(player, pos, currentWar, metric = "WAR") {
+function dynastyPlayerBaseWar(player, pos, currentWar, metric = "WAR", isRookie = false) {
   const projectedWar = Math.max(0, number(currentWar, 0));
+  if (isRookie) return projectedWar;
   const profile = playerHistoricalWarProfile(player, pos, metric);
   if (!profile) return projectedWar;
   const games = settings().weeks;
@@ -1057,7 +1065,7 @@ function dynastyHistoricalWarPoints(row) {
   const playedMetric = `Played ${yMetric}`;
   const key = playerKey(row.Player);
   const meta = draftMetadataMap().get(`${key}|${row.Pos}`);
-  if (meta?.draftYear !== null && meta?.draftYear >= settings().year) return [];
+  if (dynastyIsCurrentRookie(row, meta)) return [];
   const currentAge = number(row.age, null);
   return (state.historicalModel?.playerRows || [])
     .filter((hist) => hist.PlayerKey === key && hist.Pos === row.Pos)
@@ -1319,6 +1327,7 @@ function dynastyBoardRows() {
         headshot_url: row.headshot_url || "",
         status: "",
         active: null,
+        isRookie: false,
         weightedAdp: 0,
         adpWeight: 0,
         drafts: 0,
@@ -1328,6 +1337,7 @@ function dynastyBoardRows() {
     }
     const item = grouped.get(key);
     combineSleeperStatus(item, row);
+    if (String(row.board_class || "").toLowerCase() === "rookie") item.isRookie = true;
     item.weightedAdp += adp * drafts;
     item.adpWeight += drafts;
     item.drafts += drafts;
@@ -1391,6 +1401,7 @@ function dynastyBoardRows() {
     }
     const current = warMap.get(`${playerKey(item.Player)}|${item.Pos}`);
     const meta = metaMap.get(`${playerKey(item.Player)}|${item.Pos}`);
+    const isRookie = dynastyIsCurrentRookie(item, meta);
     const exclusionReason = dynastyExclusionReason(item, current, meta);
     if (exclusionReason) {
       excluded[exclusionReason] += 1;
@@ -1400,10 +1411,10 @@ function dynastyBoardRows() {
     const currentWar = number(current?.WAR, 0);
     const currentSuperflexWar = number(current?.["SuperFlex WAR"], currentWar);
     const actualAge = ageForProjection(meta, settings().year);
-    const age = actualAge ?? inferredDynastyAge(item.Player, item.Pos);
-    const blendedWarBase = dynastyPlayerBaseWar(item.Player, item.Pos, currentWar, "WAR");
+    const age = actualAge ?? (isRookie ? defaultRookieAge(item.Pos) : inferredDynastyAge(item.Player, item.Pos));
+    const blendedWarBase = dynastyPlayerBaseWar(item.Player, item.Pos, currentWar, "WAR", isRookie);
     const blendedSuperflexWarBase = dynastyShowsSuperflex()
-      ? dynastyPlayerBaseWar(item.Player, item.Pos, currentSuperflexWar, "SuperFlex WAR")
+      ? dynastyPlayerBaseWar(item.Player, item.Pos, currentSuperflexWar, "SuperFlex WAR", isRookie)
       : 0;
     const yearly = dynastyAnchorCurrentYear(
       dynastyPlayerYearlyWar(item.Pos, blendedWarBase, age, cfg.horizon),
@@ -1429,11 +1440,14 @@ function dynastyBoardRows() {
       yearlyWar: yearly,
       yearlySuperflexWar,
       age,
+      isRookie,
       pickYear: null,
       pickLabel: "",
       bestCasePos: item.Pos,
       comps: [],
-      model: actualAge === null && age !== null
+      model: isRookie
+        ? "projection anchored rookie age curve"
+        : actualAge === null && age !== null
         ? "projection/history blend + inferred position age curve"
         : age === null
           ? "projection/history blend + position trend decline"
