@@ -523,6 +523,9 @@ function computeHistoricalModel() {
       let war = 0;
       let flexWar = 0;
       let superflexWar = 0;
+      let playedWar = 0;
+      let playedFlexWar = 0;
+      let playedSuperflexWar = 0;
       let games = 0;
       const weeks = [];
       for (let week = 1; week <= maxWeek; week += 1) {
@@ -543,6 +546,9 @@ function computeHistoricalModel() {
         if (weeklyFlexWar !== null) flexWar += weeklyFlexWar;
         if (weeklySuperflexWar !== null) superflexWar += weeklySuperflexWar;
         if (actual !== undefined) {
+          playedWar += weeklyWar;
+          if (weeklyFlexWar !== null) playedFlexWar += weeklyFlexWar;
+          if (weeklySuperflexWar !== null) playedSuperflexWar += weeklySuperflexWar;
           weeks.push({
             Week: week,
             FPTS: actual,
@@ -559,6 +565,9 @@ function computeHistoricalModel() {
         WAR: war,
         "Flex WAR": ["RB", "WR", "TE"].includes(player.Pos) ? flexWar : null,
         "SuperFlex WAR": posModel.SUPERFLEX.count ? superflexWar : null,
+        "Played WAR": playedWar,
+        "Played Flex WAR": ["RB", "WR", "TE"].includes(player.Pos) ? playedFlexWar : null,
+        "Played SuperFlex WAR": posModel.SUPERFLEX.count ? playedSuperflexWar : null,
         Games: games,
         FPTS: weeks.reduce((sum, week) => sum + week.FPTS, 0),
         AVG: games ? weeks.reduce((sum, week) => sum + week.FPTS, 0) / games : 0,
@@ -897,16 +906,17 @@ function inferredDynastyAge(player, pos) {
 
 function playerHistoricalWarProfile(player, pos, metric = "WAR") {
   const yMetric = historicalWarMetric(metric);
+  const playedMetric = `Played ${yMetric}`;
   const key = playerKey(player);
   const seasons = (state.historicalModel?.playerRows || [])
     .filter((row) => row.PlayerKey === key && row.Pos === pos)
     .sort((a, b) => b.Year - a.Year)
     .slice(0, 3);
   if (!seasons.length) return null;
-  const seasonWars = seasons.map((row) => number(row[yMetric], null)).filter((value) => value !== null);
+  const seasonWars = seasons.map((row) => number(row[playedMetric], number(row[yMetric], null))).filter((value) => value !== null);
   const warPerGame = seasons
     .map((row) => {
-      const war = number(row[yMetric], null);
+      const war = number(row[playedMetric], number(row[yMetric], null));
       const games = number(row.Games, null);
       return war !== null && games ? war / games : null;
     })
@@ -1033,6 +1043,7 @@ function dynastyAgeCurveRows(row, extraYears = 4) {
 function dynastyHistoricalWarPoints(row) {
   if (row.Pos === "RDP") return [];
   const yMetric = dynastyShowsSuperflex() ? "SuperFlex WAR" : "WAR";
+  const playedMetric = `Played ${yMetric}`;
   const key = playerKey(row.Player);
   const meta = draftMetadataMap().get(`${key}|${row.Pos}`);
   const currentAge = number(row.age, null);
@@ -1040,7 +1051,7 @@ function dynastyHistoricalWarPoints(row) {
     .filter((hist) => hist.PlayerKey === key && hist.Pos === row.Pos)
     .map((hist) => {
       const year = number(hist.Year, null);
-      const war = number(hist[yMetric], null);
+      const war = number(hist[playedMetric], number(hist[yMetric], null));
       if (year === null || war === null) return null;
       const age = ageForProjection(meta, year) ?? (currentAge === null ? null : currentAge - (settings().year - year));
       if (age === null) return null;
@@ -1048,7 +1059,7 @@ function dynastyHistoricalWarPoints(row) {
         Year: year,
         Age: age,
         WAR: war,
-        Label: `${year} ${yMetric}`
+        Label: `${year} played-week ${yMetric}`
       };
     })
     .filter(Boolean)
@@ -2368,7 +2379,7 @@ function renderDynastyDetail(row) {
           <div><span>Dynasty WAR</span><strong>${fmt(row.dynastyWar)}</strong></div>
           ${dynastyShowsSuperflex() ? `<div><span>SuperFlex WAR</span><strong>${fmt(row.dynastySuperflexWar)}</strong></div>` : ""}
           <div><span>${isPick ? "Common archetype" : "Current age"}</span><strong>${isPick ? escapeHtml(row.bestCasePos || "-") : fmt(row.age, 1)}</strong></div>
-          ${!isPick ? `<div><span>Blended curve base</span><strong>${fmt(row.blendedWarBase)}</strong></div>` : ""}
+          ${!isPick ? `<div><span>Blended base, played weeks</span><strong>${fmt(row.blendedWarBase)}</strong></div>` : ""}
           <div><span>ADP</span><strong>${fmt(row.ADP, 1)}</strong></div>
           <div><span>Curve basis</span><strong>${isPick ? "Class rank" : escapeHtml(ageCurvePeakText(row.Pos))}</strong></div>
         </div>
