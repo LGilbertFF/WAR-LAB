@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 DEFAULT_INPUT = Path(r"C:\Users\lgilb\Downloads\2026 NFL Fantasy Football Season Rankings  Projections  Fantasy Points.csv")
 OUTPUT_COLUMNS = [
-    "Year", "Player", "Team", "Pos", "ADP", "ADP Rank", "FPTS", "AVG", "G",
+    "Year", "Player", "Team", "Pos", "FPTS", "AVG", "G",
     "PassingATT", "PassingCMP", "PassingYDS", "PassingTD", "INTS",
     "RushingATT", "RushingYDS", "RushingTD",
     "TGT", "REC", "ReceivingYDS", "ReceivingTD",
@@ -58,8 +58,6 @@ def import_fantasypoints_csv(input_path: Path, output_path: Path, season_year: i
         "Player": df.get("Name", pd.Series(dtype=str)).astype(str).str.strip(),
         "Team": df.get("Team", pd.Series(dtype=str)).astype(str).str.strip(),
         "Pos": df.get("POS", pd.Series(dtype=str)).apply(normalize_position),
-        "ADP": series_number(df, "ADP", None),
-        "ADP Rank": series_number(df, "RK", None),
         "FPTS": series_number(df, "FPTS", None),
         "AVG": series_number(df, "FPTS/G", None),
         "G": series_number(df, "G", None),

@@ -281,10 +281,10 @@ function normalizeProjection(row, index, adpMap) {
   if (!player || !["QB", "RB", "WR", "TE"].includes(pos)) return null;
 
   const adpMatch = adpMap.get(playerKey(player));
-  const adp = number(firstValue(row, ["ADP", "ADP AVG", "Average Draft Position"]), null) ??
-    number(firstValue(row, ["ADP Rank"], null), null) ??
-    adpMatch?.ADP ?? null;
-  const adpRank = number(firstValue(row, ["ADP Rank"], null), null) ?? adpMatch?.["ADP Rank"] ?? adp;
+  const projectionAdp = number(firstValue(row, ["ADP", "ADP AVG", "Average Draft Position"]), null);
+  const projectionAdpRank = number(firstValue(row, ["ADP Rank"], null), null);
+  const adp = adpMatch?.ADP ?? projectionAdp ?? projectionAdpRank ?? null;
+  const adpRank = adpMatch?.["ADP Rank"] ?? projectionAdpRank ?? adp;
 
   const avg = number(firstValue(row, ["AVG", "Avg", "FPTS/G", "Fantasy Points Per Game"]), null);
   const fpts = number(firstValue(row, ["FPTS", "Fantasy Points", "fantasy_points"]), null);
