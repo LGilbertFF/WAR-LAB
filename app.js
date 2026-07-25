@@ -1423,6 +1423,67 @@ function rookiePickWarFromFptsCurve(yearlyFptsPerGame, conversionPos, metric = "
   });
 }
 
+function averageRookiePickPath(rows, field, horizon) {
+  return Array.from({ length: horizon }, (_, index) => {
+    const values = rows.map((row) => number(row[field]?.[index], null)).filter((value) => value !== null);
+    return values.length ? average(values) : null;
+  });
+}
+
+function addAggregateRookiePickRows(rows, horizon) {
+  const teams = settings().teams;
+  const yearGroups = new Map();
+  rows.filter((row) => row.Pos === "RDP" && row.pickYear && row.pickLabel && !row.aggregatePick)
+    .forEach((row) => {
+      if (!yearGroups.has(row.pickYear)) yearGroups.set(row.pickYear, []);
+      yearGroups.get(row.pickYear).push({ ...row, pickNo: rookiePickNumber(row.pickLabel, teams) });
+    });
+  const roundRanges = [
+    { label: "Base 1st", start: 1, end: teams },
+    { label: "Early 1st", start: 1, end: Math.ceil(teams / 3) },
+    { label: "Mid 1st", start: Math.ceil(teams / 3) + 1, end: Math.ceil((teams * 2) / 3) },
+    { label: "Late 1st", start: Math.ceil((teams * 2) / 3) + 1, end: teams },
+    { label: "Base 2nd", start: teams + 1, end: teams * 2 },
+    { label: "Early 2nd", start: teams + 1, end: teams + Math.ceil(teams / 3) },
+    { label: "Mid 2nd", start: teams + Math.ceil(teams / 3) + 1, end: teams + Math.ceil((teams * 2) / 3) },
+    { label: "Late 2nd", start: teams + Math.ceil((teams * 2) / 3) + 1, end: teams * 2 },
+    { label: "Base 3rd", start: (teams * 2) + 1, end: teams * 3 },
+    { label: "Early 3rd", start: (teams * 2) + 1, end: (teams * 2) + Math.ceil(teams / 3) },
+    { label: "Mid 3rd", start: (teams * 2) + Math.ceil(teams / 3) + 1, end: (teams * 2) + Math.ceil((teams * 2) / 3) },
+    { label: "Late 3rd", start: (teams * 2) + Math.ceil((teams * 2) / 3) + 1, end: teams * 3 }
+  ];
+  for (const [pickYear, picks] of yearGroups.entries()) {
+    for (const range of roundRanges) {
+      const rangePicks = picks.filter((row) => row.pickNo >= range.start && row.pickNo <= range.end);
+      if (!rangePicks.length) continue;
+      const yearlyWar = averageRookiePickPath(rangePicks, "yearlyWar", horizon);
+      const yearlySuperflexWar = averageRookiePickPath(rangePicks, "yearlySuperflexWar", horizon);
+      const yearlyFptsPerGame = averageRookiePickPath(rangePicks, "yearlyFptsPerGame", horizon);
+      rows.push({
+        Player: `${pickYear} ${range.label}`,
+        Pos: "RDP",
+        Team: "PICK",
+        headshot_url: "",
+        dynastyKey: `${pickYear}|${range.label}|RDP_AGG`,
+        ADP: average(rangePicks.map((row) => number(row.ADP, null)).filter((value) => value !== null)),
+        currentWar: null,
+        dynastyWar: yearlyWar.reduce((sum, value) => sum + number(value, 0), 0),
+        dynastySuperflexWar: yearlySuperflexWar.reduce((sum, value) => sum + number(value, 0), 0),
+        yearlyWar,
+        yearlySuperflexWar,
+        yearlyFptsPerGame,
+        age: null,
+        pickYear,
+        pickLabel: range.label,
+        aggregatePick: true,
+        bestCasePos: "Pick avg",
+        comps: rangePicks.slice(0, 6).map((row) => row.pickLabel),
+        model: `Average of ${rangePicks.length} ${pickYear} rookie picks (${range.label})`
+      });
+    }
+  }
+}
+
 function currentRookieClassRankFptsPerGame(pickNo) {
   const metaMap = draftMetadataMap();
   const rookieRows = state.results
@@ -2041,6 +2102,7 @@ function dynastyBoardRows() {
   }
 
   state.dynastyExcludedSummary = excluded;
+  addAggregateRookiePickRows(rows, cfg.horizon);
 
   return rows
     .filter((row) => cfg.position === "ALL" || row.Pos === cfg.position)
