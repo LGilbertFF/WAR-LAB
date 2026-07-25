@@ -26,6 +26,12 @@ DATA_DIR = ROOT / "data"
 PROFILE_DIR = ROOT / ".local" / "fantasypoints-profile"
 PROJECTIONS_URL = "https://www.fantasypoints.com/nfl/projections/season/qb-rb-wr-te"
 POSITIONS = {"QB", "RB", "WR", "TE"}
+LOCAL_BROWSER_PATHS = [
+    Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
+    Path(r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"),
+    Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
+    Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
+]
 
 COLUMN_ALIASES = {
     "Player": ["player", "name", "full name", "full_name", "player name", "player_name"],
@@ -66,6 +72,13 @@ def split_player_team(value: object) -> tuple[str, str]:
     if len(parts) >= 2 and re.fullmatch(r"[A-Z]{2,3}", parts[-1]):
         return " ".join(parts[:-1]).strip(), parts[-1]
     return text, ""
+
+
+def default_browser_executable() -> Path | None:
+    for path in LOCAL_BROWSER_PATHS:
+        if path.exists():
+            return path
+    return None
 
 
 def alias_lookup(columns: Iterable[object]) -> dict[str, object]:
@@ -211,9 +224,18 @@ async def scrape_projections(args: argparse.Namespace) -> pd.DataFrame:
             str(PROFILE_DIR),
             headless=False,
             viewport={"width": 1500, "height": 1000},
+            executable_path=str(args.browser_executable) if args.browser_executable else None,
         )
         page = context.pages[0] if context.pages else await context.new_page()
-        await page.goto(args.url, wait_until="domcontentloaded", timeout=60_000)
+        try:
+            await page.goto(args.url, wait_until="domcontentloaded", timeout=60_000)
+        except Exception as exc:
+            if "ERR_NETWORK_ACCESS_DENIED" in str(exc):
+                raise SystemExit(
+                    "The browser launched, but this environment blocked network access to Fantasy Points. "
+                    "Run the same command from a normal PowerShell terminal."
+                ) from exc
+            raise
         await page.wait_for_timeout(3_000)
 
         best = pd.DataFrame()
@@ -296,6 +318,12 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--season-year", type=int, default=2026)
     parser.add_argument("--url", default=PROJECTIONS_URL)
     parser.add_argument("--output", type=Path, default=DATA_DIR / "current_projections.csv")
+    parser.add_argument(
+        "--browser-executable",
+        type=Path,
+        default=default_browser_executable(),
+        help="Optional local Chrome/Edge executable to launch instead of bundled Chromium.",
+    )
     parser.add_argument("--login-wait-seconds", type=int, default=600)
     parser.add_argument("--min-rows", type=int, default=250)
     parser.add_argument("--export-json", action=argparse.BooleanOptionalAction, default=True)
