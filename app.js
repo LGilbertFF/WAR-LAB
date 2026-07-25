@@ -898,7 +898,8 @@ function dynastySettings() {
   return {
     horizon: Math.max(1, Math.min(10, number(el("dynastyHorizon")?.value, 3))),
     position: el("dynastyPosition")?.value || "ALL",
-    query: String(el("dynastySearch")?.value || "").trim().toLowerCase()
+    query: String(el("dynastySearch")?.value || "").trim().toLowerCase(),
+    projectedOnly: el("dynastyProjectedOnly")?.checked !== false
   };
 }
 
@@ -1616,7 +1617,7 @@ function dynastyBoardRows() {
   }
 
   const rows = [];
-  const excluded = { retired: 0, inactive: 0, stale: 0, total: 0 };
+  const excluded = { retired: 0, inactive: 0, stale: 0, noProjection: 0, total: 0 };
   for (const item of grouped.values()) {
     const adp = item.weightedAdp / Math.max(1, item.adpWeight);
     if (item.Pos === "RDP") {
@@ -1651,6 +1652,11 @@ function dynastyBoardRows() {
     const current = getPlayerMapStrict(strictWarMap, item.Player, item.Pos) || getPlayerMapValue(variantWarMap, item.Player, item.Pos);
     const meta = getPlayerMapStrict(metaMap, item.Player, item.Pos);
     const isRookie = dynastyIsCurrentRookie(item, meta);
+    if (cfg.projectedOnly && !current) {
+      excluded.noProjection += 1;
+      excluded.total += 1;
+      continue;
+    }
     const exclusionReason = dynastyExclusionReason(item, current, meta);
     if (exclusionReason) {
       excluded[exclusionReason] += 1;
@@ -2518,7 +2524,8 @@ function renderDynastyWar() {
   const exclusionParts = [
     excluded.retired ? `${excluded.retired} retired` : "",
     excluded.inactive ? `${excluded.inactive} inactive/no projection` : "",
-    excluded.stale ? `${excluded.stale} no projection or recent stats` : ""
+    excluded.stale ? `${excluded.stale} no projection or recent stats` : "",
+    excluded.noProjection ? `${excluded.noProjection} no current projection` : ""
   ].filter(Boolean);
   const exclusionNote = exclusionParts.length ? ` - excluded ${exclusionParts.join(", ")}` : "";
   if (el("dynastySource")) el("dynastySource").textContent = `${settings().year} Sleeper dynasty ADP - ${dynastySettings().horizon} years - ${state.rawProjections.length} current projection rows${exclusionNote}${missingPickNote ? ` - missing ${missingPickNote}` : ""}`;

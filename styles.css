@@ -1072,7 +1072,20 @@ summary::marker {
 }
 
 .dynasty-control-bar {
-  grid-template-columns: repeat(3, minmax(150px, 220px));
+  grid-template-columns: repeat(4, minmax(150px, 220px));
+}
+
+.dynasty-control-bar .checkbox-control {
+  align-items: center;
+  flex-direction: row;
+  gap: 10px;
+  min-height: 56px;
+}
+
+.dynasty-control-bar .checkbox-control input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
 }
 
 .dynasty-workspace .chart-panel {
