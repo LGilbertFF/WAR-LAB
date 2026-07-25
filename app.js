@@ -9,6 +9,7 @@ const DRAFT_METADATA_PATH = "data/nfl_skill_players_2000_2026.csv";
 const TRUSTED_WAR_CURVE_PATH = "data/historical_WAR_PPR2WR.csv";
 const FALLBACK_PROJECTIONS_PATH = "data/WARProjections2024_PPR2WR.csv";
 const HISTORICAL_WEEKLY_PATH = "data/fantasypros_weekly_2015_2025.csv";
+const HISTORICAL_PLAYED_WEEK_VERSION = 2;
 
 const state = {
   rawProjections: [],
@@ -490,10 +491,12 @@ function historicalForRank(pos, rank) {
 function computeHistoricalModel() {
   const cfg = settings();
   const scoringKey = JSON.stringify({
+    version: HISTORICAL_PLAYED_WEEK_VERSION,
     rows: state.historicalWeeklyRows.length,
     scoring: cfg.scoring
   });
   const modelKey = JSON.stringify({
+    version: HISTORICAL_PLAYED_WEEK_VERSION,
     rows: state.historicalWeeklyRows.length,
     start: el("historyStart").value,
     weeks: weekLimit(),
