@@ -1417,7 +1417,8 @@ function rookiePickConversionPos(bestCasePos) {
 
 function rookiePickWarFromFptsCurve(yearlyFptsPerGame, conversionPos, metric = "WAR") {
   return (yearlyFptsPerGame || []).map((avg, index) => {
-    const war = warFromAverage("TE", avg, metric) ?? 0;
+    const baselinePos = metric === "SuperFlex WAR" ? conversionPos : "TE";
+    const war = warFromAverage(baselinePos, avg, metric) ?? 0;
     return index === 0 ? Math.max(0, war) : war;
   });
 }
