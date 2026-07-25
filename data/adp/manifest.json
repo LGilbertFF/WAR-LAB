@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-07-24T12:43:56.563020+00:00",
+  "updated_at": "2026-07-25T10:53:51.879844+00:00",
   "shards": [
     {
       "season": 2019,
@@ -11,7 +11,7 @@
       "drafts": 435,
       "start_date": "2019-04-12",
       "end_date": "2019-11-09",
-      "bytes": 510354
+      "bytes": 513680
     },
     {
       "season": 2019,
@@ -22,7 +22,7 @@
       "drafts": 1740,
       "start_date": "2019-06-30",
       "end_date": "2019-09-08",
-      "bytes": 226137
+      "bytes": 225812
     },
     {
       "season": 2020,
@@ -33,7 +33,7 @@
       "drafts": 727,
       "start_date": "2020-01-05",
       "end_date": "2020-10-09",
-      "bytes": 417252
+      "bytes": 421757
     },
     {
       "season": 2020,
@@ -44,7 +44,7 @@
       "drafts": 1816,
       "start_date": "2020-07-19",
       "end_date": "2020-09-10",
-      "bytes": 279144
+      "bytes": 278917
     },
     {
       "season": 2021,
@@ -55,7 +55,7 @@
       "drafts": 1193,
       "start_date": "2021-01-16",
       "end_date": "2021-11-28",
-      "bytes": 561659
+      "bytes": 566793
     },
     {
       "season": 2021,
@@ -66,7 +66,7 @@
       "drafts": 3639,
       "start_date": "2021-05-01",
       "end_date": "2021-10-05",
-      "bytes": 408375
+      "bytes": 407927
     },
     {
       "season": 2022,
@@ -77,7 +77,7 @@
       "drafts": 1347,
       "start_date": "2022-01-08",
       "end_date": "2022-11-09",
-      "bytes": 393193
+      "bytes": 397194
     },
     {
       "season": 2022,
@@ -88,7 +88,7 @@
       "drafts": 3050,
       "start_date": "2022-04-24",
       "end_date": "2022-09-11",
-      "bytes": 767254
+      "bytes": 765982
     },
     {
       "season": 2023,
@@ -99,7 +99,7 @@
       "drafts": 1660,
       "start_date": "2023-01-03",
       "end_date": "2023-09-04",
-      "bytes": 757303
+      "bytes": 763105
     },
     {
       "season": 2023,
@@ -110,7 +110,7 @@
       "drafts": 3532,
       "start_date": "2023-02-12",
       "end_date": "2023-11-19",
-      "bytes": 1122217
+      "bytes": 1121663
     },
     {
       "season": 2024,
@@ -121,7 +121,7 @@
       "drafts": 1533,
       "start_date": "2024-01-02",
       "end_date": "2024-12-27",
-      "bytes": 451484
+      "bytes": 455435
     },
     {
       "season": 2024,
@@ -132,7 +132,7 @@
       "drafts": 4772,
       "start_date": "2024-02-18",
       "end_date": "2024-10-11",
-      "bytes": 1872057
+      "bytes": 1871736
     },
     {
       "season": 2025,
@@ -143,7 +143,7 @@
       "drafts": 1972,
       "start_date": "2025-01-05",
       "end_date": "2025-12-31",
-      "bytes": 434463
+      "bytes": 438338
     },
     {
       "season": 2025,
@@ -154,18 +154,18 @@
       "drafts": 3676,
       "start_date": "2025-03-14",
       "end_date": "2025-11-12",
-      "bytes": 2213162
+      "bytes": 2213453
     },
     {
       "season": 2026,
       "league_format": "dynasty",
       "path": "data/adp/2026-dynasty.json.gz",
-      "rows": 65420,
-      "players": 624,
-      "drafts": 4624,
+      "rows": 66662,
+      "players": 625,
+      "drafts": 4657,
       "start_date": "2025-12-31",
-      "end_date": "2026-07-22",
-      "bytes": 1569510
+      "end_date": "2026-07-25",
+      "bytes": 1622479
     },
     {
       "season": 2026,
@@ -176,7 +176,7 @@
       "drafts": 1746,
       "start_date": "2025-12-31",
       "end_date": "2026-07-24",
-      "bytes": 2703947
+      "bytes": 2709894
     }
   ]
 }
