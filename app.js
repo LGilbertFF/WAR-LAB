@@ -980,7 +980,7 @@ function defaultRookieAge(pos) {
 
 const dynastyAgeCurves = {
   QB: { peakStart: 27, peakEnd: 32, youngSlope: 0.105, oldSlope: 0.055, floor: 0.36, retention: 0.985 },
-  RB: { peakStart: 23, peakEnd: 25, youngSlope: 0.16, oldSlope: 0.115, floor: 0.24, retention: 0.94 },
+  RB: { peakStart: 23, peakEnd: 25, youngSlope: 0.16, oldSlope: 0.145, floor: 0.18, retention: 0.93 },
   WR: { peakStart: 25, peakEnd: 28, youngSlope: 0.125, oldSlope: 0.095, floor: 0.24, retention: 0.96 },
   TE: { peakStart: 26, peakEnd: 29, youngSlope: 0.115, oldSlope: 0.085, floor: 0.26, retention: 0.955 }
 };
@@ -1006,7 +1006,7 @@ function dynastyFallbackRetention(pos, yearOffset) {
 function dynastyVeteranDecline(pos, currentAge, futureAge) {
   const curve = dynastyAgeCurves[pos] || dynastyAgeCurves.WR;
   if (currentAge === null || futureAge <= currentAge || currentAge <= curve.peakEnd) return 1;
-  const decline = { QB: 0.965, RB: 0.855, WR: 0.87, TE: 0.88 }[pos] || 0.86;
+  const decline = { QB: 0.965, RB: 0.78, WR: 0.87, TE: 0.88 }[pos] || 0.86;
   return decline ** (futureAge - currentAge);
 }
 
@@ -1399,7 +1399,7 @@ function fallbackRookiePickRankCurve(pickNo, horizon) {
   const yearlyFptsPerGame = Array.from({ length: horizon }, (_, index) => base * (development[index] ?? (0.36 * (0.9 ** (index - 9)))));
   return {
     yearlyFptsPerGame,
-    yearlyWar: yearlyFptsPerGame.map((avg) => warFromAverage(conversionPos, avg, "WAR") ?? 0),
+    yearlyWar: rookiePickWarFromFptsCurve(yearlyFptsPerGame, conversionPos, "WAR"),
     bestCasePos,
     comps: [],
     model: "fallback draft-rank FPTS/G curve"
@@ -1413,6 +1413,13 @@ function rookiePickConversionPos(bestCasePos) {
   if (pos.includes("TE")) return "TE";
   if (pos.includes("QB")) return "QB";
   return "WR";
+}
+
+function rookiePickWarFromFptsCurve(yearlyFptsPerGame, conversionPos, metric = "WAR") {
+  return (yearlyFptsPerGame || []).map((avg, index) => {
+    const war = warFromAverage(conversionPos, avg, metric) ?? 0;
+    return index === 0 ? Math.max(0, war) : war;
+  });
 }
 
 function currentRookieClassRankFptsPerGame(pickNo) {
@@ -1776,7 +1783,7 @@ function rookiePickRankProfile(pickNo, horizon, pickYear, metric = "WAR") {
     return {
       ...fallback,
       yearlyFptsPerGame,
-      yearlyWar: yearlyFptsPerGame.map((avg) => warFromAverage(conversionPos, avg, yMetric) ?? 0)
+      yearlyWar: rookiePickWarFromFptsCurve(yearlyFptsPerGame, conversionPos, yMetric)
     };
   }
   const rawYearlyFptsPerGame = [];
@@ -1823,7 +1830,7 @@ function rookiePickRankProfile(pickNo, horizon, pickYear, metric = "WAR") {
   const yMetric = metric === "SuperFlex WAR" ? "SuperFlex WAR" : "WAR";
   const smoothedFptsPerGame = smoothRookiePickFptsCurve(rawYearlyFptsPerGame);
   const yearlyFptsPerGame = Array.from({ length: horizon }, (_, index) => (smoothedFptsPerGame[index] || 0) * discount);
-  const yearlyWar = yearlyFptsPerGame.map((avg) => warFromAverage(conversionPos, avg, yMetric) ?? 0);
+  const yearlyWar = rookiePickWarFromFptsCurve(yearlyFptsPerGame, conversionPos, yMetric);
   return {
     yearlyFptsPerGame,
     yearlyWar,
