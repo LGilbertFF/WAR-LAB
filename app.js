@@ -1297,7 +1297,11 @@ function rookiePickLabelFromPick(pickNo, teams = 12) {
 
 function rookiePickLabelFromName(name, fallbackPick, teams) {
   const match = String(name || "").match(/(\d+\.\d+)/);
-  return match?.[1] || rookiePickLabelFromPick(fallbackPick, teams);
+  if (match?.[1]) {
+    const pickNo = rookiePickNumber(match[1], teams);
+    return rookiePickLabelFromPick(pickNo, teams);
+  }
+  return rookiePickLabelFromPick(fallbackPick, teams);
 }
 
 function rookiePickYear(name, fallbackYear) {
@@ -1435,6 +1439,20 @@ function currentRookieClassRankFptsPerGame(pickNo) {
   const weighted = matched.reduce((sum, row) => sum + (row.MetricFptsPerGame / Math.max(1, Math.abs(row.RookieRank - pick) + 1)), 0);
   const totalWeight = matched.reduce((sum, row) => sum + (1 / Math.max(1, Math.abs(row.RookieRank - pick) + 1)), 0);
   return weighted / Math.max(0.001, totalWeight);
+}
+
+function smoothRookiePickFptsCurve(values) {
+  const smoothed = [...(values || [])].map((value) => Math.max(0, number(value, 0)));
+  if (smoothed.length >= 2 && smoothed[0] > 0) {
+    smoothed[1] = Math.max(smoothed[1], smoothed[0] * 1.08);
+  }
+  if (smoothed.length >= 3 && smoothed[1] > 0) {
+    smoothed[2] = Math.max(smoothed[2], smoothed[1] * 1.03);
+  }
+  for (let index = 3; index < smoothed.length; index += 1) {
+    if (smoothed[index] <= 0 && smoothed[index - 1] > 0) smoothed[index] = smoothed[index - 1] * 0.9;
+  }
+  return smoothed;
 }
 
 function currentRookieProjectionFallback(item, meta, metric = "WAR") {
@@ -1751,7 +1769,8 @@ function rookiePickRankProfile(pickNo, horizon, pickYear, metric = "WAR") {
   const discount = 0.97 ** yearsOut;
   if (!curves.length) {
     const fallback = fallbackRookiePickRankCurve(futureAdjustedPick, rawHorizon);
-    const yearlyFptsPerGame = Array.from({ length: horizon }, (_, index) => (fallback.yearlyFptsPerGame?.[index] || 0) * discount);
+    const rawFallbackFpts = smoothRookiePickFptsCurve(fallback.yearlyFptsPerGame || []);
+    const yearlyFptsPerGame = Array.from({ length: horizon }, (_, index) => (rawFallbackFpts[index] || 0) * discount);
     const conversionPos = rookiePickConversionPos(fallback.bestCasePos);
     const yMetric = metric === "SuperFlex WAR" ? "SuperFlex WAR" : "WAR";
     return {
@@ -1802,7 +1821,8 @@ function rookiePickRankProfile(pickNo, horizon, pickYear, metric = "WAR") {
   const bestCasePos = [...archetypeCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "Flex";
   const conversionPos = rookiePickConversionPos(bestCasePos);
   const yMetric = metric === "SuperFlex WAR" ? "SuperFlex WAR" : "WAR";
-  const yearlyFptsPerGame = Array.from({ length: horizon }, (_, index) => (rawYearlyFptsPerGame[index] || 0) * discount);
+  const smoothedFptsPerGame = smoothRookiePickFptsCurve(rawYearlyFptsPerGame);
+  const yearlyFptsPerGame = Array.from({ length: horizon }, (_, index) => (smoothedFptsPerGame[index] || 0) * discount);
   const yearlyWar = yearlyFptsPerGame.map((avg) => warFromAverage(conversionPos, avg, yMetric) ?? 0);
   return {
     yearlyFptsPerGame,
@@ -2817,10 +2837,16 @@ function missingRookiePickLabels(rows) {
   const posFilter = dynastySettings().position;
   if (!["ALL", "RDP"].includes(posFilter)) return "";
   const teams = settings().teams;
-  const seen = new Set(rows.filter((row) => row.Pos === "RDP").map((row) => row.pickLabel));
-  const missing = Array.from({ length: teams }, (_, index) => `1.${String(index + 1).padStart(2, "0")}`)
-    .filter((label) => !seen.has(label));
-  return missing.join(", ");
+  const currentYear = settings().year;
+  const seen = new Set(rows.filter((row) => row.Pos === "RDP").map((row) => `${row.pickYear}|${row.pickLabel}`));
+  return [currentYear + 1, currentYear + 2]
+    .map((pickYear) => {
+      const missing = Array.from({ length: teams }, (_, index) => `1.${String(index + 1).padStart(2, "0")}`)
+        .filter((label) => !seen.has(`${pickYear}|${label}`));
+      return missing.length ? `${pickYear}: ${missing.join(", ")}` : "";
+    })
+    .filter(Boolean)
+    .join("; ");
 }
 
 function sortedDynastyRows(rows) {
