@@ -1305,10 +1305,9 @@ function rookiePickYear(name, fallbackYear) {
 }
 
 function historicalDraftClassRankCurves(horizon, metric = "WAR") {
-  const yMetric = historicalWarMetric(metric);
   const playerRows = state.historicalModel?.playerRows || [];
   if (!playerRows.length || !state.draftMetadataRows.length) return [];
-  const cacheKey = `${horizon}|${yMetric}|${state.historicalModelKey}|${playerRows.length}|${state.draftMetadataRows.length}`;
+  const cacheKey = `${horizon}|FPTS/G|${state.historicalModelKey}|${playerRows.length}|${state.draftMetadataRows.length}`;
   if (dynastyDraftClassCurveCache.has(cacheKey)) return dynastyDraftClassCurveCache.get(cacheKey);
   const maxHistoricalYear = Math.max(...playerRows.map((row) => number(row.Year, 0)));
   const metaMap = new Map();
@@ -1337,7 +1336,7 @@ function historicalDraftClassRankCurves(horizon, metric = "WAR") {
     for (let yearOffset = 0; yearOffset < horizon; yearOffset += 1) {
       if (meta.draftYear + yearOffset > maxHistoricalYear) continue;
       const season = seasons.find((row) => row.Year === meta.draftYear + yearOffset);
-      const war = Math.max(0, number(season?.[yMetric], 0));
+      const fptsPerGame = Math.max(0, number(season?.AVG, 0));
       const classKey = `${meta.draftYear}|${yearOffset}`;
       if (!classYearRows.has(classKey)) classYearRows.set(classKey, []);
       classYearRows.get(classKey).push({
@@ -1345,7 +1344,7 @@ function historicalDraftClassRankCurves(horizon, metric = "WAR") {
         Pos: meta.pos,
         DraftYear: meta.draftYear,
         YearOffset: yearOffset,
-        WAR: war
+        FptsPerGame: fptsPerGame
       });
     }
   }
@@ -1353,7 +1352,7 @@ function historicalDraftClassRankCurves(horizon, metric = "WAR") {
   const rankBuckets = new Map();
   for (const classRows of classYearRows.values()) {
     [...classRows]
-      .sort((a, b) => b.WAR - a.WAR)
+      .sort((a, b) => b.FptsPerGame - a.FptsPerGame)
       .forEach((row, index) => {
         const rank = index + 1;
         const bucketKey = `${rank}|${row.YearOffset}`;
@@ -1365,20 +1364,20 @@ function historicalDraftClassRankCurves(horizon, metric = "WAR") {
   const curves = [];
   for (const [bucketKey, rowsForRank] of rankBuckets.entries()) {
     const [rankText, yearOffsetText] = bucketKey.split("|");
-    const wars = rowsForRank.map((row) => row.WAR).filter((value) => Number.isFinite(value));
-    if (!wars.length) continue;
+    const fptsPerGames = rowsForRank.map((row) => row.FptsPerGame).filter((value) => Number.isFinite(value));
+    if (!fptsPerGames.length) continue;
     const posCounts = rowsForRank.reduce((map, row) => map.set(row.Pos, (map.get(row.Pos) || 0) + 1), new Map());
     curves.push({
       Rank: number(rankText, 0),
       YearOffset: number(yearOffsetText, 0),
-      WAR: percentile(wars, 0.85),
-      P75: percentile(wars, 0.75),
-      P85: percentile(wars, 0.85),
-      Count: wars.length,
+      FptsPerGame: percentile(fptsPerGames, 0.85),
+      P75: percentile(fptsPerGames, 0.75),
+      P85: percentile(fptsPerGames, 0.85),
+      Count: fptsPerGames.length,
       Archetype: [...posCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "WR",
       Examples: rowsForRank
-        .filter((row) => row.WAR > 0)
-        .sort((a, b) => b.WAR - a.WAR)
+        .filter((row) => row.FptsPerGame > 0)
+        .sort((a, b) => b.FptsPerGame - a.FptsPerGame)
         .slice(0, 4)
         .map((row) => `${row.Player} (${row.Pos}, ${row.DraftYear} Y${row.YearOffset + 1})`)
     });
@@ -1389,28 +1388,40 @@ function historicalDraftClassRankCurves(horizon, metric = "WAR") {
 
 function fallbackRookiePickRankCurve(pickNo, horizon) {
   const pick = Math.max(1, number(pickNo, 1));
-  const base = Math.max(0.02, 0.48 * Math.exp(-(pick - 1) / 18));
-  const development = [0.38, 0.72, 1, 0.94, 0.82, 0.7, 0.58, 0.48, 0.4, 0.34];
+  const bestCasePos = pick <= 4 ? "RB/WR" : pick <= 12 ? "WR/RB" : pick <= 24 ? "WR" : "Flex";
+  const conversionPos = rookiePickConversionPos(bestCasePos);
+  const base = Math.max(1.5, 15.5 * Math.exp(-(pick - 1) / 28));
+  const development = [0.56, 0.86, 1, 0.95, 0.84, 0.72, 0.6, 0.5, 0.42, 0.36];
+  const yearlyFptsPerGame = Array.from({ length: horizon }, (_, index) => base * (development[index] ?? (0.36 * (0.9 ** (index - 9)))));
   return {
-    yearlyWar: Array.from({ length: horizon }, (_, index) => base * (development[index] ?? (0.4 * (0.9 ** (index - 9))))),
-    bestCasePos: pick <= 4 ? "RB/WR" : pick <= 12 ? "WR/RB" : pick <= 24 ? "WR" : "Flex",
+    yearlyFptsPerGame,
+    yearlyWar: yearlyFptsPerGame.map((avg) => warFromAverage(conversionPos, avg, "WAR") ?? 0),
+    bestCasePos,
     comps: [],
-    model: "fallback draft-rank WAR curve"
+    model: "fallback draft-rank FPTS/G curve"
   };
 }
 
-function currentRookieClassRankWar(pickNo, metric = "WAR") {
-  const yMetric = historicalWarMetric(metric);
+function rookiePickConversionPos(bestCasePos) {
+  const pos = String(bestCasePos || "").toUpperCase();
+  if (pos.includes("RB")) return "RB";
+  if (pos.includes("WR")) return "WR";
+  if (pos.includes("TE")) return "TE";
+  if (pos.includes("QB")) return "QB";
+  return "WR";
+}
+
+function currentRookieClassRankFptsPerGame(pickNo) {
   const metaMap = draftMetadataMap();
   const rookieRows = state.results
     .map((row) => {
       const meta = getPlayerMapStrict(metaMap, row.Player, row.Pos);
       if (!meta || meta.draftYear !== settings().year) return null;
-      const value = number(row[yMetric], null);
-      return value === null ? null : { ...row, MetricWar: Math.max(0, value) };
+      const value = number(row.AVG, null);
+      return value === null ? null : { ...row, MetricFptsPerGame: Math.max(0, value) };
     })
     .filter(Boolean)
-    .sort((a, b) => b.MetricWar - a.MetricWar);
+    .sort((a, b) => b.MetricFptsPerGame - a.MetricFptsPerGame);
   if (!rookieRows.length) return null;
   const pick = Math.max(1, number(pickNo, 1));
   let matched = [];
@@ -1421,7 +1432,7 @@ function currentRookieClassRankWar(pickNo, metric = "WAR") {
     if ((window === 0 && matched.length) || matched.length >= 2 || window === 14) break;
   }
   if (!matched.length) return null;
-  const weighted = matched.reduce((sum, row) => sum + (row.MetricWar / Math.max(1, Math.abs(row.RookieRank - pick) + 1)), 0);
+  const weighted = matched.reduce((sum, row) => sum + (row.MetricFptsPerGame / Math.max(1, Math.abs(row.RookieRank - pick) + 1)), 0);
   const totalWeight = matched.reduce((sum, row) => sum + (1 / Math.max(1, Math.abs(row.RookieRank - pick) + 1)), 0);
   return weighted / Math.max(0.001, totalWeight);
 }
@@ -1740,12 +1751,16 @@ function rookiePickRankProfile(pickNo, horizon, pickYear, metric = "WAR") {
   const discount = 0.97 ** yearsOut;
   if (!curves.length) {
     const fallback = fallbackRookiePickRankCurve(futureAdjustedPick, rawHorizon);
+    const yearlyFptsPerGame = Array.from({ length: horizon }, (_, index) => (fallback.yearlyFptsPerGame?.[index] || 0) * discount);
+    const conversionPos = rookiePickConversionPos(fallback.bestCasePos);
+    const yMetric = metric === "SuperFlex WAR" ? "SuperFlex WAR" : "WAR";
     return {
       ...fallback,
-      yearlyWar: Array.from({ length: horizon }, (_, index) => (fallback.yearlyWar[index] || 0) * discount)
+      yearlyFptsPerGame,
+      yearlyWar: yearlyFptsPerGame.map((avg) => warFromAverage(conversionPos, avg, yMetric) ?? 0)
     };
   }
-  const rawYearlyWar = [];
+  const rawYearlyFptsPerGame = [];
   const examples = [];
   const archetypeCounts = new Map();
   const sampleCounts = [];
@@ -1756,17 +1771,17 @@ function rookiePickRankProfile(pickNo, horizon, pickYear, metric = "WAR") {
       if (matched.length >= 3 || window === 24) break;
     }
     if (!matched.length) {
-      rawYearlyWar.push(0);
+      rawYearlyFptsPerGame.push(0);
       sampleCounts.push(0);
       continue;
     }
     const weighted = matched.reduce((sum, row) => {
       const distance = Math.abs(row.Rank - futureAdjustedPick);
       const weight = row.Count / Math.max(1, distance + 1);
-      return sum + (row.WAR * weight);
+      return sum + (row.FptsPerGame * weight);
     }, 0);
     const totalWeight = matched.reduce((sum, row) => sum + (row.Count / Math.max(1, Math.abs(row.Rank - futureAdjustedPick) + 1)), 0);
-    rawYearlyWar.push(Math.max(0, weighted / Math.max(1, totalWeight)));
+    rawYearlyFptsPerGame.push(Math.max(0, weighted / Math.max(1, totalWeight)));
     sampleCounts.push(matched.reduce((sum, row) => sum + row.Count, 0));
     for (const row of matched) {
       archetypeCounts.set(row.Archetype, (archetypeCounts.get(row.Archetype) || 0) + row.Count);
@@ -1775,22 +1790,27 @@ function rookiePickRankProfile(pickNo, horizon, pickYear, metric = "WAR") {
       }
     }
   }
-  const currentClassY1 = currentRookieClassRankWar(pick, metric);
-  if (currentClassY1 !== null && rawYearlyWar.some((value) => value > 0)) {
-    const historicalY1 = rawYearlyWar[0] || currentClassY1;
+  const currentClassY1 = currentRookieClassRankFptsPerGame(pick);
+  if (currentClassY1 !== null && rawYearlyFptsPerGame.some((value) => value > 0)) {
+    const historicalY1 = rawYearlyFptsPerGame[0] || currentClassY1;
     const blendedY1 = (historicalY1 * 0.42) + (currentClassY1 * 0.58);
     const scale = blendedY1 / Math.max(0.001, historicalY1);
-    for (let index = 0; index < rawYearlyWar.length; index += 1) {
-      rawYearlyWar[index] *= scale;
+    for (let index = 0; index < rawYearlyFptsPerGame.length; index += 1) {
+      rawYearlyFptsPerGame[index] *= scale;
     }
   }
-  const yearlyWar = Array.from({ length: horizon }, (_, index) => (rawYearlyWar[index] || 0) * discount);
+  const bestCasePos = [...archetypeCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "Flex";
+  const conversionPos = rookiePickConversionPos(bestCasePos);
+  const yMetric = metric === "SuperFlex WAR" ? "SuperFlex WAR" : "WAR";
+  const yearlyFptsPerGame = Array.from({ length: horizon }, (_, index) => (rawYearlyFptsPerGame[index] || 0) * discount);
+  const yearlyWar = yearlyFptsPerGame.map((avg) => warFromAverage(conversionPos, avg, yMetric) ?? 0);
   return {
+    yearlyFptsPerGame,
     yearlyWar,
-    bestCasePos: [...archetypeCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "Flex",
+    bestCasePos,
     comps: examples,
     sampleCounts,
-    model: `P85 draft-class rank curve for pick ${rookiePickLabelFromPick(pick, settings().teams)}`
+    model: `P85 draft-class FPTS/G rank curve for pick ${rookiePickLabelFromPick(pick, settings().teams)}`
   };
 }
 
@@ -1849,26 +1869,28 @@ function dynastyBoardRows() {
     item.drafts += drafts;
   }
 
-  for (let slot = 1; slot <= appCfg.teams; slot += 1) {
-    const label = `1.${String(slot).padStart(2, "0")}`;
-    const pickYear = appCfg.year + 1;
-    const name = `${pickYear} Rookie Pick ${label}`;
-    const key = `${pickYear}|${label}|RDP`;
-    if (!grouped.has(key)) {
-      grouped.set(key, {
-        Player: name,
-        Pos: "RDP",
-        Team: "PICK",
-        headshot_url: "",
-        status: "",
-        active: null,
-        weightedAdp: slot,
-        adpWeight: 1,
-        drafts: 0,
-        pickYear,
-        pickLabel: label,
-        synthesized: true
-      });
+  for (const yearsOut of [1, 2]) {
+    for (let slot = 1; slot <= appCfg.teams; slot += 1) {
+      const label = `1.${String(slot).padStart(2, "0")}`;
+      const pickYear = appCfg.year + yearsOut;
+      const name = `${pickYear} Rookie Pick ${label}`;
+      const key = `${pickYear}|${label}|RDP`;
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          Player: name,
+          Pos: "RDP",
+          Team: "PICK",
+          headshot_url: "",
+          status: "",
+          active: null,
+          weightedAdp: slot + ((yearsOut - 1) * appCfg.teams),
+          adpWeight: 1,
+          drafts: 0,
+          pickYear,
+          pickLabel: label,
+          synthesized: true
+        });
+      }
     }
   }
 
@@ -1884,6 +1906,7 @@ function dynastyBoardRows() {
       const sfProfile = dynastyShowsSuperflex() ? rookiePickRankProfile(pickNo, cfg.horizon, pickYear, "SuperFlex WAR") : null;
       const yearlyWar = profile.yearlyWar;
       const yearlySuperflexWar = sfProfile?.yearlyWar || [];
+      const yearlyFptsPerGame = profile.yearlyFptsPerGame || [];
       const dynastyWar = yearlyWar.reduce((sum, value) => sum + value, 0);
       const dynastySuperflexWar = yearlySuperflexWar.reduce((sum, value) => sum + value, 0);
       rows.push({
@@ -1896,6 +1919,7 @@ function dynastyBoardRows() {
         dynastySuperflexWar,
         yearlyWar,
         yearlySuperflexWar,
+        yearlyFptsPerGame,
         age: null,
         pickYear,
         pickLabel,
@@ -2944,7 +2968,7 @@ function renderDynastyDetail(row) {
   const currentSource = !isPick && row.currentWarEstimated
     ? `<div><span>${settings().year} WAR source</span><strong>Estimated</strong></div>`
     : "";
-  const yearlyFptsPath = !isPick && row.yearlyFptsPerGame?.length
+  const yearlyFptsPath = row.yearlyFptsPerGame?.length
     ? `<p class="muted"><strong>FPTS/G path:</strong> ${row.yearlyFptsPerGame.map((value, index) => `${settings().year + index}: ${fmt(value, 1)}`).join(" | ")}</p>`
     : "";
   return `
