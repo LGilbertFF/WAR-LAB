@@ -35,6 +35,27 @@ data/scrape_manifest.json
 
 The scraper still creates local CSV intermediates, but the site prefers the compressed JSON files in `data/war/`.
 
+Fantasy Points projections require a logged-in browser session. Install
+Playwright once:
+
+```powershell
+C:\Users\lgilb\anaconda3\python.exe -m pip install playwright
+C:\Users\lgilb\anaconda3\python.exe -m playwright install chromium
+```
+
+Then run:
+
+```powershell
+C:\Users\lgilb\anaconda3\python.exe scripts\fantasypoints_authenticated_projections.py --season-year 2026
+```
+
+A browser will open using the ignored local profile in
+`.local/fantasypoints-profile`. Sign in normally if prompted. The script keeps
+checking for the rendered projections while you log in. It writes
+`data/current_projections.csv`, exports `data/war/current_projections.json.gz`,
+and updates the manifests. Your login session stays local and should not be
+committed.
+
 One-time historical weekly stat scrape back to 2015:
 
 ```powershell
