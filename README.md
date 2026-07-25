@@ -56,6 +56,16 @@ checking for the rendered projections while you log in. It writes
 and updates the manifests. Your login session stays local and should not be
 committed.
 
+If you export the Fantasy Points table to CSV from the site, import that file
+directly:
+
+```powershell
+C:\Users\lgilb\anaconda3\python.exe scripts\import_fantasypoints_projection_csv.py --season-year 2026 --input "C:\Users\lgilb\Downloads\2026 NFL Fantasy Football Season Rankings  Projections  Fantasy Points.csv"
+```
+
+This writes the same current projection files as the authenticated browser sync,
+including the compressed JSON used by the app.
+
 One-time historical weekly stat scrape back to 2015:
 
 ```powershell
