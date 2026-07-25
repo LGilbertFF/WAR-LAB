@@ -288,6 +288,7 @@ function normalizeProjection(row, index, adpMap) {
 
   const avg = number(firstValue(row, ["AVG", "Avg", "FPTS/G", "Fantasy Points Per Game"]), null);
   const fpts = number(firstValue(row, ["FPTS", "Fantasy Points", "fantasy_points"]), null);
+  const games = number(firstValue(row, ["G", "Games", "GP", "Projected Games"], null), null);
   const existingWar = number(firstValue(row, ["WAR"], null), null);
   const high = number(firstValue(row, ["AVG High", "FPTS High", "High"], null), null);
   const low = number(firstValue(row, ["AVG Low", "FPTS Low", "Low"], null), null);
@@ -295,7 +296,10 @@ function normalizeProjection(row, index, adpMap) {
 
   const scoredFromStats = calculateFantasyPoints(row, pos, scoring);
   const projectedPoints = scoredFromStats ?? fpts;
-  const projectedAvg = avg ?? (projectedPoints !== null ? projectedPoints / settings().weeks : null);
+  const gameDenominator = games !== null && games > 0 ? games : settings().weeks;
+  const projectedAvg = scoredFromStats !== null
+    ? scoredFromStats / gameDenominator
+    : avg ?? (projectedPoints !== null ? projectedPoints / gameDenominator : null);
 
   return {
     id: `${playerKey(player)}-${pos}-${index}`,
@@ -306,8 +310,9 @@ function normalizeProjection(row, index, adpMap) {
     Year: number(firstValue(row, ["Year", "year"], null), settings().year),
     FPTS: projectedPoints,
     AVG: projectedAvg,
-    "AVG High": high !== null && fpts !== null ? high / settings().weeks : high,
-    "AVG Low": low !== null && fpts !== null ? low / settings().weeks : low,
+    G: games,
+    "AVG High": high !== null && fpts !== null ? high / gameDenominator : high,
+    "AVG Low": low !== null && fpts !== null ? low / gameDenominator : low,
     "Existing WAR": existingWar,
     ADP: adp,
     "ADP Rank": adpRank,
