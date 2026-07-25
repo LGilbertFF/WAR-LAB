@@ -980,7 +980,7 @@ function defaultRookieAge(pos) {
 
 const dynastyAgeCurves = {
   QB: { peakStart: 27, peakEnd: 32, youngSlope: 0.105, oldSlope: 0.055, floor: 0.36, retention: 0.985 },
-  RB: { peakStart: 23, peakEnd: 25, youngSlope: 0.16, oldSlope: 0.145, floor: 0.18, retention: 0.93 },
+  RB: { peakStart: 23, peakEnd: 25, youngSlope: 0.16, oldSlope: 0.115, floor: 0.24, retention: 0.94 },
   WR: { peakStart: 25, peakEnd: 28, youngSlope: 0.125, oldSlope: 0.095, floor: 0.24, retention: 0.96 },
   TE: { peakStart: 26, peakEnd: 29, youngSlope: 0.115, oldSlope: 0.085, floor: 0.26, retention: 0.955 }
 };
@@ -1006,7 +1006,7 @@ function dynastyFallbackRetention(pos, yearOffset) {
 function dynastyVeteranDecline(pos, currentAge, futureAge) {
   const curve = dynastyAgeCurves[pos] || dynastyAgeCurves.WR;
   if (currentAge === null || futureAge <= currentAge || currentAge <= curve.peakEnd) return 1;
-  const decline = { QB: 0.965, RB: 0.78, WR: 0.87, TE: 0.88 }[pos] || 0.86;
+  const decline = { QB: 0.965, RB: 0.855, WR: 0.87, TE: 0.88 }[pos] || 0.86;
   return decline ** (futureAge - currentAge);
 }
 
@@ -1890,8 +1890,8 @@ function dynastyBoardRows() {
   }
 
   for (const yearsOut of [1, 2]) {
-    for (let slot = 1; slot <= appCfg.teams; slot += 1) {
-      const label = `1.${String(slot).padStart(2, "0")}`;
+    for (let pickNo = 1; pickNo <= appCfg.teams * 3; pickNo += 1) {
+      const label = rookiePickLabelFromPick(pickNo, appCfg.teams);
       const pickYear = appCfg.year + yearsOut;
       const name = `${pickYear} Rookie Pick ${label}`;
       const key = `${pickYear}|${label}|RDP`;
@@ -1903,7 +1903,7 @@ function dynastyBoardRows() {
           headshot_url: "",
           status: "",
           active: null,
-          weightedAdp: slot + ((yearsOut - 1) * appCfg.teams),
+          weightedAdp: pickNo + ((yearsOut - 1) * appCfg.teams * 3),
           adpWeight: 1,
           drafts: 0,
           pickYear,
@@ -2841,7 +2841,7 @@ function missingRookiePickLabels(rows) {
   const seen = new Set(rows.filter((row) => row.Pos === "RDP").map((row) => `${row.pickYear}|${row.pickLabel}`));
   return [currentYear + 1, currentYear + 2]
     .map((pickYear) => {
-      const missing = Array.from({ length: teams }, (_, index) => `1.${String(index + 1).padStart(2, "0")}`)
+      const missing = Array.from({ length: teams * 3 }, (_, index) => rookiePickLabelFromPick(index + 1, teams))
         .filter((label) => !seen.has(`${pickYear}|${label}`));
       return missing.length ? `${pickYear}: ${missing.join(", ")}` : "";
     })
