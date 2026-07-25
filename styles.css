@@ -1130,6 +1130,7 @@ summary::marker {
 .dynasty-axis-title,
 .dynasty-chart-label,
 .dynasty-history-point text,
+.dynasty-projected-point text,
 .dynasty-curve-legend text {
   fill: rgba(240, 240, 240, 0.78);
   font-size: 12px;
@@ -1166,8 +1167,20 @@ summary::marker {
   stroke-width: 2;
 }
 
+.dynasty-projected-point circle,
+.dynasty-curve-legend .projected-legend-dot {
+  fill: #9ac7ff;
+  stroke: #111111;
+  stroke-width: 2;
+}
+
 .dynasty-history-point text {
   fill: #d0a85b;
+  font-size: 10px;
+}
+
+.dynasty-projected-point text {
+  fill: #9ac7ff;
   font-size: 10px;
 }
 

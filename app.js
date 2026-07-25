@@ -2954,7 +2954,22 @@ function dynastyCurveSvg(row, curveRows) {
   const height = 250;
   const pad = { l: 48, r: 18, t: 18, b: 42 };
   const historicalPoints = dynastyHistoricalWarPoints(row);
-  const values = [...curveRows, ...historicalPoints].map((point) => number(point.WAR, 0));
+  const yMetric = dynastyShowsSuperflex() ? "SuperFlex WAR" : "WAR";
+  const projectedValues = yMetric === "SuperFlex WAR" && row.yearlySuperflexWar?.length ? row.yearlySuperflexWar : row.yearlyWar;
+  const projectedPoints = (projectedValues || [])
+    .map((war, index) => {
+      const fptsPerGame = row.yearlyFptsPerGame?.[index] ?? null;
+      return {
+        Year: settings().year + index,
+        Age: row.Pos === "RDP" ? null : number(row.age, null) === null ? null : number(row.age, 0) + index,
+        WAR: number(war, null),
+        FptsPerGame: fptsPerGame,
+        Index: index,
+        Label: `${settings().year + index}`
+      };
+    })
+    .filter((point) => point.WAR !== null && (row.Pos === "RDP" || point.Age !== null));
+  const values = [...curveRows, ...historicalPoints, ...projectedPoints].map((point) => number(point.WAR, 0));
   const maxY = Math.max(0.5, Math.max(...values) * 1.18);
   const minY = Math.min(0, Math.min(...values) * 1.18);
   const ySpan = Math.max(0.1, maxY - minY);
@@ -2997,12 +3012,27 @@ function dynastyCurveSvg(row, curveRows) {
       </g>
     `;
   }).join("");
+  const projectedMarkup = projectedPoints.map((point, index) => {
+    const cx = row.Pos === "RDP" ? xFromDomain(point.Index) : xAge(point.Age);
+    const cy = y(point.WAR);
+    const labelY = Math.max(16, cy - 12 - ((index % 2) * 10));
+    const fptsCopy = point.FptsPerGame === null || point.FptsPerGame === undefined ? "" : `, ${fmt(point.FptsPerGame, 1)} FPTS/G`;
+    return `
+      <g class="dynasty-projected-point">
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.8"></circle>
+        <text x="${cx.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle">${escapeHtml(String(point.Year))}</text>
+        <title>${escapeHtml(`${point.Year} projected ${yMetric}: ${fmt(point.WAR)}${fptsCopy}`)}</title>
+      </g>
+    `;
+  }).join("");
   const legend = row.Pos === "RDP" ? "" : `
     <g class="dynasty-curve-legend">
       <line x1="${pad.l}" x2="${pad.l + 18}" y1="16" y2="16"></line>
       <text x="${pad.l + 24}" y="20">Projected curve</text>
-      <circle cx="${pad.l + 130}" cy="16" r="4.5"></circle>
-      <text x="${pad.l + 140}" y="20">Previous seasons</text>
+      <circle class="projected-legend-dot" cx="${pad.l + 130}" cy="16" r="4.5"></circle>
+      <text x="${pad.l + 140}" y="20">Projected years</text>
+      <circle cx="${pad.l + 250}" cy="16" r="4.5"></circle>
+      <text x="${pad.l + 260}" y="20">Previous seasons</text>
     </g>
   `;
   return `
@@ -3011,6 +3041,7 @@ function dynastyCurveSvg(row, curveRows) {
       <line class="dynasty-zero-line" x1="${pad.l}" x2="${width - pad.r}" y1="${zeroY.toFixed(1)}" y2="${zeroY.toFixed(1)}"></line>
       <polygon class="dynasty-curve-area" points="${areaPoints}"></polygon>
       <polyline class="dynasty-curve-line" points="${linePoints}"></polyline>
+      ${projectedMarkup}
       ${historicalMarkup}
       <circle class="dynasty-current-dot" cx="${x(currentIndex).toFixed(1)}" cy="${y(curveRows[currentIndex].WAR).toFixed(1)}" r="6"></circle>
       <g class="dynasty-axis-labels">${tickMarkup}</g>
