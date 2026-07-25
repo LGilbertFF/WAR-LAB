@@ -1458,7 +1458,9 @@ function smoothRookiePickFptsCurve(values) {
     smoothed[2] = Math.max(smoothed[2], smoothed[1] * 1.03);
   }
   for (let index = 3; index < smoothed.length; index += 1) {
-    if (smoothed[index] <= 0 && smoothed[index - 1] > 0) smoothed[index] = smoothed[index - 1] * 0.9;
+    if (smoothed[index - 1] <= 0) continue;
+    const retentionFloor = index === 3 ? 1 : index === 4 ? 0.98 : 0.92;
+    smoothed[index] = Math.max(smoothed[index], smoothed[index - 1] * retentionFloor);
   }
   return smoothed;
 }
