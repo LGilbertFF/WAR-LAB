@@ -1550,8 +1550,12 @@ function dynastyBoardRows() {
   const cfg = dynastySettings();
   const appCfg = settings();
   const metaMap = draftMetadataMap();
-  const warMap = new Map();
-  for (const row of state.results) setPlayerMapVariants(warMap, row.Player, row.Pos, row);
+  const strictWarMap = new Map();
+  const variantWarMap = new Map();
+  for (const row of state.results) {
+    setPlayerMapStrict(strictWarMap, row.Player, row.Pos, row);
+    setPlayerMapVariants(variantWarMap, row.Player, row.Pos, row);
+  }
   const grouped = new Map();
 
   for (const row of dynastyAdpSourceRows()) {
@@ -1644,7 +1648,7 @@ function dynastyBoardRows() {
       });
       continue;
     }
-    const current = getPlayerMapValue(warMap, item.Player, item.Pos);
+    const current = getPlayerMapStrict(strictWarMap, item.Player, item.Pos) || getPlayerMapValue(variantWarMap, item.Player, item.Pos);
     const meta = getPlayerMapStrict(metaMap, item.Player, item.Pos);
     const isRookie = dynastyIsCurrentRookie(item, meta);
     const exclusionReason = dynastyExclusionReason(item, current, meta);
