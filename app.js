@@ -1369,9 +1369,8 @@ function dynastyRookieDevelopmentProfile(item, meta, currentWar, metric = "WAR")
   const playedMetric = `Played ${yMetric}`;
   const targetPick = number(meta?.draftPick, null);
   const targetAdp = number(item?.ADP, null);
-  const current = Math.max(0, number(currentWar, 0));
   const playerRows = state.historicalModel?.playerRows || [];
-  if (!playerRows.length || current <= 0) return null;
+  if (!playerRows.length) return null;
   const adpMap = historicalAdpMap();
 
   const seasonMap = new Map();
@@ -1428,6 +1427,18 @@ function dynastyRookieDevelopmentProfile(item, meta, currentWar, metric = "WAR")
   }
   if (!matched.length) return null;
 
+  const weightedAverageComp = (yearKey) => {
+    const rows = matched
+      .map((row) => {
+        const value = row[yearKey];
+        if (value === null || !Number.isFinite(value)) return null;
+        const weight = 1 / Math.max(1, row.score + 1);
+        return { value, weight };
+      })
+      .filter(Boolean);
+    if (!rows.length) return null;
+    return rows.reduce((sum, row) => sum + (row.value * row.weight), 0) / Math.max(0.001, rows.reduce((sum, row) => sum + row.weight, 0));
+  };
   const ratio = (row, value) => value === null ? null : (value + 0.08) / Math.max(0.08, row.Y1 + 0.08);
   const weightedRatio = (yearKey, minValue, maxValue) => {
     const rows = matched
@@ -1444,6 +1455,8 @@ function dynastyRookieDevelopmentProfile(item, meta, currentWar, metric = "WAR")
   };
   const y2Multiplier = weightedRatio("Y2", 1.04, 1.85) ?? 1.08;
   const y3Multiplier = weightedRatio("Y3", 1.0, 2.05) ?? Math.max(1, y2Multiplier * 0.98);
+  const y2TargetWar = weightedAverageComp("Y2");
+  const y3TargetWar = weightedAverageComp("Y3");
   const examples = matched
     .sort((a, b) => a.score - b.score)
     .slice(0, 4)
@@ -1452,6 +1465,8 @@ function dynastyRookieDevelopmentProfile(item, meta, currentWar, metric = "WAR")
   return {
     y2Multiplier,
     y3Multiplier,
+    y2TargetWar,
+    y3TargetWar,
     examples,
     count: matched.length,
     model: `rookie development comps: ${matched.length} same-position players by NFL draft capital${targetAdp !== null ? " and rookie ADP" : ""}`
@@ -1465,10 +1480,16 @@ function applyRookieDevelopment(yearly, item, meta, currentWar, metric = "WAR") 
   const current = number(currentWar, 0);
   adjusted[0] = current;
   const developmentBase = Math.max(0, current);
-  const y2Target = developmentBase * profile.y2Multiplier;
+  const y2Target = Math.max(
+    developmentBase * profile.y2Multiplier,
+    number(profile.y2TargetWar, 0) ?? 0
+  );
   adjusted[1] = Math.max(adjusted[1] ?? 0, ((adjusted[1] ?? 0) * 0.45) + (y2Target * 0.55));
   if (adjusted.length >= 3) {
-    const y3Target = developmentBase * profile.y3Multiplier;
+    const y3Target = Math.max(
+      developmentBase * profile.y3Multiplier,
+      number(profile.y3TargetWar, 0) ?? 0
+    );
     adjusted[2] = Math.max(adjusted[2] ?? 0, ((adjusted[2] ?? 0) * 0.45) + (y3Target * 0.55));
   }
   adjusted[0] = current;
@@ -2678,7 +2699,8 @@ function renderDynastyDetail(row) {
     ? `<p class="muted"><strong>${isPick ? "Historical rank examples" : "Rookie development comps"}:</strong> ${row.comps.map((comp) => escapeHtml(comp)).join(", ")}</p>`
     : "";
   const rookieGrowth = !isPick && row.rookieDevelopment
-    ? `<div><span>Rookie Y2/Y3 comps</span><strong>${fmt(row.rookieDevelopment.y2Multiplier, 2)}x / ${fmt(row.rookieDevelopment.y3Multiplier, 2)}x</strong></div>`
+    ? `<div><span>Rookie Y2/Y3 comps</span><strong>${fmt(row.rookieDevelopment.y2Multiplier, 2)}x / ${fmt(row.rookieDevelopment.y3Multiplier, 2)}x</strong></div>
+       <div><span>Comp Y2/Y3 WAR</span><strong>${fmt(row.rookieDevelopment.y2TargetWar)} / ${fmt(row.rookieDevelopment.y3TargetWar)}</strong></div>`
     : "";
   const currentSource = !isPick && row.currentWarEstimated
     ? `<div><span>2026 WAR source</span><strong>Estimated</strong></div>`
