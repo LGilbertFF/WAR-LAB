@@ -626,8 +626,9 @@ function computeHistoricalModel() {
       const weeks = [];
       for (let week = 1; week <= maxWeek; week += 1) {
         const actual = player.weeks.get(week);
-        const score = actual ?? base.replacement;
-        if (actual !== undefined) games += 1;
+        if (actual === undefined) continue;
+        const score = actual;
+        games += 1;
         const weeklyWar = normalCdf(teamAvg - base.avg + score, teamAvg, Math.max(teamStd, 1)) -
           normalCdf(teamAvg - base.avg + base.replacement, teamAvg, Math.max(teamStd, 1));
         const weeklyFlexWar = ["RB", "WR", "TE"].includes(player.Pos)
@@ -641,18 +642,16 @@ function computeHistoricalModel() {
         war += weeklyWar;
         if (weeklyFlexWar !== null) flexWar += weeklyFlexWar;
         if (weeklySuperflexWar !== null) superflexWar += weeklySuperflexWar;
-        if (actual !== undefined) {
-          playedWar += weeklyWar;
-          if (weeklyFlexWar !== null) playedFlexWar += weeklyFlexWar;
-          if (weeklySuperflexWar !== null) playedSuperflexWar += weeklySuperflexWar;
-          weeks.push({
-            Week: week,
-            FPTS: actual,
-            WAR: weeklyWar,
-            "Flex WAR": weeklyFlexWar,
-            "SuperFlex WAR": weeklySuperflexWar
-          });
-        }
+        playedWar += weeklyWar;
+        if (weeklyFlexWar !== null) playedFlexWar += weeklyFlexWar;
+        if (weeklySuperflexWar !== null) playedSuperflexWar += weeklySuperflexWar;
+        weeks.push({
+          Week: week,
+          FPTS: actual,
+          WAR: weeklyWar,
+          "Flex WAR": weeklyFlexWar,
+          "SuperFlex WAR": weeklySuperflexWar
+        });
       }
       historicalPlayerRows.push({
         ...player,
