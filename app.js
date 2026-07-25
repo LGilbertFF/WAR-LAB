@@ -131,6 +131,29 @@ function normalCdf(x, mean, std) {
   return 0.5 * (1 + erf((x - mean) / (std * Math.sqrt(2))));
 }
 
+function historicalWeekPlayed(row, points = null) {
+  const games = number(firstValue(row, ["G", "Games", "game"], null), null);
+  if (games !== null) return games > 0;
+  const fpts = number(points, null);
+  if (fpts !== null && fpts !== 0) return true;
+  const usageFields = [
+    "PassingATT",
+    "PassingCMP",
+    "PassingYDS",
+    "PassingTD",
+    "INTS",
+    "RushingATT",
+    "RushingYDS",
+    "RushingTD",
+    "TGT",
+    "REC",
+    "ReceivingYDS",
+    "ReceivingTD",
+    "FL"
+  ];
+  return usageFields.some((field) => number(firstValue(row, [field], null), 0) !== 0);
+}
+
 function settings() {
   return {
     year: number(el("projectionYear").value, 2026),
@@ -495,6 +518,7 @@ function computeHistoricalModel() {
       const year = number(firstValue(row, ["Year", "year"], null), null);
       const week = number(firstValue(row, ["Week", "week"], null), null);
       const points = calculateFantasyPoints(row, pos, cfg.scoring);
+      const played = historicalWeekPlayed(row, points);
       return {
         id: `${playerKey(firstValue(row, ["Player", "player"], ""))}-${pos}`,
         Player: firstValue(row, ["Player", "player"], ""),
@@ -502,12 +526,13 @@ function computeHistoricalModel() {
         Pos: pos,
         Year: year,
         Week: week,
-        FPTS: points
+        FPTS: points,
+        Played: played
       };
     });
   }
   const rows = state.historicalScoredRows
-    .filter((row) => row.Player && ["QB", "RB", "WR", "TE"].includes(row.Pos) && row.Year >= startYear && row.Week >= 1 && row.Week <= maxWeek && row.FPTS !== null);
+    .filter((row) => row.Player && ["QB", "RB", "WR", "TE"].includes(row.Pos) && row.Year >= startYear && row.Week >= 1 && row.Week <= maxWeek && row.FPTS !== null && row.Played);
 
   const years = [...new Set(rows.map((row) => row.Year))].sort((a, b) => a - b);
   const byYear = new Map();
