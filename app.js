@@ -190,7 +190,7 @@ function weekLimit() {
 function playerKey(name) {
   return String(name || "")
     .toLowerCase()
-    .replace(/\b(jr|sr|ii|iii|iv|v)\.?\b/g, "")
+    .replace(/\b(jr|sr|i|ii|iii|iv|v)\.?\b/g, "")
     .replace(/[^a-z]/g, "");
 }
 
@@ -236,7 +236,7 @@ function playerKeyVariants(name) {
   const base = playerKey(name);
   const normalized = String(name || "")
     .toLowerCase()
-    .replace(/\b(jr|sr|ii|iii|iv|v)\.?\b/g, "")
+    .replace(/\b(jr|sr|i|ii|iii|iv|v)\.?\b/g, "")
     .replace(/[^a-z\s-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -377,7 +377,13 @@ function normalizeAdp(rows) {
         "ADP Rank": number(firstValue(row, ["ADP Rank", "Rank"], null), null)
       };
     });
-  return new Map(cleaned.map((row) => [playerKey(row.Player), row]));
+  const map = new Map();
+  cleaned.forEach((row) => {
+    playerKeyVariants(row.Player).forEach((key) => {
+      if (key && !map.has(key)) map.set(key, row);
+    });
+  });
+  return map;
 }
 
 function startersByPosition(players, pos, count) {
