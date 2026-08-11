@@ -4586,6 +4586,269 @@ function renderPlayerCard(player) {
   if (card) card.innerHTML = renderPlayerDetail(player);
 }
 
+function draftOptimizerSettings() {
+  const cfg = settings();
+  return {
+    teams: cfg.teams,
+    slot: Math.max(1, Math.min(cfg.teams, number(el("draftSlot")?.value, 1))),
+    rounds: Math.max(1, Math.min(30, number(el("draftRounds")?.value, number(el("draftRosterSpots")?.value, 16)))),
+    rosterSpots: Math.max(1, Math.min(30, number(el("draftRosterSpots")?.value, 16))),
+    window: Math.max(3, Math.min(80, number(el("draftCandidateWindow")?.value, 24))),
+    strategy: el("draftStrategy")?.value || "balanced",
+    metric: draftMetric()
+  };
+}
+
+function draftMetric() {
+  const selected = el("draftMetric")?.value || "auto";
+  if (selected !== "auto") return selected;
+  return settings().slots.SUPERFLEX > 0 ? "SuperFlex WAR" : "WAR";
+}
+
+function snakePickNumber(round, slot, teams) {
+  const roundStart = (round - 1) * teams;
+  return roundStart + (round % 2 === 1 ? slot : teams - slot + 1);
+}
+
+function draftWarValue(player, metric = "WAR") {
+  if (metric === "Flex WAR") return number(player["Flex WAR"], null) ?? number(player.WAR, 0);
+  if (metric === "SuperFlex WAR") return number(player["SuperFlex WAR"], null) ?? number(player.WAR, 0);
+  return number(player.WAR, 0);
+}
+
+function draftTargets(rosterSpots) {
+  const cfg = settings();
+  const flex = cfg.slots.FLEX;
+  const superflex = cfg.slots.SUPERFLEX;
+  const target = {
+    QB: Math.max(cfg.slots.QB + superflex, superflex ? 3 : 2),
+    RB: cfg.slots.RB + Math.ceil(flex * 0.6) + 3,
+    WR: cfg.slots.WR + Math.ceil(flex * 0.7) + 3,
+    TE: cfg.slots.TE + (cfg.scoring.tePremium > 0 ? 1 : 0)
+  };
+  while (Object.values(target).reduce((sum, value) => sum + value, 0) > rosterSpots) {
+    const trimOrder = ["TE", superflex ? "QB" : "QB", "RB", "WR"];
+    const pos = trimOrder.find((key) => target[key] > Math.max(1, cfg.slots[key] || 0));
+    if (!pos) break;
+    target[pos] -= 1;
+  }
+  return target;
+}
+
+function draftCandidateScore(player, roster, available, pickNo, nextUserPick, opts) {
+  const cfg = settings();
+  const counts = roster.reduce((map, row) => ({ ...map, [row.Pos]: (map[row.Pos] || 0) + 1 }), {});
+  const pos = player.Pos;
+  const targets = draftTargets(opts.rosterSpots);
+  const starters = { QB: cfg.slots.QB, RB: cfg.slots.RB, WR: cfg.slots.WR, TE: cfg.slots.TE };
+  const metricWar = draftWarValue(player, opts.metric);
+  const starterMissing = Math.max(0, (starters[pos] || 0) - (counts[pos] || 0));
+  const flexEligible = ["RB", "WR", "TE"].includes(pos);
+  const flexCount = ["RB", "WR", "TE"].reduce((sum, key) => sum + (counts[key] || 0), 0);
+  const flexTarget = cfg.slots.RB + cfg.slots.WR + cfg.slots.TE + cfg.slots.FLEX;
+  const depthMissing = Math.max(0, (targets[pos] || 0) - (counts[pos] || 0));
+  const strategyWeights = {
+    balanced: { starter: 1.35, depth: 0.48, scarcity: 0.22, value: 0.025 },
+    upside: { starter: 0.9, depth: 0.38, scarcity: 0.48, value: 0.04 },
+    need: { starter: 1.9, depth: 0.34, scarcity: 0.16, value: 0.015 }
+  }[opts.strategy] || { starter: 1.35, depth: 0.48, scarcity: 0.22, value: 0.025 };
+  const nextSamePos = available
+    .filter((row) => row.id !== player.id && row.Pos === pos)
+    .sort((a, b) => draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric))[0];
+  const scarcityDrop = Math.max(0, metricWar - draftWarValue(nextSamePos || {}, opts.metric));
+  const adp = number(player.ADP, pickNo);
+  const adpValue = Math.max(0, pickNo - adp);
+  const waitPenalty = Math.max(0, adp - nextUserPick) * 0.035;
+  const overTargetPenalty = (counts[pos] || 0) >= (targets[pos] || 0)
+    ? Math.max(0.8, metricWar * 0.22)
+    : 0;
+  const rbWrDepthBoost = ["RB", "WR"].includes(pos) ? 0.35 : 0;
+  const flexBonus = flexEligible && flexCount < flexTarget ? 0.9 : 0;
+  const superflexBonus = cfg.slots.SUPERFLEX && pos === "QB" && (counts.QB || 0) < targets.QB ? 1.1 : 0;
+  const needScore =
+    (starterMissing * strategyWeights.starter) +
+    (depthMissing * strategyWeights.depth) +
+    rbWrDepthBoost +
+    flexBonus +
+    superflexBonus;
+  const score =
+    metricWar +
+    needScore +
+    (scarcityDrop * strategyWeights.scarcity) +
+    (adpValue * strategyWeights.value) -
+    waitPenalty -
+    overTargetPenalty;
+  const reasonParts = [];
+  if (starterMissing) reasonParts.push("starter need");
+  else if (depthMissing) reasonParts.push(`${pos} depth`);
+  if (flexBonus) reasonParts.push("flex depth");
+  if (superflexBonus) reasonParts.push("SF QB demand");
+  if (scarcityDrop > 0.4) reasonParts.push("scarcity cliff");
+  if (adpValue >= 8) reasonParts.push("ADP fall");
+  if (adp <= nextUserPick) reasonParts.push("may not return");
+  return {
+    score,
+    needScore,
+    reason: reasonParts.length ? reasonParts.join(", ") : "best WAR in window"
+  };
+}
+
+function runDraftOptimization() {
+  const opts = draftOptimizerSettings();
+  const maxPicks = opts.teams * opts.rounds;
+  const playerPool = [...state.results]
+    .filter((player) => player.Player && ["QB", "RB", "WR", "TE"].includes(player.Pos))
+    .sort((a, b) => (number(a.ADP, 9999) - number(b.ADP, 9999)) || (number(a["Overall Rank"], 9999) - number(b["Overall Rank"], 9999)));
+  const available = new Map(playerPool.map((player) => [player.id, player]));
+  const marketPick = () => [...available.values()]
+    .sort((a, b) => (number(a.ADP, 9999) - number(b.ADP, 9999)) || (draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric)))[0];
+  const roster = [];
+  let nextPick = 1;
+  for (let round = 1; round <= opts.rounds && roster.length < opts.rosterSpots; round += 1) {
+    const userPick = snakePickNumber(round, opts.slot, opts.teams);
+    const nextUserPick = round < opts.rounds ? snakePickNumber(round + 1, opts.slot, opts.teams) : maxPicks + 1;
+    while (nextPick < userPick && nextPick <= maxPicks && available.size) {
+      const drafted = marketPick();
+      if (!drafted) break;
+      available.delete(drafted.id);
+      nextPick += 1;
+    }
+    const adpWindow = [...available.values()]
+      .sort((a, b) => (number(a.ADP, 9999) - number(b.ADP, 9999)) || (draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric)))
+      .slice(0, opts.window);
+    const warWindow = [...available.values()]
+      .sort((a, b) => draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric))
+      .slice(0, Math.max(5, Math.floor(opts.window / 3)));
+    const candidates = [...new Map([...adpWindow, ...warWindow].map((player) => [player.id, player])).values()];
+    const selected = candidates
+      .map((player) => ({ player, ...draftCandidateScore(player, roster, [...available.values()], userPick, nextUserPick, opts) }))
+      .sort((a, b) => b.score - a.score)[0];
+    if (!selected) break;
+    available.delete(selected.player.id);
+    roster.push({
+      ...selected.player,
+      draftRound: round,
+      draftPick: userPick,
+      draftScore: selected.score,
+      draftNeedScore: selected.needScore,
+      draftReason: selected.reason,
+      draftMetricValue: draftWarValue(selected.player, opts.metric)
+    });
+    nextPick = userPick + 1;
+  }
+  return { opts, roster };
+}
+
+function optimizedStarterWar(roster) {
+  const cfg = settings();
+  const unused = [...roster];
+  const takeBest = (eligible, count, metric) => {
+    const taken = [];
+    for (let index = 0; index < count; index += 1) {
+      const best = unused
+        .map((player, playerIndex) => ({ player, playerIndex, value: eligible(player) ? draftWarValue(player, metric) : -Infinity }))
+        .sort((a, b) => b.value - a.value)[0];
+      if (!best || best.value === -Infinity) break;
+      taken.push(best);
+      unused.splice(best.playerIndex, 1);
+    }
+    return taken.reduce((sum, item) => sum + item.value, 0);
+  };
+  let total = 0;
+  total += takeBest((player) => player.Pos === "QB", cfg.slots.QB, "WAR");
+  total += takeBest((player) => player.Pos === "RB", cfg.slots.RB, "WAR");
+  total += takeBest((player) => player.Pos === "WR", cfg.slots.WR, "WAR");
+  total += takeBest((player) => player.Pos === "TE", cfg.slots.TE, "WAR");
+  total += takeBest((player) => ["RB", "WR", "TE"].includes(player.Pos), cfg.slots.FLEX, "Flex WAR");
+  total += takeBest(() => true, cfg.slots.SUPERFLEX, "SuperFlex WAR");
+  return total;
+}
+
+function renderDraftOptimizer() {
+  const { opts, roster } = runDraftOptimization();
+  const counts = roster.reduce((map, row) => ({ ...map, [row.Pos]: (map[row.Pos] || 0) + 1 }), {});
+  const totalWar = roster.reduce((sum, player) => sum + draftWarValue(player, opts.metric), 0);
+  const starterWar = optimizedStarterWar(roster);
+  if (el("draftTotalWar")) el("draftTotalWar").textContent = fmt(totalWar);
+  if (el("draftStarterWar")) el("draftStarterWar").textContent = fmt(starterWar);
+  if (el("draftRosterBuild")) el("draftRosterBuild").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}`).join(" / ");
+  if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player window`;
+  if (el("draftOptimizerSubtitle")) {
+    el("draftOptimizerSubtitle").textContent = `Other teams draft by ADP between turns. Your picks optimize ${opts.metric} with starter, depth, and scarcity adjustments.`;
+  }
+  const body = el("draftOptimizerBody");
+  if (body) {
+    body.innerHTML = roster.map((player) => `
+      <tr>
+        <td>${fmt(player.draftRound, 0)}</td>
+        <td>${fmt(player.draftPick, 0)}</td>
+        <td><strong>${escapeHtml(player.Player)}</strong></td>
+        <td><span class="pos-pill pos-${player.Pos}">${escapeHtml(player.Pos)}</span></td>
+        <td>${escapeHtml(player.Team || "-")}</td>
+        <td>${fmt(player.ADP, 1)}</td>
+        <td>${fmt(player.draftMetricValue)}</td>
+        <td>${fmt(player.draftNeedScore)}</td>
+        <td>${escapeHtml(player.draftReason)}</td>
+      </tr>
+    `).join("");
+  }
+  renderDraftOptimizerChart(roster, opts);
+}
+
+function renderDraftOptimizerChart(roster, opts) {
+  const chart = el("draftOptimizerChart");
+  if (!chart) return;
+  if (!roster.length) {
+    Plotly.react(chart, [], {
+      title: { text: "Draft Optimizer", font: { color: "#f0f0f0", size: 18 } },
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(0,0,0,0)",
+      annotations: [{ text: "No projection rows available for the optimizer.", showarrow: false, font: { color: "#f0f0f0" } }]
+    }, { responsive: true });
+    return;
+  }
+  let cumulative = 0;
+  const cumulativeWar = roster.map((player) => {
+    cumulative += draftWarValue(player, opts.metric);
+    return cumulative;
+  });
+  const posCounts = ["QB", "RB", "WR", "TE"].map((pos) => roster.filter((player) => player.Pos === pos).length);
+  const traces = [
+    {
+      type: "scatter",
+      mode: "lines+markers",
+      x: roster.map((player) => `R${player.draftRound}`),
+      y: cumulativeWar,
+      text: roster.map((player) => `${player.Player} (${player.Pos})`),
+      line: { color: "#cc3333", width: 3 },
+      marker: { color: roster.map((player) => posColors[player.Pos] || "#f0f0f0"), size: 9 },
+      hovertemplate: "<b>%{text}</b><br>%{x}<br>Cumulative WAR: %{y:.2f}<extra></extra>",
+      name: "Cumulative WAR"
+    },
+    {
+      type: "bar",
+      x: ["QB", "RB", "WR", "TE"],
+      y: posCounts,
+      marker: { color: ["QB", "RB", "WR", "TE"].map((pos) => posColors[pos]) },
+      yaxis: "y2",
+      name: "Roster count",
+      opacity: 0.42,
+      hovertemplate: "%{x}: %{y}<extra></extra>"
+    }
+  ];
+  Plotly.react(chart, traces, {
+    title: { text: `${opts.rounds}-Round Draft Plan from Slot ${opts.slot}`, font: { color: "#f0f0f0", size: 18 } },
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(17,17,17,0.35)",
+    font: { color: "#f0f0f0" },
+    xaxis: { title: "Your picks", gridcolor: "rgba(240,240,240,0.12)" },
+    yaxis: { title: `Cumulative ${opts.metric}`, gridcolor: "rgba(240,240,240,0.16)" },
+    yaxis2: { title: "Roster count", overlaying: "y", side: "right", rangemode: "tozero", showgrid: false },
+    legend: { orientation: "h", y: -0.22 },
+    margin: { l: 58, r: 58, t: 58, b: 76 }
+  }, { responsive: true });
+}
+
 function render() {
   if (state.renderTimer) {
     clearTimeout(state.renderTimer);
@@ -4600,6 +4863,11 @@ function render() {
   if (state.activeView === "dynastyView") {
     calculateWar(state.rawProjections);
     renderDynastyWar();
+    return;
+  }
+  if (state.activeView === "draftOptimizerView") {
+    calculateWar(state.rawProjections);
+    renderDraftOptimizer();
     return;
   }
   if (state.activeView === "historicalView") {

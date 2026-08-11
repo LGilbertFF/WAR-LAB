@@ -1075,6 +1075,22 @@ summary::marker {
   grid-template-columns: repeat(4, minmax(150px, 220px));
 }
 
+.draft-control-bar {
+  grid-template-columns: repeat(6, minmax(130px, 1fr));
+}
+
+.draft-optimizer-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+#draftOptimizerChart {
+  width: 100%;
+  height: 520px;
+}
+
 .dynasty-control-bar .checkbox-control {
   align-items: center;
   flex-direction: row;
@@ -1563,6 +1579,15 @@ tbody tr.selected-row {
 
   .dynasty-detail {
     grid-template-columns: 1fr;
+  }
+
+  .draft-control-bar,
+  .draft-optimizer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #draftOptimizerChart {
+    height: 460px;
   }
 
   .dynasty-detail-stats {
