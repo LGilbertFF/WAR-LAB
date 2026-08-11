@@ -51,16 +51,40 @@ def normalize_position(value: object) -> str:
     return re.sub(r"[^A-Z]", "", str(value or "").upper())
 
 
+def read_fantasypoints_export(input_path: Path) -> pd.DataFrame:
+    preview = pd.read_csv(input_path, header=None, nrows=5, low_memory=False)
+    header_row = 0
+    for index, row in preview.iterrows():
+        cells = {str(value).strip().upper() for value in row.tolist()}
+        if {"NAME", "FPTS"}.issubset(cells) and ("POSITION" in cells or "POS" in cells):
+            header_row = int(index)
+            break
+    df = pd.read_csv(input_path, header=header_row, low_memory=False)
+    df = df.loc[:, ~df.columns.astype(str).str.startswith("Unnamed")]
+    return df
+
+
+def first_existing(df: pd.DataFrame, columns: list[str]) -> str | None:
+    for column in columns:
+        if column in df.columns:
+            return column
+    return None
+
+
 def import_fantasypoints_csv(input_path: Path, output_path: Path, season_year: int) -> pd.DataFrame:
-    df = pd.read_csv(input_path, low_memory=False)
+    df = read_fantasypoints_export(input_path)
+    player_col = first_existing(df, ["Name", "NAME"])
+    team_col = first_existing(df, ["Team", "TEAM"])
+    pos_col = first_existing(df, ["Position", "POSITION", "POS"])
+    games_col = first_existing(df, ["G", "GP", "Games"])
     out = pd.DataFrame({
         "Year": season_year,
-        "Player": df.get("Name", pd.Series(dtype=str)).astype(str).str.strip(),
-        "Team": df.get("Team", pd.Series(dtype=str)).astype(str).str.strip(),
-        "Pos": df.get("POS", pd.Series(dtype=str)).apply(normalize_position),
+        "Player": df.get(player_col, pd.Series(dtype=str)).astype(str).str.strip(),
+        "Team": df.get(team_col, pd.Series(dtype=str)).astype(str).str.strip(),
+        "Pos": df.get(pos_col, pd.Series(dtype=str)).apply(normalize_position),
         "FPTS": series_number(df, "FPTS", None),
         "AVG": series_number(df, "FPTS/G", None),
-        "G": series_number(df, "G", None),
+        "G": series_number(df, games_col or "G", None),
         "PassingATT": series_number(df, "ATT", 0),
         "PassingCMP": series_number(df, "CMP", 0),
         "PassingYDS": series_number(df, "YDS", 0),
