@@ -735,18 +735,19 @@ function calculateWar(players) {
   const results = normalized.map((player) => {
     const posBase = baselines[player.Pos];
     const avg = player.AVG ?? player["Existing WAR"];
+    const warGames = projectionWarGames(player);
     const rawWar = player.AVG === null && player["Existing WAR"] !== null ? player["Existing WAR"] :
       (normalCdf(baselines.TEAM.avg - posBase.avg + avg, baselines.TEAM.avg, baselines.TEAM.std) -
-        normalCdf(baselines.TEAM.avg - posBase.avg + posBase.replacement, baselines.TEAM.avg, baselines.TEAM.std)) * cfg.weeks;
+        normalCdf(baselines.TEAM.avg - posBase.avg + posBase.replacement, baselines.TEAM.avg, baselines.TEAM.std)) * warGames;
     const flexWar = ["RB", "WR", "TE"].includes(player.Pos)
       ? (normalCdf(baselines.TEAM.avg - baselines.FLEX.avg + avg, baselines.TEAM.avg, baselines.TEAM.std) -
-        normalCdf(baselines.TEAM.avg - baselines.FLEX.avg + baselines.FLEX.replacement, baselines.TEAM.avg, baselines.TEAM.std)) * cfg.weeks
+        normalCdf(baselines.TEAM.avg - baselines.FLEX.avg + baselines.FLEX.replacement, baselines.TEAM.avg, baselines.TEAM.std)) * warGames
       : null;
     const superflexWar = baselines.SUPERFLEX.count
       ? (normalCdf(baselines.TEAM.avg - baselines.SUPERFLEX.avg + avg, baselines.TEAM.avg, baselines.TEAM.std) -
-        normalCdf(baselines.TEAM.avg - baselines.SUPERFLEX.avg + baselines.SUPERFLEX.replacement, baselines.TEAM.avg, baselines.TEAM.std)) * cfg.weeks
+        normalCdf(baselines.TEAM.avg - baselines.SUPERFLEX.avg + baselines.SUPERFLEX.replacement, baselines.TEAM.avg, baselines.TEAM.std)) * warGames
       : null;
-    return { ...player, "Raw WAR": rawWar, WAR: rawWar, "Flex WAR": flexWar, "SuperFlex WAR": superflexWar };
+    return { ...player, "WAR Games": warGames, "Raw WAR": rawWar, WAR: rawWar, "Flex WAR": flexWar, "SuperFlex WAR": superflexWar };
   });
 
   const byPos = {};
@@ -771,6 +772,13 @@ function calculateWar(players) {
   });
   assignTiers(results);
   state.results = results;
+}
+
+function projectionWarGames(player) {
+  const cfg = settings();
+  const games = number(player?.G, null);
+  if (games === null || games >= 10) return cfg.weeks;
+  return Math.max(0, Math.min(cfg.weeks, games));
 }
 
 function assignTiers(results) {
