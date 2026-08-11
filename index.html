@@ -184,6 +184,15 @@
               <input id="draftCandidateWindow" type="number" min="3" max="80" value="24">
             </label>
             <label>
+              Market uncertainty
+              <select id="draftUncertainty">
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+                <option value="high">High</option>
+                <option value="none">ADP lock</option>
+              </select>
+            </label>
+            <label>
               Strategy
               <select id="draftStrategy">
                 <option value="balanced">Balanced WAR + depth</option>
@@ -224,6 +233,7 @@
                     <th>Team</th>
                     <th>ADP</th>
                     <th>WAR</th>
+                    <th>Avail</th>
                     <th>Alternate</th>
                     <th>Need</th>
                     <th>Why</th>
