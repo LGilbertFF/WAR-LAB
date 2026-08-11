@@ -4685,8 +4685,15 @@ function draftCandidateScore(player, roster, available, pickNo, nextUserPick, op
     waitPenalty -
     overTargetPenalty;
   const reasonParts = [];
+  let positionStrategy = "Maximize WAR";
   if (starterMissing) reasonParts.push("starter need");
   else if (depthMissing) reasonParts.push(`${pos} depth`);
+  if (starterMissing) positionStrategy = `Fill ${pos} starter`;
+  else if (superflexBonus) positionStrategy = "Prioritize SuperFlex QB depth";
+  else if (flexBonus && ["RB", "WR"].includes(pos)) positionStrategy = `Build ${pos}/Flex depth`;
+  else if (flexBonus) positionStrategy = "Cover Flex depth";
+  else if (depthMissing) positionStrategy = `Build ${pos} depth`;
+  else if (scarcityDrop > 0.4) positionStrategy = `Attack ${pos} scarcity`;
   if (flexBonus) reasonParts.push("flex depth");
   if (superflexBonus) reasonParts.push("SF QB demand");
   if (scarcityDrop > 0.4) reasonParts.push("scarcity cliff");
@@ -4695,8 +4702,14 @@ function draftCandidateScore(player, roster, available, pickNo, nextUserPick, op
   return {
     score,
     needScore,
+    positionStrategy,
     reason: reasonParts.length ? reasonParts.join(", ") : "best WAR in window"
   };
+}
+
+function draftAlternateLabel(candidate, opts) {
+  if (!candidate?.player) return "-";
+  return `${candidate.player.Player} (${candidate.player.Pos}, ${fmt(draftWarValue(candidate.player, opts.metric))})`;
 }
 
 function runDraftOptimization() {
@@ -4726,9 +4739,11 @@ function runDraftOptimization() {
       .sort((a, b) => draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric))
       .slice(0, Math.max(5, Math.floor(opts.window / 3)));
     const candidates = [...new Map([...adpWindow, ...warWindow].map((player) => [player.id, player])).values()];
-    const selected = candidates
+    const scoredCandidates = candidates
       .map((player) => ({ player, ...draftCandidateScore(player, roster, [...available.values()], userPick, nextUserPick, opts) }))
-      .sort((a, b) => b.score - a.score)[0];
+      .sort((a, b) => b.score - a.score);
+    const selected = scoredCandidates[0];
+    const alternate = scoredCandidates[1];
     if (!selected) break;
     available.delete(selected.player.id);
     roster.push({
@@ -4737,7 +4752,9 @@ function runDraftOptimization() {
       draftPick: userPick,
       draftScore: selected.score,
       draftNeedScore: selected.needScore,
+      draftPositionStrategy: selected.positionStrategy,
       draftReason: selected.reason,
+      draftAlternate: draftAlternateLabel(alternate, opts),
       draftMetricValue: draftWarValue(selected.player, opts.metric)
     });
     nextPick = userPick + 1;
@@ -4773,12 +4790,14 @@ function optimizedStarterWar(roster) {
 function renderDraftOptimizer() {
   const { opts, roster } = runDraftOptimization();
   const counts = roster.reduce((map, row) => ({ ...map, [row.Pos]: (map[row.Pos] || 0) + 1 }), {});
+  const targets = draftTargets(opts.rosterSpots);
   const totalWar = roster.reduce((sum, player) => sum + draftWarValue(player, opts.metric), 0);
   const starterWar = optimizedStarterWar(roster);
   if (el("draftTotalWar")) el("draftTotalWar").textContent = fmt(totalWar);
   if (el("draftStarterWar")) el("draftStarterWar").textContent = fmt(starterWar);
   if (el("draftRosterBuild")) el("draftRosterBuild").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}`).join(" / ");
-  if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player window`;
+  if (el("draftPositionStrategy")) el("draftPositionStrategy").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}/${targets[pos] || 0}`).join(" / ");
+  if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player window. Alternates show the next-best pick if the target player is taken.`;
   if (el("draftOptimizerSubtitle")) {
     el("draftOptimizerSubtitle").textContent = `Other teams draft by ADP between turns. Your picks optimize ${opts.metric} with starter, depth, and scarcity adjustments.`;
   }
@@ -4790,9 +4809,11 @@ function renderDraftOptimizer() {
         <td>${fmt(player.draftPick, 0)}</td>
         <td><strong>${escapeHtml(player.Player)}</strong></td>
         <td><span class="pos-pill pos-${player.Pos}">${escapeHtml(player.Pos)}</span></td>
+        <td>${escapeHtml(player.draftPositionStrategy || "-")}</td>
         <td>${escapeHtml(player.Team || "-")}</td>
         <td>${fmt(player.ADP, 1)}</td>
         <td>${fmt(player.draftMetricValue)}</td>
+        <td>${escapeHtml(player.draftAlternate || "-")}</td>
         <td>${fmt(player.draftNeedScore)}</td>
         <td>${escapeHtml(player.draftReason)}</td>
       </tr>

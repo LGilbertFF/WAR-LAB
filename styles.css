@@ -1091,6 +1091,13 @@ summary::marker {
   height: 520px;
 }
 
+.draft-simulation-note {
+  margin: -4px 0 14px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
 .dynasty-control-bar .checkbox-control {
   align-items: center;
   flex-direction: row;
