@@ -297,9 +297,12 @@ function normalizeProjection(row, index, adpMap) {
   const scoredFromStats = calculateFantasyPoints(row, pos, scoring);
   const projectedPoints = scoredFromStats ?? fpts;
   const gameDenominator = games !== null && games > 0 ? games : settings().weeks;
-  const projectedAvg = scoredFromStats !== null
+  const projectedPerGameAvg = scoredFromStats !== null
     ? scoredFromStats / gameDenominator
     : avg ?? (projectedPoints !== null ? projectedPoints / gameDenominator : null);
+  const projectedAvg = games !== null && games > 0 && games < 10 && projectedPoints !== null
+    ? projectedPoints / settings().weeks
+    : projectedPerGameAvg;
 
   return {
     id: `${playerKey(player)}-${pos}-${index}`,
@@ -310,6 +313,7 @@ function normalizeProjection(row, index, adpMap) {
     Year: number(firstValue(row, ["Year", "year"], null), settings().year),
     FPTS: projectedPoints,
     AVG: projectedAvg,
+    "Projected FPTS/G": projectedPerGameAvg,
     G: games,
     "AVG High": high !== null && fpts !== null ? high / gameDenominator : high,
     "AVG Low": low !== null && fpts !== null ? low / gameDenominator : low,
@@ -776,9 +780,7 @@ function calculateWar(players) {
 
 function projectionWarGames(player) {
   const cfg = settings();
-  const games = number(player?.G, null);
-  if (games === null || games >= 10) return cfg.weeks;
-  return Math.max(0, Math.min(cfg.weeks, games));
+  return cfg.weeks;
 }
 
 function assignTiers(results) {
