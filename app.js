@@ -4762,42 +4762,56 @@ function runDraftOptimization() {
   return { opts, roster };
 }
 
-function optimizedStarterWar(roster) {
+function optimizedStarterSelections(roster) {
   const cfg = settings();
-  const unused = [...roster];
+  const unused = roster.map((player, rosterIndex) => ({ player, rosterIndex }));
+  const selections = new Map();
   const takeBest = (eligible, count, metric) => {
     const taken = [];
     for (let index = 0; index < count; index += 1) {
       const best = unused
-        .map((player, playerIndex) => ({ player, playerIndex, value: eligible(player) ? draftWarValue(player, metric) : -Infinity }))
+        .map((item, playerIndex) => ({ ...item, playerIndex, value: eligible(item.player) ? draftWarValue(item.player, metric) : -Infinity }))
         .sort((a, b) => b.value - a.value)[0];
       if (!best || best.value === -Infinity) break;
       taken.push(best);
+      selections.set(best.rosterIndex, best.value);
       unused.splice(best.playerIndex, 1);
     }
-    return taken.reduce((sum, item) => sum + item.value, 0);
+    return taken;
   };
-  let total = 0;
-  total += takeBest((player) => player.Pos === "QB", cfg.slots.QB, "WAR");
-  total += takeBest((player) => player.Pos === "RB", cfg.slots.RB, "WAR");
-  total += takeBest((player) => player.Pos === "WR", cfg.slots.WR, "WAR");
-  total += takeBest((player) => player.Pos === "TE", cfg.slots.TE, "WAR");
-  total += takeBest((player) => ["RB", "WR", "TE"].includes(player.Pos), cfg.slots.FLEX, "Flex WAR");
-  total += takeBest(() => true, cfg.slots.SUPERFLEX, "SuperFlex WAR");
-  return total;
+  takeBest((player) => player.Pos === "QB", cfg.slots.QB, "WAR");
+  takeBest((player) => player.Pos === "RB", cfg.slots.RB, "WAR");
+  takeBest((player) => player.Pos === "WR", cfg.slots.WR, "WAR");
+  takeBest((player) => player.Pos === "TE", cfg.slots.TE, "WAR");
+  takeBest((player) => ["RB", "WR", "TE"].includes(player.Pos), cfg.slots.FLEX, "Flex WAR");
+  takeBest(() => true, cfg.slots.SUPERFLEX, "SuperFlex WAR");
+  return selections;
+}
+
+function optimizedStarterWar(roster) {
+  return [...optimizedStarterSelections(roster).values()].reduce((sum, value) => sum + value, 0);
+}
+
+function draftRosterTotalWar(roster, opts) {
+  const starterSelections = optimizedStarterSelections(roster);
+  return roster.reduce((sum, player, index) => {
+    const starterValue = starterSelections.get(index);
+    const value = starterValue ?? draftWarValue(player, opts.metric);
+    return sum + (starterValue !== undefined ? value : Math.max(0, value));
+  }, 0);
 }
 
 function renderDraftOptimizer() {
   const { opts, roster } = runDraftOptimization();
   const counts = roster.reduce((map, row) => ({ ...map, [row.Pos]: (map[row.Pos] || 0) + 1 }), {});
   const targets = draftTargets(opts.rosterSpots);
-  const totalWar = roster.reduce((sum, player) => sum + draftWarValue(player, opts.metric), 0);
+  const totalWar = draftRosterTotalWar(roster, opts);
   const starterWar = optimizedStarterWar(roster);
   if (el("draftTotalWar")) el("draftTotalWar").textContent = fmt(totalWar);
   if (el("draftStarterWar")) el("draftStarterWar").textContent = fmt(starterWar);
   if (el("draftRosterBuild")) el("draftRosterBuild").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}`).join(" / ");
   if (el("draftPositionStrategy")) el("draftPositionStrategy").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}/${targets[pos] || 0}`).join(" / ");
-  if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player window. Alternates show the next-best pick if the target player is taken.`;
+  if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player window. Alternates show the next-best pick if the target player is taken. Negative WAR only counts against the total when the player is in the optimized starting lineup.`;
   if (el("draftOptimizerSubtitle")) {
     el("draftOptimizerSubtitle").textContent = `Other teams draft by ADP between turns. Your picks optimize ${opts.metric} with starter, depth, and scarcity adjustments.`;
   }
@@ -4835,8 +4849,11 @@ function renderDraftOptimizerChart(roster, opts) {
     return;
   }
   let cumulative = 0;
-  const cumulativeWar = roster.map((player) => {
-    cumulative += draftWarValue(player, opts.metric);
+  const starterSelections = optimizedStarterSelections(roster);
+  const cumulativeWar = roster.map((player, index) => {
+    const starterValue = starterSelections.get(index);
+    const value = starterValue ?? draftWarValue(player, opts.metric);
+    cumulative += starterValue !== undefined ? value : Math.max(0, value);
     return cumulative;
   });
   const posCounts = ["QB", "RB", "WR", "TE"].map((pos) => roster.filter((player) => player.Pos === pos).length);
