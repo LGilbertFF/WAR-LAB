@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-11T11:22:54.679855+00:00",
+  "updated_at": "2026-08-12T11:54:48.607225+00:00",
   "shards": [
     {
       "season": 2019,
@@ -171,12 +171,12 @@
       "season": 2026,
       "league_format": "redraft",
       "path": "data/adp/2026-redraft.json.gz",
-      "rows": 169805,
-      "players": 620,
-      "drafts": 3370,
+      "rows": 178295,
+      "players": 629,
+      "drafts": 3599,
       "start_date": "2025-12-31",
-      "end_date": "2026-08-11",
-      "bytes": 5229622
+      "end_date": "2026-08-12",
+      "bytes": 5480827
     }
   ]
 }
