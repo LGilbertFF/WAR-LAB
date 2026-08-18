@@ -4690,18 +4690,27 @@ function draftEarlyTargetAdjustment(pos, counts, round, opts) {
   const labels = {
     "early-qb": "Early QB",
     "early-te": "Early TE",
+    "early-qb-te": "Early QB or TE",
     "first-2-rb": "First 2 RBs",
     "first-2-wr": "First 2 WRs",
     "hero-rb": "Hero RB",
     "zero-rb": "Zero RB start"
   };
   if (target === "early-qb") {
-    if (pos === "QB" && count < 1 && earlyRound) return { score: 2.4, label: labels[target] };
-    if (pos !== "QB" && counts.QB === undefined && openingRound) return { score: -0.35, label: "" };
+    if (pos === "QB" && count < 1 && round <= 3) return { score: 4.2 - (round * 0.28), label: labels[target] };
+    if (pos === "QB" && count < 1 && earlyRound) return { score: 2.7, label: labels[target] };
+    if (pos !== "QB" && (counts.QB || 0) < 1 && round <= 3) return { score: -0.45, label: "" };
   }
   if (target === "early-te") {
-    if (pos === "TE" && count < 1 && earlyRound) return { score: 2.1, label: labels[target] };
-    if (pos !== "TE" && counts.TE === undefined && openingRound) return { score: -0.25, label: "" };
+    if (pos === "TE" && count < 1 && round <= 3) return { score: 4.0 - (round * 0.28), label: labels[target] };
+    if (pos === "TE" && count < 1 && earlyRound) return { score: 2.55, label: labels[target] };
+    if (pos !== "TE" && (counts.TE || 0) < 1 && round <= 3) return { score: -0.38, label: "" };
+  }
+  if (target === "early-qb-te") {
+    const hasOnesie = (counts.QB || 0) > 0 || (counts.TE || 0) > 0;
+    if (["QB", "TE"].includes(pos) && !hasOnesie && round <= 3) return { score: 3.8 - (round * 0.22), label: labels[target] };
+    if (["QB", "TE"].includes(pos) && !hasOnesie && earlyRound) return { score: 2.25, label: labels[target] };
+    if (!["QB", "TE"].includes(pos) && !hasOnesie && round <= 3) return { score: -0.32, label: "" };
   }
   if (target === "first-2-rb") {
     if (pos === "RB" && count < 2 && round <= 3) return { score: 2.7 - (count * 0.45), label: labels[target] };
