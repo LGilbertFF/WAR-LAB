@@ -4603,7 +4603,13 @@ function draftOptimizerSettings() {
     uncertainty: el("draftUncertainty")?.value || "medium",
     earlyTarget: el("draftEarlyTarget")?.value || "none",
     strategy: el("draftStrategy")?.value || "balanced",
-    metric: draftMetric()
+    metric: draftMetric(),
+    caps: {
+      QB: Math.max(0, Math.min(30, number(el("draftCapQB")?.value, 4))),
+      RB: Math.max(0, Math.min(30, number(el("draftCapRB")?.value, 8))),
+      WR: Math.max(0, Math.min(30, number(el("draftCapWR")?.value, 8))),
+      TE: Math.max(0, Math.min(30, number(el("draftCapTE")?.value, 4)))
+    }
   };
 }
 
@@ -4612,7 +4618,8 @@ function draftUncertaintyScale(opts) {
 }
 
 function draftSeedValue(opts) {
-  const text = `${settings().year}|${opts.teams}|${opts.slot}|${opts.rounds}|${opts.rosterSpots}|${opts.window}|${opts.uncertainty}|${opts.earlyTarget}|${opts.strategy}|${opts.metric}`;
+  const capText = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${opts.caps?.[pos] ?? ""}`).join("|");
+  const text = `${settings().year}|${opts.teams}|${opts.slot}|${opts.rounds}|${opts.rosterSpots}|${opts.window}|${opts.uncertainty}|${opts.earlyTarget}|${opts.strategy}|${opts.metric}|${capText}`;
   let hash = 2166136261;
   for (let index = 0; index < text.length; index += 1) {
     hash ^= text.charCodeAt(index);
@@ -4681,6 +4688,15 @@ function draftTargets(rosterSpots) {
   return target;
 }
 
+function draftPositionCounts(roster) {
+  return roster.reduce((map, row) => ({ ...map, [row.Pos]: (map[row.Pos] || 0) + 1 }), {});
+}
+
+function draftPositionAllowed(player, counts, opts) {
+  const cap = opts.caps?.[player.Pos];
+  return cap === undefined || (counts[player.Pos] || 0) < cap;
+}
+
 function draftEarlyTargetAdjustment(pos, counts, round, opts) {
   const target = opts.earlyTarget || "none";
   if (target === "none") return { score: 0, label: "" };
@@ -4736,7 +4752,7 @@ function draftEarlyTargetAdjustment(pos, counts, round, opts) {
 
 function draftCandidateScore(player, roster, available, pickNo, nextUserPick, opts) {
   const cfg = settings();
-  const counts = roster.reduce((map, row) => ({ ...map, [row.Pos]: (map[row.Pos] || 0) + 1 }), {});
+  const counts = draftPositionCounts(roster);
   const round = Math.ceil(pickNo / opts.teams);
   const pos = player.Pos;
   const targets = draftTargets(opts.rosterSpots);
@@ -4858,9 +4874,11 @@ function runDraftOptimization() {
       nextPick += 1;
     }
     const adpWindow = [...available.values()]
+      .filter((player) => draftPositionAllowed(player, draftPositionCounts(roster), opts))
       .sort((a, b) => (number(a.ADP, 9999) - number(b.ADP, 9999)) || (draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric)))
       .slice(0, opts.window);
     const warWindow = [...available.values()]
+      .filter((player) => draftPositionAllowed(player, draftPositionCounts(roster), opts))
       .sort((a, b) => draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric))
       .slice(0, Math.max(5, Math.floor(opts.window / 3)));
     const candidates = [...new Map([...adpWindow, ...warWindow].map((player) => [player.id, player])).values()];
@@ -4929,7 +4947,7 @@ function draftRosterTotalWar(roster, opts) {
 
 function renderDraftOptimizer() {
   const { opts, roster } = runDraftOptimization();
-  const counts = roster.reduce((map, row) => ({ ...map, [row.Pos]: (map[row.Pos] || 0) + 1 }), {});
+  const counts = draftPositionCounts(roster);
   const targets = draftTargets(opts.rosterSpots);
   const totalWar = draftRosterTotalWar(roster, opts);
   const starterWar = optimizedStarterWar(roster);
@@ -4938,7 +4956,8 @@ function renderDraftOptimizer() {
   if (el("draftRosterBuild")) el("draftRosterBuild").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}`).join(" / ");
   if (el("draftPositionStrategy")) el("draftPositionStrategy").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}/${targets[pos] || 0}`).join(" / ");
   const earlyTargetText = (el("draftEarlyTarget")?.selectedOptions?.[0]?.textContent || "Best WAR path").trim();
-  if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player window, ${opts.uncertainty} market uncertainty, ${earlyTargetText}. Alternates show the next-best pick if the target player is taken. Negative WAR only counts against the total when the player is in the optimized starting lineup.`;
+  const capText = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${opts.caps[pos]}`).join(" / ");
+  if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player window, ${opts.uncertainty} market uncertainty, ${earlyTargetText}, caps ${capText}. Alternates show the next-best pick if the target player is taken. Negative WAR only counts against the total when the player is in the optimized starting lineup.`;
   if (el("draftOptimizerSubtitle")) {
     el("draftOptimizerSubtitle").textContent = `Other teams draft by ADP between turns. Your picks optimize ${opts.metric} with starter, depth, and scarcity adjustments.`;
   }

@@ -223,6 +223,24 @@
               </select>
             </label>
           </div>
+          <div class="adp-season-bar draft-cap-bar">
+            <label>
+              QB cap
+              <input id="draftCapQB" type="number" min="0" max="12" value="4">
+            </label>
+            <label>
+              RB cap
+              <input id="draftCapRB" type="number" min="0" max="16" value="8">
+            </label>
+            <label>
+              WR cap
+              <input id="draftCapWR" type="number" min="0" max="16" value="8">
+            </label>
+            <label>
+              TE cap
+              <input id="draftCapTE" type="number" min="0" max="12" value="4">
+            </label>
+          </div>
           <div class="adp-summary-grid">
             <article><span>Total projected WAR</span><strong id="draftTotalWar">-</strong></article>
             <article><span>Starting WAR</span><strong id="draftStarterWar">-</strong></article>
@@ -614,6 +632,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-    <script src="app.js?v=draft-optimizer-rb-presets-20260818a"></script>
+    <script src="app.js?v=draft-optimizer-position-caps-20260818a"></script>
   </body>
 </html>

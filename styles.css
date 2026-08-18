@@ -1079,6 +1079,11 @@ summary::marker {
   grid-template-columns: repeat(8, minmax(130px, 1fr));
 }
 
+.draft-cap-bar {
+  grid-template-columns: repeat(4, minmax(120px, 180px));
+  margin-top: -4px;
+}
+
 .draft-optimizer-grid {
   display: grid;
   grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.1fr);
