@@ -4908,28 +4908,46 @@ function runDraftOptimization() {
 
 function optimizedStarterSelections(roster) {
   const cfg = settings();
-  const unused = roster.map((player, rosterIndex) => ({ player, rosterIndex }));
-  const selections = new Map();
-  const takeBest = (eligible, count, metric) => {
-    const taken = [];
-    for (let index = 0; index < count; index += 1) {
-      const best = unused
-        .map((item, playerIndex) => ({ ...item, playerIndex, value: eligible(item.player) ? draftWarValue(item.player, metric) : -Infinity }))
-        .sort((a, b) => b.value - a.value)[0];
-      if (!best || best.value === -Infinity) break;
-      taken.push(best);
-      selections.set(best.rosterIndex, best.value);
-      unused.splice(best.playerIndex, 1);
+  const slots = [
+    ...Array.from({ length: cfg.slots.QB }, () => ({ eligible: (player) => player.Pos === "QB", metric: "WAR" })),
+    ...Array.from({ length: cfg.slots.RB }, () => ({ eligible: (player) => player.Pos === "RB", metric: "WAR" })),
+    ...Array.from({ length: cfg.slots.WR }, () => ({ eligible: (player) => player.Pos === "WR", metric: "WAR" })),
+    ...Array.from({ length: cfg.slots.TE }, () => ({ eligible: (player) => player.Pos === "TE", metric: "WAR" })),
+    ...Array.from({ length: cfg.slots.FLEX }, () => ({ eligible: (player) => ["RB", "WR", "TE"].includes(player.Pos), metric: "Flex WAR" })),
+    ...Array.from({ length: cfg.slots.SUPERFLEX }, () => ({ eligible: () => true, metric: "SuperFlex WAR" }))
+  ].sort((a, b) => roster.filter(a.eligible).length - roster.filter(b.eligible).length);
+  const candidateIndexes = roster
+    .map((player, index) => ({
+      index,
+      best: Math.max(
+        draftWarValue(player, "WAR"),
+        draftWarValue(player, "Flex WAR"),
+        draftWarValue(player, "SuperFlex WAR")
+      )
+    }))
+    .sort((a, b) => b.best - a.best)
+    .slice(0, Math.max(12, Math.min(18, slots.length + 6)))
+    .map((row) => row.index);
+  const memo = new Map();
+  const solve = (slotIndex, usedKey) => {
+    if (slotIndex >= slots.length) return { total: 0, picks: [] };
+    const key = `${slotIndex}|${usedKey}`;
+    if (memo.has(key)) return memo.get(key);
+    const used = new Set(usedKey ? usedKey.split(",").map(Number) : []);
+    const slot = slots[slotIndex];
+    let best = { total: 0, picks: [] };
+    for (const rosterIndex of candidateIndexes) {
+      if (used.has(rosterIndex) || !slot.eligible(roster[rosterIndex])) continue;
+      const value = draftWarValue(roster[rosterIndex], slot.metric);
+      const nextUsed = [...used, rosterIndex].sort((a, b) => a - b).join(",");
+      const next = solve(slotIndex + 1, nextUsed);
+      const total = value + next.total;
+      if (total > best.total || !best.picks.length) best = { total, picks: [{ rosterIndex, value }, ...next.picks] };
     }
-    return taken;
+    memo.set(key, best);
+    return best;
   };
-  takeBest((player) => player.Pos === "QB", cfg.slots.QB, "WAR");
-  takeBest((player) => player.Pos === "RB", cfg.slots.RB, "WAR");
-  takeBest((player) => player.Pos === "WR", cfg.slots.WR, "WAR");
-  takeBest((player) => player.Pos === "TE", cfg.slots.TE, "WAR");
-  takeBest((player) => ["RB", "WR", "TE"].includes(player.Pos), cfg.slots.FLEX, "Flex WAR");
-  takeBest(() => true, cfg.slots.SUPERFLEX, "SuperFlex WAR");
-  return selections;
+  return new Map(solve(0, "").picks.map((pick) => [pick.rosterIndex, pick.value]));
 }
 
 function optimizedStarterWar(roster) {
