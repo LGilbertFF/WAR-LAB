@@ -4721,12 +4721,15 @@ function draftEarlyTargetAdjustment(pos, counts, round, opts) {
     if (pos !== "WR" && (counts.WR || 0) < 2 && round <= 2) return { score: -0.55, label: "" };
   }
   if (target === "hero-rb") {
-    if (pos === "RB" && count < 1 && openingRound) return { score: 2.3, label: labels[target] };
-    if (pos === "RB" && count >= 1 && round <= 5) return { score: -0.45, label: "" };
+    if (pos === "RB" && count < 2 && round <= 3) return { score: 3.35 - (count * 0.35), label: labels[target] };
+    if (pos !== "RB" && (counts.RB || 0) < 2 && round <= 3) return { score: -0.8, label: "" };
+    if (pos === "RB" && count < 4 && round <= 7) return { score: 2.25 - (count * 0.18), label: labels[target] };
+    if (pos !== "RB" && (counts.RB || 0) < 4 && round <= 7) return { score: -0.32, label: "" };
   }
   if (target === "zero-rb") {
-    if (pos === "RB" && round <= 5) return { score: -1.4, label: labels[target] };
-    if (["WR", "TE", "QB"].includes(pos) && round <= 5) return { score: 0.48, label: labels[target] };
+    if (pos === "RB" && count >= 1 && round <= 5) return { score: -2.2, label: labels[target] };
+    if (pos === "RB" && count < 1 && round <= 5) return { score: -0.15, label: labels[target] };
+    if (["WR", "TE", "QB"].includes(pos) && round <= 5) return { score: 0.5, label: labels[target] };
   }
   return { score: 0, label: "" };
 }
