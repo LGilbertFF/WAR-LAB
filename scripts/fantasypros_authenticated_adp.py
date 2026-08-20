@@ -14,6 +14,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import pandas as pd
 
@@ -40,6 +41,18 @@ def split_player_team(value: str) -> tuple[str, str]:
     return text, ""
 
 
+def clean_adp_player_name(value: str) -> str:
+    text = str(value or "").strip()
+    return re.sub(r"\s+[A-Z]\.\s+.+$", "", text).strip()
+
+
+def add_query_params(url: str, **params: object) -> str:
+    parts = urlsplit(url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query.update({key: str(value) for key, value in params.items() if value is not None})
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+
+
 def normalize_adp_table(df: pd.DataFrame, scoring: str, year: int) -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame()
@@ -53,11 +66,12 @@ def normalize_adp_table(df: pd.DataFrame, scoring: str, year: int) -> pd.DataFra
     if avg_col is None:
         return pd.DataFrame()
     extracted = df[source_col].apply(split_player_team)
+    players = extracted.apply(lambda item: clean_adp_player_name(item[0]))
     out = pd.DataFrame(
         {
             "Year": year,
             "Scoring": scoring,
-            "Player": extracted.apply(lambda item: item[0]),
+            "Player": players,
             "Team": extracted.apply(lambda item: item[1]),
             "ADP Rank": pd.to_numeric(df.get(rank_col), errors="coerce") if rank_col else None,
             "POS": df.get(pos_col, "") if pos_col else "",
@@ -93,8 +107,7 @@ async def rendered_tables(page) -> list[pd.DataFrame]:
 
 
 async def scrape_year_scoring(page, year: int, scoring: str, login_wait_seconds: int, min_rows: int) -> pd.DataFrame:
-    separator = "&" if "?" in ADP_URLS[scoring] else "?"
-    url = f"{ADP_URLS[scoring]}{separator}year={year}"
+    url = add_query_params(ADP_URLS[scoring], export="xls", year=year)
     await page.goto(url, wait_until="domcontentloaded", timeout=60_000)
     try:
         await page.locator("table").first.wait_for(state="visible", timeout=8_000)

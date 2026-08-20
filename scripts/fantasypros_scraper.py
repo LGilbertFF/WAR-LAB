@@ -15,6 +15,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import pandas as pd
 import requests
@@ -85,6 +86,8 @@ def table_to_df(html: str) -> pd.DataFrame:
     for tr in tbody.find_all("tr"):
         cells = [td.get_text(strip=True) for td in tr.find_all("td")]
         if cells:
+            if len(cells) < len(headers):
+                cells.extend([""] * (len(headers) - len(cells)))
             rows.append(cells[: len(headers)])
     return pd.DataFrame(rows, columns=headers)
 
@@ -104,6 +107,19 @@ def split_player_team(value: str) -> tuple[str, str]:
     if bye_match:
         return bye_match.group(1).strip(), bye_match.group(2).strip()
     return re.sub(r"\s*\(.*?\)", "", text).strip(), ""
+
+
+def clean_adp_player_name(value: str) -> str:
+    """Remove FantasyPros export's duplicated short name from player cells."""
+    text = str(value or "").strip()
+    return re.sub(r"\s+[A-Z]\.\s+.+$", "", text).strip()
+
+
+def add_query_params(url: str, **params: object) -> str:
+    parts = urlsplit(url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query.update({key: str(value) for key, value in params.items() if value is not None})
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
 def split_high_low(value: object) -> tuple[float | None, float | None, float | None]:
@@ -216,8 +232,7 @@ def scrape_current_projections(output: Path, season_year: int, positions: Iterab
 
 
 def scrape_adp(scoring: str, output: Path, season_year: int) -> pd.DataFrame:
-    separator = "&" if "?" in ADP_URLS[scoring] else "?"
-    url = f"{ADP_URLS[scoring]}{separator}year={season_year}"
+    url = add_query_params(ADP_URLS[scoring], export="xls", year=season_year)
     df = table_to_df(fetch(url))
     source_col = next(
         (col for col in df.columns if "player" in col.lower().replace(" ", "")),
@@ -226,11 +241,12 @@ def scrape_adp(scoring: str, output: Path, season_year: int) -> pd.DataFrame:
     rank_col = next((col for col in df.columns if col.lower() == "rank"), None)
     avg_col = next((col for col in df.columns if col.lower() in {"avg", "adp"}), None)
     extracted = df[source_col].apply(split_player_team)
+    players = extracted.apply(lambda item: clean_adp_player_name(item[0]))
     result = pd.DataFrame(
         {
             "Year": season_year,
             "Scoring": scoring,
-            "Player": extracted.apply(lambda item: item[0]),
+            "Player": players,
             "Team": extracted.apply(lambda item: item[1]),
             "ADP Rank": pd.to_numeric(df.get(rank_col), errors="coerce") if rank_col else None,
             "POS": df.get("POS", ""),
