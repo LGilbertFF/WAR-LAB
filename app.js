@@ -3405,6 +3405,10 @@ function historicalRankCurvePositions() {
   return selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
 }
 
+function historicalRankCurveCutoff() {
+  return Math.max(1, Math.min(250, number(el("historicalRankCurveCutoff")?.value, 70)));
+}
+
 function historicalRankCurveData() {
   const start = number(el("historicalPlotStart")?.value, 2015);
   const end = number(el("historicalPlotEnd")?.value, settings().year - 1);
@@ -3462,15 +3466,16 @@ function renderHistoricalRankCurve() {
   const end = number(el("historicalPlotEnd")?.value, settings().year - 1);
   const rows = historicalRankCurveData();
   const positions = historicalRankCurvePositions();
-  const shownRows = rows.filter((row) => positions.includes(row.Pos));
+  const cutoff = historicalRankCurveCutoff();
+  const shownRows = rows.filter((row) => positions.includes(row.Pos) && row.Rank <= cutoff);
   const context = chartContextCopy();
   if (el("historicalRankCurveSubtitle")) {
-    el("historicalRankCurveSubtitle").textContent = `${start}-${end} average positional-rank WAR curve - ${context.roster} - ${context.scoring} - ${context.weeks} weeks`;
+    el("historicalRankCurveSubtitle").textContent = `${start}-${end} average positional-rank WAR curve through rank ${cutoff} - ${context.roster} - ${context.scoring} - ${context.weeks} weeks`;
   }
 
   if (!shownRows.length) {
     body.innerHTML = `<tr><td colspan="9">Historical rank curve data is still loading.</td></tr>`;
-    Plotly.react(chart, [], historicalLayout("Historical Rank Curve", "Pos rank", "WAR", "Historical data is still loading"), { responsive: true, displayModeBar: false });
+    Plotly.react(chart, [], historicalLayout("Historical Rank Curve", "Pos rank", "WAR", "Historical data is still loading"), historicalRankCurvePlotConfig(cutoff));
     return;
   }
 
@@ -3492,7 +3497,7 @@ function renderHistoricalRankCurve() {
     ...historicalLayout("Historical Rank Curve", "Pos rank", "Average WAR"),
     margin: { l: 58, r: 18, t: 46, b: 70 },
     showlegend: positions.length > 1
-  }, { responsive: true, displayModeBar: false });
+  }, historicalRankCurvePlotConfig(cutoff));
 
   body.innerHTML = shownRows.map((row) => `
     <tr>
@@ -3507,6 +3512,22 @@ function renderHistoricalRankCurve() {
       <td>${row.Seasons}</td>
     </tr>
   `).join("");
+}
+
+function historicalRankCurvePlotConfig(cutoff) {
+  return {
+    responsive: true,
+    displayModeBar: true,
+    displaylogo: false,
+    modeBarButtonsToRemove: ["select2d", "lasso2d"],
+    toImageButtonOptions: {
+      format: "png",
+      filename: `historical-rank-curve-top-${cutoff}`,
+      height: 900,
+      width: 1600,
+      scale: 2
+    }
+  };
 }
 
 function historicalPlayerTokens() {
@@ -5411,11 +5432,12 @@ function downloadCsv(filename, columns, rows) {
 function exportHistoricalRankCurve() {
   const selected = el("historicalRankCurvePosition")?.value || "ALL";
   const positions = historicalRankCurvePositions();
+  const cutoff = historicalRankCurveCutoff();
   const start = number(el("historicalPlotStart")?.value, 2015);
   const end = number(el("historicalPlotEnd")?.value, settings().year - 1);
-  const rows = historicalRankCurveData().filter((row) => positions.includes(row.Pos));
+  const rows = historicalRankCurveData().filter((row) => positions.includes(row.Pos) && row.Rank <= cutoff);
   const columns = ["Pos", "Rank", "WAR", "Flex WAR", "SuperFlex WAR", "FPTS/G", "Avg Games", "Player Seasons", "Seasons"];
-  downloadCsv(`historical-rank-curve-${selected.toLowerCase()}-${start}-${end}.csv`, columns, rows);
+  downloadCsv(`historical-rank-curve-${selected.toLowerCase()}-top-${cutoff}-${start}-${end}.csv`, columns, rows);
 }
 
 function historicalSeasonExportRows(season) {
