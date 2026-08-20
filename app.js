@@ -4305,7 +4305,6 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
 
     layoutAxes[xAxisKey] = {
       domain: [x0, x1],
-      title: { text: "Bust weeks (< 0 WAR)", standoff: 8, font: { size: 11 } },
       tickmode: "linear",
       dtick: 1,
       tickfont: { size: 10 },
@@ -4315,7 +4314,6 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
     };
     layoutAxes[yAxisKey] = {
       domain: [y0, y1],
-      title: { text: `Boom weeks (> ${threshold.toFixed(2)} ${yMetric})`, standoff: 8, font: { size: 11 } },
       tickmode: "linear",
       dtick: 1,
       tickfont: { size: 10 },
@@ -4332,6 +4330,29 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
       showarrow: false,
       font: { color: posColors[pos] || "#f0f0f0", size: 15 }
     });
+    annotations.push({
+      text: "Bust weeks (&lt; 0 WAR)",
+      x: (x0 + x1) / 2,
+      y: y0 - (rowsCount === 1 ? 0.12 : 0.09),
+      xref: "paper",
+      yref: "paper",
+      showarrow: false,
+      xanchor: "center",
+      yanchor: "top",
+      font: { color: "rgba(240,240,240,0.86)", size: 11 }
+    });
+    annotations.push({
+      text: `Boom weeks (&gt; ${threshold.toFixed(2)} ${yMetric})`,
+      x: x0 - (columns === 1 ? 0.08 : 0.065),
+      y: (y0 + y1) / 2,
+      xref: "paper",
+      yref: "paper",
+      showarrow: false,
+      textangle: -90,
+      xanchor: "center",
+      yanchor: "middle",
+      font: { color: "rgba(240,240,240,0.86)", size: 11 }
+    });
   });
 
   return {
@@ -4339,8 +4360,8 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
     layout: {
       ...historicalAdpBaseLayout(copy),
       ...layoutAxes,
-      height: positions.length <= 2 ? 720 : 980,
-      margin: { l: 94, r: 104, t: 142, b: 142 },
+      height: positions.length <= 2 ? 760 : 1060,
+      margin: { l: 132, r: 108, t: 146, b: 174 },
       annotations: [
         ...annotations,
         {
@@ -4348,7 +4369,7 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
           xref: "paper",
           yref: "paper",
           x: 0,
-          y: -0.14,
+          y: -0.2,
           xanchor: "left",
           showarrow: false,
           font: { color: "rgba(240,240,240,0.62)", size: 11 }
