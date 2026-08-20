@@ -4419,52 +4419,111 @@ function historicalAdpTrendPlot(rows, copy, metric = "WAR") {
       layout: historicalLayout(copy.title, "Year", yMetric, "No historical ADP rows matched the selected years, scoring, and positions")
     };
   }
-  const years = uniqueSorted(points.map((row) => row.Year), true).map((year) => number(year));
+  const selectedStart = number(el("historicalPlotStart")?.value, Math.min(...points.map((row) => row.Year)));
+  const selectedEnd = number(el("historicalPlotEnd")?.value, Math.max(...points.map((row) => row.Year)));
+  const adpStart = Math.min(...points.map((row) => row.Year));
+  const adpEnd = Math.max(...points.map((row) => row.Year));
+  const start = Math.max(selectedStart, adpStart);
+  const end = Math.min(selectedEnd, adpEnd);
+  const years = Array.from({ length: Math.max(0, end - start + 1) }, (_, index) => start + index);
   const buckets = historicalAdpBucketOrder().filter((bucket) => points.some((row) => row.ADPBucket === bucket));
   const positions = selectedHistoricalPositions().filter((pos) => points.some((row) => row.Pos === pos));
-  const bucketDashes = ["solid", "dash", "dot", "dashdot", "longdash"];
-  const traces = positions.flatMap((pos) => buckets.map((bucket, bucketIndex) => {
-      const bucketRows = points.filter((row) => row.Pos === pos && row.ADPBucket === bucket);
-      const y = years.map((year) => {
-        const group = bucketRows.filter((row) => row.Year === year);
-        return group.length ? average(group.map((row) => number(row[yMetric]))) : null;
-      });
-      const counts = years.map((year) => bucketRows.filter((row) => row.Year === year).length);
-      return {
-        type: "scatter",
-        mode: "lines+markers",
-        name: `${pos} ${bucket}`,
-        legendgroup: pos,
-        x: years,
-        y,
-        customdata: counts,
-        line: { color: posColors[pos], width: bucket === "Top 24" ? 3.5 : 2.4, dash: bucketDashes[bucketIndex % bucketDashes.length], shape: "spline", smoothing: 0.45 },
-        marker: { color: posColors[pos], symbol: posSymbols[pos], size: bucket === "Top 24" ? 9 : 7 },
-        connectgaps: false,
-        hovertemplate: `<b>${pos} ${bucket}</b><br>%{x}<br>Avg ${yMetric}: %{y:.3f}<br>Players: %{customdata}<extra></extra>`
-      };
-    })).filter((trace) => trace.y.some((value) => value !== null));
+  const panelDomains = historicalTrendPanelDomains(positions.length);
+  const traces = positions.map((pos, index) => {
+    const z = buckets.map((bucket) => years.map((year) => {
+      const group = points.filter((row) => row.Pos === pos && row.ADPBucket === bucket && row.Year === year);
+      return group.length ? average(group.map((row) => number(row[yMetric]))) : null;
+    }));
+    const counts = buckets.map((bucket) => years.map((year) => points.filter((row) => row.Pos === pos && row.ADPBucket === bucket && row.Year === year).length));
+    const text = z.map((row, rowIndex) => row.map((value, colIndex) => {
+      const count = counts[rowIndex][colIndex];
+      return value === null || !count ? "" : `${value.toFixed(2)}<br>N=${count}`;
+    }));
+    return {
+      type: "heatmap",
+      name: pos,
+      x: years,
+      y: buckets,
+      z,
+      text,
+      texttemplate: "%{text}",
+      hovertemplate: `<b>${pos} %{y}</b><br>%{x}<br>Avg ${yMetric}: %{z:.3f}<br>Players: %{customdata}<extra></extra>`,
+      customdata: counts,
+      colorscale: [
+        [0, "#4f1f25"],
+        [0.25, "#8d4545"],
+        [0.5, "#f2f2f2"],
+        [0.75, "#8fba7a"],
+        [1, "#3f7b61"]
+      ],
+      zmid: 0,
+      zsmooth: false,
+      xgap: 4,
+      ygap: 4,
+      colorbar: index === positions.length - 1
+        ? { title: `Avg ${yMetric}`, tickfont: { color: "#f0f0f0" }, titlefont: { color: "#f0f0f0" } }
+        : undefined,
+      showscale: index === positions.length - 1,
+      xaxis: `x${index ? index + 1 : ""}`,
+      yaxis: `y${index ? index + 1 : ""}`
+    };
+  });
+  const layout = {
+    ...historicalAdpBaseLayout(copy),
+    margin: { l: 92, r: 88, t: 132, b: 118 },
+    hovermode: "closest",
+    annotations: [
+      ...(historicalAdpBaseLayout(copy).annotations || []),
+      ...positions.map((pos, index) => ({
+        text: `<b>${pos}</b>`,
+        xref: "paper",
+        yref: "paper",
+        x: (panelDomains[index].x[0] + panelDomains[index].x[1]) / 2,
+        y: panelDomains[index].y[1] + 0.055,
+        showarrow: false,
+        font: { color: posColors[pos], size: 16, family: "Kanit FPTS, Impact, sans-serif" }
+      }))
+    ]
+  };
+  positions.forEach((pos, index) => {
+    const suffix = index ? index + 1 : "";
+    layout[`xaxis${suffix}`] = {
+      title: index >= positions.length - 2 ? { text: "Season", standoff: 14 } : "",
+      tickmode: "array",
+      tickvals: years,
+      domain: panelDomains[index].x,
+      gridcolor: "rgba(240,240,240,0.08)",
+      color: "#f0f0f0",
+      automargin: true
+    };
+    layout[`yaxis${suffix}`] = {
+      title: index % 2 === 0 ? { text: "ADP bucket", standoff: 12 } : "",
+      domain: panelDomains[index].y,
+      autorange: "reversed",
+      gridcolor: "rgba(240,240,240,0.08)",
+      color: "#f0f0f0",
+      automargin: true
+    };
+  });
   return {
     traces,
-    layout: {
-      ...historicalAdpBaseLayout(copy),
-      xaxis: {
-        title: { text: "Season", standoff: 18 },
-        tickmode: "array",
-        tickvals: years,
-        gridcolor: "rgba(240,240,240,0.10)",
-        color: "#f0f0f0"
-      },
-      yaxis: {
-        title: { text: `Average ${yMetric}`, standoff: 18 },
-        gridcolor: "rgba(240,240,240,0.10)",
-        zeroline: true,
-        zerolinecolor: "rgba(255,255,255,0.38)",
-        color: "#f0f0f0"
-      },
-      hovermode: "x unified"
-    }
+    layout
   };
+}
+
+function historicalTrendPanelDomains(count) {
+  if (count <= 1) return [{ x: [0, 1], y: [0, 1] }];
+  if (count === 2) return [
+    { x: [0, 0.47], y: [0, 1] },
+    { x: [0.53, 1], y: [0, 1] }
+  ];
+  const domains = [
+    { x: [0, 0.47], y: [0.55, 1] },
+    { x: [0.53, 1], y: [0.55, 1] },
+    { x: [0, 0.47], y: [0, 0.45] },
+    { x: [0.53, 1], y: [0, 0.45] }
+  ];
+  return domains.slice(0, count);
 }
 
 function historicalWeeklyBinLayout(copy) {
