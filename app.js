@@ -4249,8 +4249,8 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
   const positions = selectedHistoricalPositions().filter((pos) => points.some((point) => point.Pos === pos));
   const columns = positions.length === 1 ? 1 : 2;
   const rowsCount = positions.length <= 2 ? 1 : 2;
-  const gapX = columns === 1 ? 0 : 0.08;
-  const gapY = rowsCount === 1 ? 0 : 0.15;
+  const gapX = columns === 1 ? 0 : 0.13;
+  const gapY = rowsCount === 1 ? 0 : 0.24;
   const domainWidth = (1 - (gapX * (columns - 1))) / columns;
   const domainHeight = (1 - (gapY * (rowsCount - 1))) / rowsCount;
   const traces = [];
@@ -4305,19 +4305,23 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
 
     layoutAxes[xAxisKey] = {
       domain: [x0, x1],
-      title: rowIndex === rowsCount - 1 ? { text: "Weeks below 0 WAR", standoff: 10 } : "",
+      title: { text: "Bust weeks (< 0 WAR)", standoff: 8, font: { size: 11 } },
       tickmode: "linear",
       dtick: 1,
+      tickfont: { size: 10 },
       gridcolor: "rgba(240,240,240,0.06)",
-      color: "#f0f0f0"
+      color: "#f0f0f0",
+      automargin: true
     };
     layoutAxes[yAxisKey] = {
       domain: [y0, y1],
-      title: col === 0 ? { text: `Weeks above ${threshold.toFixed(2)} ${yMetric}`, standoff: 10 } : "",
+      title: { text: `Boom weeks (> ${threshold.toFixed(2)} ${yMetric})`, standoff: 8, font: { size: 11 } },
       tickmode: "linear",
       dtick: 1,
+      tickfont: { size: 10 },
       gridcolor: "rgba(240,240,240,0.06)",
-      color: "#f0f0f0"
+      color: "#f0f0f0",
+      automargin: true
     };
     annotations.push({
       text: `<b>${pos}</b>`,
@@ -4335,8 +4339,8 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
     layout: {
       ...historicalAdpBaseLayout(copy),
       ...layoutAxes,
-      height: positions.length <= 2 ? 680 : 900,
-      margin: { l: 78, r: 92, t: 142, b: 124 },
+      height: positions.length <= 2 ? 720 : 980,
+      margin: { l: 94, r: 104, t: 142, b: 142 },
       annotations: [
         ...annotations,
         {
