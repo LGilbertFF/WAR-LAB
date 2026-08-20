@@ -3677,7 +3677,7 @@ function historicalExplorerTitle(mode, metric) {
   if (mode === "adpTrends") {
     return {
       title: `${start}-${end} Year-over-Year ${metric} Trends by ADP Bucket and Position`,
-      subtitle: `Historical ${historicalAdpScoringLabel()} ADP buckets reveal which positions returned the most ${metric} - top-${HISTORICAL_ADP_PLAYER_CAP} draft costs - ${context.roster} - ${context.scoring}`
+      subtitle: `Historical ${historicalAdpScoringLabel()} ADP buckets reveal which positions returned the most ${metric} - ${adpBucketWidth()}-pick buckets from the top-${HISTORICAL_ADP_PLAYER_CAP} draft costs - ${context.roster} - ${context.scoring}`
     };
   }
   if (mode === "player") {
@@ -3828,19 +3828,37 @@ function historicalAdpMetric(metric) {
   return ["WAR", "FPTS", "AVG", "Flex WAR", "SuperFlex WAR"].includes(metric) ? metric : "WAR";
 }
 
+function adpBucketWidth() {
+  return Math.max(2, settings().teams * 2);
+}
+
+function adpBucketRanges() {
+  const width = adpBucketWidth();
+  const ranges = [];
+  for (let start = 1; start <= HISTORICAL_ADP_PLAYER_CAP; start += width) {
+    const end = Math.min(HISTORICAL_ADP_PLAYER_CAP, start + width - 1);
+    const roundStart = Math.floor((start - 1) / settings().teams) + 1;
+    const roundEnd = Math.ceil(end / settings().teams);
+    ranges.push({
+      start,
+      end,
+      label: roundStart === roundEnd
+        ? `Rd ${roundStart} (${start}-${end})`
+        : `Rds ${roundStart}-${roundEnd} (${start}-${end})`
+    });
+  }
+  return ranges;
+}
+
 function adpBucket(adp) {
   const value = number(adp, null);
   if (value === null) return null;
-  if (value <= 24) return "Top 24";
-  if (value <= 60) return "25-60";
-  if (value <= 120) return "61-120";
-  if (value <= 180) return "121-180";
-  if (value <= HISTORICAL_ADP_PLAYER_CAP) return "181-200";
-  return null;
+  const range = adpBucketRanges().find((bucket) => value >= bucket.start && value <= bucket.end);
+  return range?.label || null;
 }
 
 function historicalAdpBucketOrder() {
-  return ["Top 24", "25-60", "61-120", "121-180", "181-200"];
+  return adpBucketRanges().map((bucket) => bucket.label);
 }
 
 function historicalRowsWithAdp(rows) {
