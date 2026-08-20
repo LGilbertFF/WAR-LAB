@@ -3400,6 +3400,115 @@ function renderRankCurve() {
   }, { responsive: true, displayModeBar: false });
 }
 
+function historicalRankCurvePositions() {
+  const selected = el("historicalRankCurvePosition")?.value || "ALL";
+  return selected === "ALL" ? ["QB", "RB", "WR", "TE"] : [selected];
+}
+
+function historicalRankCurveData() {
+  const start = number(el("historicalPlotStart")?.value, 2015);
+  const end = number(el("historicalPlotEnd")?.value, settings().year - 1);
+  const avgOrNull = (values) => {
+    const clean = values.filter((value) => Number.isFinite(value));
+    return clean.length ? average(clean) : null;
+  };
+  const buckets = new Map();
+  for (const row of state.historicalModel?.playerRows || []) {
+    if (!["QB", "RB", "WR", "TE"].includes(row.Pos) || row.Year < start || row.Year > end || !row.Rank) continue;
+    const key = `${row.Pos}|${row.Rank}`;
+    if (!buckets.has(key)) {
+      buckets.set(key, {
+        Pos: row.Pos,
+        Rank: row.Rank,
+        WAR: [],
+        FlexWAR: [],
+        SuperFlexWAR: [],
+        AVG: [],
+        Games: [],
+        seasons: new Set(),
+        samples: 0
+      });
+    }
+    const bucket = buckets.get(key);
+    bucket.WAR.push(number(row.WAR, null));
+    bucket.FlexWAR.push(number(row["Flex WAR"], null));
+    bucket.SuperFlexWAR.push(number(row["SuperFlex WAR"], null));
+    bucket.AVG.push(number(row.AVG, null));
+    bucket.Games.push(number(row.Games, null));
+    bucket.seasons.add(row.Year);
+    bucket.samples += 1;
+  }
+
+  return [...buckets.values()]
+    .map((bucket) => ({
+      Pos: bucket.Pos,
+      Rank: bucket.Rank,
+      WAR: avgOrNull(bucket.WAR),
+      "Flex WAR": avgOrNull(bucket.FlexWAR),
+      "SuperFlex WAR": avgOrNull(bucket.SuperFlexWAR),
+      "FPTS/G": avgOrNull(bucket.AVG),
+      "Avg Games": avgOrNull(bucket.Games),
+      "Player Seasons": bucket.samples,
+      Seasons: bucket.seasons.size
+    }))
+    .sort((a, b) => (["QB", "RB", "WR", "TE"].indexOf(a.Pos) - ["QB", "RB", "WR", "TE"].indexOf(b.Pos)) || a.Rank - b.Rank);
+}
+
+function renderHistoricalRankCurve() {
+  const chart = el("historicalRankCurveChart");
+  const body = el("historicalRankCurveBody");
+  if (!chart || !body) return;
+  const start = number(el("historicalPlotStart")?.value, 2015);
+  const end = number(el("historicalPlotEnd")?.value, settings().year - 1);
+  const rows = historicalRankCurveData();
+  const positions = historicalRankCurvePositions();
+  const shownRows = rows.filter((row) => positions.includes(row.Pos));
+  const context = chartContextCopy();
+  if (el("historicalRankCurveSubtitle")) {
+    el("historicalRankCurveSubtitle").textContent = `${start}-${end} average positional-rank WAR curve - ${context.roster} - ${context.scoring} - ${context.weeks} weeks`;
+  }
+
+  if (!shownRows.length) {
+    body.innerHTML = `<tr><td colspan="9">Historical rank curve data is still loading.</td></tr>`;
+    Plotly.react(chart, [], historicalLayout("Historical Rank Curve", "Pos rank", "WAR", "Historical data is still loading"), { responsive: true, displayModeBar: false });
+    return;
+  }
+
+  const traces = positions.map((pos) => {
+    const points = shownRows.filter((row) => row.Pos === pos).sort((a, b) => a.Rank - b.Rank);
+    return {
+      type: "scatter",
+      mode: "lines+markers",
+      name: pos,
+      x: points.map((row) => row.Rank),
+      y: points.map((row) => row.WAR),
+      customdata: points.map((row) => [row["FPTS/G"], row["Player Seasons"], row.Seasons]),
+      line: { color: posColors[pos], width: 2.8, dash: posDashes[pos], shape: "spline", smoothing: 0.35 },
+      marker: { size: 6, symbol: posSymbols[pos], color: posColors[pos], line: { color: "#111111", width: 1 } },
+      hovertemplate: `<b>${pos}%{x}</b><br>Avg WAR: %{y:.2f}<br>Avg FPTS/G: %{customdata[0]:.2f}<br>Player seasons: %{customdata[1]}<br>Seasons: %{customdata[2]}<extra></extra>`
+    };
+  });
+  Plotly.react(chart, traces, {
+    ...historicalLayout("Historical Rank Curve", "Pos rank", "Average WAR"),
+    margin: { l: 58, r: 18, t: 46, b: 70 },
+    showlegend: positions.length > 1
+  }, { responsive: true, displayModeBar: false });
+
+  body.innerHTML = shownRows.map((row) => `
+    <tr>
+      <td><span class="pos-pill ${row.Pos.toLowerCase()}">${row.Pos}</span></td>
+      <td>${row.Rank}</td>
+      <td>${fmt(row.WAR, 3)}</td>
+      <td>${fmt(row["Flex WAR"], 3)}</td>
+      <td>${fmt(row["SuperFlex WAR"], 3)}</td>
+      <td>${fmt(row["FPTS/G"], 2)}</td>
+      <td>${fmt(row["Avg Games"], 1)}</td>
+      <td>${row["Player Seasons"]}</td>
+      <td>${row.Seasons}</td>
+    </tr>
+  `).join("");
+}
+
 function historicalPlayerTokens() {
   return String(el("historicalPlayers")?.value || "")
     .split(",")
@@ -3573,6 +3682,7 @@ function renderHistoricalExplorer() {
   const chart = el("historicalExplorerChart");
   if (!chart) return;
   updateHistoricalControlVisibility();
+  renderHistoricalRankCurve();
   const mode = el("historicalMode")?.value || "rank";
   const metric = el("historicalMetric")?.value || "WAR";
   const start = number(el("historicalPlotStart")?.value, 2015);
@@ -5283,6 +5393,77 @@ function setDataStatus(projectionSource, adpSource, manifest) {
   }
 }
 
+function downloadCsv(filename, columns, rows) {
+  if (!rows.length) return;
+  const csv = [
+    columns.join(","),
+    ...rows.map((row) => columns.map((col) => JSON.stringify(row[col] ?? "")).join(","))
+  ].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportHistoricalRankCurve() {
+  const selected = el("historicalRankCurvePosition")?.value || "ALL";
+  const positions = historicalRankCurvePositions();
+  const start = number(el("historicalPlotStart")?.value, 2015);
+  const end = number(el("historicalPlotEnd")?.value, settings().year - 1);
+  const rows = historicalRankCurveData().filter((row) => positions.includes(row.Pos));
+  const columns = ["Pos", "Rank", "WAR", "Flex WAR", "SuperFlex WAR", "FPTS/G", "Avg Games", "Player Seasons", "Seasons"];
+  downloadCsv(`historical-rank-curve-${selected.toLowerCase()}-${start}-${end}.csv`, columns, rows);
+}
+
+function historicalSeasonExportRows(season) {
+  const rows = (state.historicalModel?.playerRows || [])
+    .filter((row) => row.Year === season)
+    .sort((a, b) => (["QB", "RB", "WR", "TE"].indexOf(a.Pos) - ["QB", "RB", "WR", "TE"].indexOf(b.Pos)) || a.Rank - b.Rank);
+  const weekNumbers = Array.from({ length: weekLimit() }, (_, index) => index + 1);
+  return rows.map((row) => {
+    const weekMap = new Map((row.Weeks || []).map((week) => [week.Week, week]));
+    const output = {
+      Year: row.Year,
+      Rank: row.Rank,
+      Player: row.Player,
+      Team: row.Team,
+      Pos: row.Pos,
+      FPTS: row.FPTS,
+      "FPTS/G": row.AVG,
+      Games: row.Games,
+      WAR: row.WAR,
+      "WAR/G": playedWarPerGame(row, "WAR"),
+      "Flex WAR": row["Flex WAR"],
+      "SuperFlex WAR": row["SuperFlex WAR"],
+      "Played WAR": row["Played WAR"],
+      "Played Flex WAR": row["Played Flex WAR"],
+      "Played SuperFlex WAR": row["Played SuperFlex WAR"]
+    };
+    for (const week of weekNumbers) {
+      const weekRow = weekMap.get(week);
+      output[`W${week} FPTS`] = weekRow?.FPTS ?? "";
+      output[`W${week} WAR`] = weekRow?.WAR ?? "";
+      output[`W${week} Flex WAR`] = weekRow?.["Flex WAR"] ?? "";
+      output[`W${week} SuperFlex WAR`] = weekRow?.["SuperFlex WAR"] ?? "";
+    }
+    return output;
+  });
+}
+
+function exportHistoricalSeasonWar() {
+  const season = number(el("historicalExportSeason")?.value, null);
+  if (season === null) return;
+  const weekColumns = Array.from({ length: weekLimit() }, (_, index) => {
+    const week = index + 1;
+    return [`W${week} FPTS`, `W${week} WAR`, `W${week} Flex WAR`, `W${week} SuperFlex WAR`];
+  }).flat();
+  const columns = ["Year", "Rank", "Player", "Team", "Pos", "FPTS", "FPTS/G", "Games", "WAR", "WAR/G", "Flex WAR", "SuperFlex WAR", "Played WAR", "Played Flex WAR", "Played SuperFlex WAR", ...weekColumns];
+  downloadCsv(`historical-war-player-seasons-${season}.csv`, columns, historicalSeasonExportRows(season));
+}
+
 function exportResults() {
   if (!state.results.length) return;
   const cols = ["Year", "Overall Rank", "Player", "Team", "Pos", "Pos Rank", "WAR", "Historical WAR", "Delta vs Historical", "ADP", "ADP Discount", "Value", "Tier", "AVG", "FPTS", "Flex WAR", "SuperFlex WAR"];
@@ -5418,6 +5599,8 @@ function bindEvents() {
   el("exportResults").addEventListener("click", exportResults);
   el("exportAdpBoard")?.addEventListener("click", exportAdpBoard);
   el("exportDynastyWar")?.addEventListener("click", exportDynastyWar);
+  el("exportHistoricalRankCurve")?.addEventListener("click", exportHistoricalRankCurve);
+  el("exportHistoricalSeasonWar")?.addEventListener("click", exportHistoricalSeasonWar);
   el("dynastyWarHead")?.addEventListener("click", (event) => {
     const th = event.target.closest("th[data-dynasty-sort]");
     if (!th) return;
@@ -5444,6 +5627,11 @@ function initControls() {
   }
   if (el("historicalPlotEnd")) {
     el("historicalPlotEnd").innerHTML = years
+      .map((year) => `<option value="${year}" ${year === 2025 ? "selected" : ""}>${year}</option>`)
+      .join("");
+  }
+  if (el("historicalExportSeason")) {
+    el("historicalExportSeason").innerHTML = years
       .map((year) => `<option value="${year}" ${year === 2025 ? "selected" : ""}>${year}</option>`)
       .join("");
   }

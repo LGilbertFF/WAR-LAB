@@ -334,6 +334,53 @@
       </section>
 
       <section id="historicalView" class="view-panel">
+        <section class="historical-panel historical-rank-panel">
+          <div class="panel-header">
+            <div>
+              <h2>Historical Rank Curve</h2>
+              <p id="historicalRankCurveSubtitle">Average positional-rank outcomes using the active league and scoring settings.</p>
+            </div>
+            <div class="historical-rank-actions">
+              <label>
+                Position
+                <select id="historicalRankCurvePosition">
+                  <option value="ALL">All positions</option>
+                  <option value="QB">QB</option>
+                  <option value="RB">RB</option>
+                  <option value="WR">WR</option>
+                  <option value="TE">TE</option>
+                </select>
+              </label>
+              <button id="exportHistoricalRankCurve" type="button">Download rank curve CSV</button>
+            </div>
+          </div>
+          <div id="historicalRankCurveChart"></div>
+          <div class="table-wrap historical-rank-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Pos</th>
+                  <th>Rank</th>
+                  <th>Avg WAR</th>
+                  <th>Avg Flex WAR</th>
+                  <th>Avg SuperFlex WAR</th>
+                  <th>Avg FPTS/G</th>
+                  <th>Avg Games</th>
+                  <th>Player Seasons</th>
+                  <th>Seasons</th>
+                </tr>
+              </thead>
+              <tbody id="historicalRankCurveBody"></tbody>
+            </table>
+          </div>
+          <div class="historical-season-export">
+            <label>
+              Season WAR data
+              <select id="historicalExportSeason"></select>
+            </label>
+            <button id="exportHistoricalSeasonWar" type="button">Download season WAR CSV</button>
+          </div>
+        </section>
         <section class="historical-panel">
           <div class="panel-header">
             <div>

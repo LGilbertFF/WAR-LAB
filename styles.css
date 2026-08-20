@@ -497,6 +497,45 @@ summary::marker {
   height: 740px;
 }
 
+#historicalRankCurveChart {
+  width: 100%;
+  height: 420px;
+}
+
+.historical-rank-panel {
+  margin-bottom: 16px;
+}
+
+.historical-rank-actions,
+.historical-season-export {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.historical-rank-actions label,
+.historical-season-export label {
+  min-width: 170px;
+}
+
+.historical-rank-table {
+  margin-top: 12px;
+  max-height: 360px;
+}
+
+.historical-rank-table table {
+  min-width: 980px;
+}
+
+.historical-season-export {
+  justify-content: flex-start;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
 .historical-controls {
   display: grid;
   grid-template-columns: repeat(4, minmax(150px, 1fr));
@@ -1409,6 +1448,7 @@ tbody tr.selected-row {
   .summary-grid,
   .workspace,
   .historical-controls,
+  .historical-rank-actions,
   .adp-controls,
   .adp-summary-grid,
   .league-preset-list {
@@ -1497,6 +1537,8 @@ tbody tr.selected-row {
   .file-grid,
   .data-status-grid,
   .historical-controls,
+  .historical-rank-actions,
+  .historical-season-export,
   .adp-controls,
   .adp-summary-grid,
   .league-preset-list,
@@ -1552,6 +1594,7 @@ tbody tr.selected-row {
 
   #projectionChart,
   #historicalExplorerChart,
+  #historicalRankCurveChart,
   #adpTrendChart,
   #dynastyWarChart {
     height: 460px;
