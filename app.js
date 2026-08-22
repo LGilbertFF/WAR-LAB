@@ -4249,8 +4249,8 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
   const positions = selectedHistoricalPositions().filter((pos) => points.some((point) => point.Pos === pos));
   const columns = positions.length === 1 ? 1 : 2;
   const rowsCount = positions.length <= 2 ? 1 : 2;
-  const gapX = columns === 1 ? 0 : 0.13;
-  const gapY = rowsCount === 1 ? 0 : 0.24;
+  const gapX = columns === 1 ? 0 : 0.18;
+  const gapY = rowsCount === 1 ? 0 : 0.32;
   const domainWidth = (1 - (gapX * (columns - 1))) / columns;
   const domainHeight = (1 - (gapY * (rowsCount - 1))) / rowsCount;
   const traces = [];
@@ -4305,21 +4305,47 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
 
     layoutAxes[xAxisKey] = {
       domain: [x0, x1],
-      tickmode: "linear",
-      dtick: 1,
+      anchor: yRef,
+      type: "linear",
+      range: [Math.min(...xValues) - 0.5, Math.max(...xValues) + 0.5],
+      tickmode: "array",
+      tickvals: xValues,
+      ticktext: xValues.map((value) => String(value)),
       tickfont: { size: 10 },
+      ticks: "outside",
+      ticklen: 4,
+      tickcolor: "rgba(240,240,240,0.68)",
       gridcolor: "rgba(240,240,240,0.06)",
       color: "#f0f0f0",
-      automargin: true
+      showline: true,
+      mirror: true,
+      linecolor: "rgba(240,240,240,0.58)",
+      linewidth: 1,
+      zeroline: false,
+      automargin: false,
+      fixedrange: true
     };
     layoutAxes[yAxisKey] = {
       domain: [y0, y1],
-      tickmode: "linear",
-      dtick: 1,
+      anchor: xRef,
+      type: "linear",
+      range: [Math.min(...yValues) - 0.5, Math.max(...yValues) + 0.5],
+      tickmode: "array",
+      tickvals: yValues,
+      ticktext: yValues.map((value) => String(value)),
       tickfont: { size: 10 },
+      ticks: "outside",
+      ticklen: 4,
+      tickcolor: "rgba(240,240,240,0.68)",
       gridcolor: "rgba(240,240,240,0.06)",
       color: "#f0f0f0",
-      automargin: true
+      showline: true,
+      mirror: true,
+      linecolor: "rgba(240,240,240,0.58)",
+      linewidth: 1,
+      zeroline: false,
+      automargin: false,
+      fixedrange: true
     };
     annotations.push({
       text: `<b>${pos}</b>`,
@@ -4333,17 +4359,19 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
     annotations.push({
       text: "Bust weeks (&lt; 0 WAR)",
       x: (x0 + x1) / 2,
-      y: y0 - (rowsCount === 1 ? 0.12 : 0.09),
+      y: y0 + 0.018,
       xref: "paper",
       yref: "paper",
       showarrow: false,
       xanchor: "center",
-      yanchor: "top",
-      font: { color: "rgba(240,240,240,0.86)", size: 11 }
+      yanchor: "bottom",
+      bgcolor: "rgba(17,17,17,0.82)",
+      borderpad: 3,
+      font: { color: "rgba(240,240,240,0.9)", size: 11 }
     });
     annotations.push({
       text: `Boom weeks (&gt; ${threshold.toFixed(2)} ${yMetric})`,
-      x: x0 - (columns === 1 ? 0.08 : 0.065),
+      x: x0 + 0.018,
       y: (y0 + y1) / 2,
       xref: "paper",
       yref: "paper",
@@ -4351,7 +4379,9 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
       textangle: -90,
       xanchor: "center",
       yanchor: "middle",
-      font: { color: "rgba(240,240,240,0.86)", size: 11 }
+      bgcolor: "rgba(17,17,17,0.82)",
+      borderpad: 3,
+      font: { color: "rgba(240,240,240,0.9)", size: 11 }
     });
   });
 
@@ -4360,8 +4390,8 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
     layout: {
       ...historicalAdpBaseLayout(copy),
       ...layoutAxes,
-      height: positions.length <= 2 ? 760 : 1060,
-      margin: { l: 132, r: 108, t: 146, b: 174 },
+      height: positions.length <= 2 ? 760 : 1080,
+      margin: { l: 96, r: 108, t: 146, b: 132 },
       annotations: [
         ...annotations,
         {
@@ -4369,7 +4399,7 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
           xref: "paper",
           yref: "paper",
           x: 0,
-          y: -0.2,
+          y: -0.12,
           xanchor: "left",
           showarrow: false,
           font: { color: "rgba(240,240,240,0.62)", size: 11 }
