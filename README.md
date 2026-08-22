@@ -2,6 +2,9 @@
 
 Static GitHub Pages app for generating fantasy football WAR projections from scraped projections, ADP, league settings, scoring settings, and historical weekly scoring averages.
 
+For a plain-English explanation of how WAR works in the app, see
+[`WAR_CALCULATION.md`](WAR_CALCULATION.md).
+
 ## Run Locally
 
 ```powershell
