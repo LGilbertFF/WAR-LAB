@@ -4249,8 +4249,8 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
   const positions = selectedHistoricalPositions().filter((pos) => points.some((point) => point.Pos === pos));
   const columns = positions.length === 1 ? 1 : 2;
   const rowsCount = positions.length <= 2 ? 1 : 2;
-  const gapX = columns === 1 ? 0 : 0.18;
-  const gapY = rowsCount === 1 ? 0 : 0.32;
+  const gapX = columns === 1 ? 0 : 0.2;
+  const gapY = rowsCount === 1 ? 0 : 0.34;
   const domainWidth = (1 - (gapX * (columns - 1))) / columns;
   const domainHeight = (1 - (gapY * (rowsCount - 1))) / rowsCount;
   const traces = [];
@@ -4259,8 +4259,14 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
 
   positions.forEach((pos, index) => {
     const posPoints = points.filter((point) => point.Pos === pos);
-    const xValues = uniqueSorted(posPoints.map((point) => point.WeeksBelow), true);
-    const yValues = uniqueSorted(posPoints.map((point) => point.WeeksAbove), true).sort((a, b) => b - a);
+    const observedX = uniqueSorted(posPoints.map((point) => point.WeeksBelow), true);
+    const observedY = uniqueSorted(posPoints.map((point) => point.WeeksAbove), true);
+    const xMin = Math.min(...observedX);
+    const xMax = Math.max(...observedX);
+    const yMin = Math.min(...observedY);
+    const yMax = Math.max(...observedY);
+    const xValues = Array.from({ length: xMax - xMin + 1 }, (_, i) => xMin + i);
+    const yValues = Array.from({ length: yMax - yMin + 1 }, (_, i) => yMax - i);
     const stats = yValues.map((weeksAbove) => xValues.map((weeksBelow) => {
       const group = posPoints.filter((point) => point.WeeksAbove === weeksAbove && point.WeeksBelow === weeksBelow);
       if (!group.length) return null;
@@ -4300,7 +4306,9 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
       xaxis: xRef,
       yaxis: yRef,
       xgap: 3,
-      ygap: 3
+      ygap: 3,
+      zsmooth: false,
+      connectgaps: false
     });
 
     layoutAxes[xAxisKey] = {
@@ -4359,19 +4367,17 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
     annotations.push({
       text: "Bust weeks (&lt; 0 WAR)",
       x: (x0 + x1) / 2,
-      y: y0 + 0.018,
+      y: y0 - (rowsCount === 1 ? 0.095 : 0.07),
       xref: "paper",
       yref: "paper",
       showarrow: false,
       xanchor: "center",
-      yanchor: "bottom",
-      bgcolor: "rgba(17,17,17,0.82)",
-      borderpad: 3,
+      yanchor: "top",
       font: { color: "rgba(240,240,240,0.9)", size: 11 }
     });
     annotations.push({
       text: `Boom weeks (&gt; ${threshold.toFixed(2)} ${yMetric})`,
-      x: x0 + 0.018,
+      x: x0 - (columns === 1 ? 0.07 : 0.055),
       y: (y0 + y1) / 2,
       xref: "paper",
       yref: "paper",
@@ -4379,8 +4385,6 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
       textangle: -90,
       xanchor: "center",
       yanchor: "middle",
-      bgcolor: "rgba(17,17,17,0.82)",
-      borderpad: 3,
       font: { color: "rgba(240,240,240,0.9)", size: 11 }
     });
   });
@@ -4390,8 +4394,8 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
     layout: {
       ...historicalAdpBaseLayout(copy),
       ...layoutAxes,
-      height: positions.length <= 2 ? 760 : 1080,
-      margin: { l: 96, r: 108, t: 146, b: 132 },
+      height: positions.length <= 2 ? 780 : 1100,
+      margin: { l: 132, r: 108, t: 146, b: 164 },
       annotations: [
         ...annotations,
         {
@@ -4399,7 +4403,7 @@ function historicalBoomBustAdpHeatmap(rows, copy, metric = "WAR") {
           xref: "paper",
           yref: "paper",
           x: 0,
-          y: -0.12,
+          y: -0.16,
           xanchor: "left",
           showarrow: false,
           font: { color: "rgba(240,240,240,0.62)", size: 11 }
