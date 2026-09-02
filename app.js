@@ -3569,6 +3569,7 @@ function updateHistoricalControlVisibility() {
     player: ["players", "timeline"],
     weeklyBins: ["positions", "binSize", "binMax"],
     adpThresholds: ["positions", "adpPlot", "adpScoring", "threshold"],
+    adpRoundHitRates: ["positions", "adpScoring"],
     boomBustHeatmap: ["positions", "adpScoring", "threshold"],
     adpOutcome: ["positions", "adpScoring"],
     adpTrends: ["positions", "adpScoring"]
@@ -3668,6 +3669,13 @@ function historicalExplorerTitle(mode, metric) {
       subtitle: `${historicalPositionText()} player-seasons drafted in the top-${HISTORICAL_ADP_PLAYER_CAP} - boom weeks above ${threshold.toFixed(2)} ${yMetric}, bust weeks below 0.00 ${yMetric} - ${context.roster} - ${context.scoring}`
     };
   }
+  if (mode === "adpRoundHitRates") {
+    const yMetric = historicalAdpMetric(metric);
+    return {
+      title: `${start}-${end} ${historicalAdpScoringLabel()} Round Hit Rates by Season ${yMetric} Threshold`,
+      subtitle: `% of each position drafted in each round that reached each season ${yMetric} mark - top-${HISTORICAL_ADP_PLAYER_CAP} draft costs - ${context.roster} - ${context.scoring}`
+    };
+  }
   if (mode === "adpOutcome") {
     return {
       title: `${start}-${end} Historical ${historicalAdpScoringLabel()} ADP vs Season ${metric}`,
@@ -3733,6 +3741,12 @@ function renderHistoricalExplorer() {
 
   if (mode === "boomBustHeatmap") {
     const plot = historicalBoomBustAdpHeatmap(rows, copy, metric);
+    Plotly.react(chart, plot.traces, plot.layout, { responsive: true });
+    return;
+  }
+
+  if (mode === "adpRoundHitRates") {
+    const plot = historicalAdpRoundHitRatePlot(rows, copy, metric);
     Plotly.react(chart, plot.traces, plot.layout, { responsive: true });
     return;
   }
@@ -3861,6 +3875,49 @@ function historicalAdpBucketOrder() {
   return adpBucketRanges().map((bucket) => bucket.label);
 }
 
+function adpRoundRanges() {
+  const teams = Math.max(1, settings().teams);
+  const ranges = [];
+  for (let start = 1; start <= HISTORICAL_ADP_PLAYER_CAP; start += teams) {
+    const end = Math.min(HISTORICAL_ADP_PLAYER_CAP, start + teams - 1);
+    const round = Math.floor((start - 1) / teams) + 1;
+    ranges.push({ round, start, end, label: `Rd ${round}` });
+  }
+  return ranges;
+}
+
+function adpRoundBucket(adp) {
+  const value = number(adp, null);
+  if (value === null) return null;
+  const range = adpRoundRanges().find((bucket) => value >= bucket.start && value <= bucket.end);
+  return range?.label || null;
+}
+
+function seasonThresholdsForMetric(points, metric) {
+  const values = points.map((row) => number(row[metric], null)).filter((value) => value !== null && value > 0);
+  if (!values.length) return metric === "AVG" ? [5, 10, 15, 20] : metric === "FPTS" ? [50, 100, 150, 200] : [0.2, 0.4, 0.6, 0.8, 1.0];
+  const maxValue = Math.max(...values);
+  if (metric === "FPTS") {
+    const high = Math.max(50, Math.ceil(maxValue / 50) * 50);
+    const thresholds = [];
+    for (let value = 25; value <= Math.min(200, high); value += 25) thresholds.push(value);
+    for (let value = 250; value <= high; value += 50) thresholds.push(value);
+    return thresholds;
+  }
+  if (metric === "AVG") {
+    const high = Math.max(2, Math.ceil(maxValue / 5) * 5);
+    const thresholds = [];
+    for (let value = 2; value <= Math.min(20, high); value += 2) thresholds.push(value);
+    for (let value = 25; value <= high; value += 5) thresholds.push(value);
+    return thresholds;
+  }
+  const high = Math.max(0.2, Math.ceil(maxValue * 2) / 2);
+  const thresholds = [];
+  for (let value = 0.2; value <= Math.min(2, high) + 0.001; value += 0.2) thresholds.push(Number(value.toFixed(1)));
+  for (let value = 2.5; value <= high + 0.001; value += 0.5) thresholds.push(Number(value.toFixed(1)));
+  return thresholds;
+}
+
 function historicalRowsWithAdp(rows) {
   const positionSet = new Set(selectedHistoricalPositions());
   const adpMap = historicalAdpMap();
@@ -3870,7 +3927,7 @@ function historicalRowsWithAdp(rows) {
       const playerAdp = adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}|${row.Pos}`) || adpMap.get(`${row.Year}|${playerAdpKey(row.Player)}`);
       const adp = playerAdp?.adp ?? null;
       if (adp === null || adp > HISTORICAL_ADP_PLAYER_CAP) return null;
-      return adp === null ? null : { ...row, ADP: adp, "ADP Rank": playerAdp.rank, "Pos ADP Rank": playerAdp.posRank, ADPBucket: adpBucket(adp) };
+      return adp === null ? null : { ...row, ADP: adp, "ADP Rank": playerAdp.rank, "Pos ADP Rank": playerAdp.posRank, ADPBucket: adpBucket(adp), ADPRound: adpRoundBucket(adp) };
     })
     .filter(Boolean);
 }
@@ -4210,6 +4267,120 @@ function historicalAdpHitRatePlot(rows, copy, threshold, metric = "WAR") {
       yaxis: { title: "Position", color: "#f0f0f0" }
     }
   };
+}
+
+function historicalAdpRoundHitRatePlot(rows, copy, metric = "WAR") {
+  const yMetric = historicalAdpMetric(metric);
+  const points = historicalRowsWithAdp(rows)
+    .map((row) => ({ ...row, MetricValue: number(row[yMetric], null) }))
+    .filter((row) => row.ADPRound && row.MetricValue !== null);
+  if (!points.length) {
+    return {
+      traces: [],
+      layout: historicalLayout(copy.title, "Draft round", `${yMetric} threshold`, "No historical ADP rows matched the selected years, scoring, positions, and metric")
+    };
+  }
+
+  const roundOrder = adpRoundRanges().map((round) => round.label).filter((label) => points.some((row) => row.ADPRound === label));
+  const positions = selectedHistoricalPositions().filter((pos) => points.some((row) => row.Pos === pos));
+  const thresholds = seasonThresholdsForMetric(points, yMetric).sort((a, b) => b - a);
+  const panelDomains = historicalTrendPanelDomains(positions.length);
+  const formatThreshold = (value) => yMetric === "FPTS" ? value.toFixed(0) : value.toFixed(1);
+
+  const traces = positions.map((pos, index) => {
+    const stats = thresholds.map((thresholdValue) => roundOrder.map((roundLabel) => {
+      const group = points.filter((row) => row.Pos === pos && row.ADPRound === roundLabel);
+      if (!group.length) return null;
+      const hits = group.filter((row) => row.MetricValue >= thresholdValue).length;
+      return {
+        hits,
+        total: group.length,
+        rate: hits / group.length,
+        avg: average(group.map((row) => row.MetricValue))
+      };
+    }));
+    const z = stats.map((row) => row.map((cell) => cell ? cell.rate * 100 : null));
+    const text = stats.map((row) => row.map((cell) => cell ? `${(cell.rate * 100).toFixed(0)}%<br>${cell.hits}/${cell.total}` : ""));
+    const customdata = stats.map((row) => row.map((cell) => cell ? [cell.avg, cell.hits, cell.total] : [null, 0, 0]));
+    return {
+      type: "heatmap",
+      name: pos,
+      x: roundOrder,
+      y: thresholds.map(formatThreshold),
+      z,
+      text,
+      customdata,
+      texttemplate: "%{text}",
+      hovertemplate: `<b>${pos} %{x}</b><br>${yMetric} threshold: %{y}<br>Hit rate: %{z:.1f}%<br>Hits: %{customdata[1]} / %{customdata[2]}<br>Avg season ${yMetric}: %{customdata[0]:.2f}<extra></extra>`,
+      colorscale: [
+        [0, "#1a1a1a"],
+        [0.25, "#5c3140"],
+        [0.5, "#c46f6f"],
+        [0.75, "#d0a85b"],
+        [1, "#f2f2f2"]
+      ],
+      zmin: 0,
+      zmax: 100,
+      xgap: 4,
+      ygap: 4,
+      zsmooth: false,
+      connectgaps: false,
+      colorbar: index === positions.length - 1
+        ? { title: "Hit %", tickfont: { color: "#f0f0f0" }, titlefont: { color: "#f0f0f0" } }
+        : undefined,
+      showscale: index === positions.length - 1,
+      xaxis: `x${index ? index + 1 : ""}`,
+      yaxis: `y${index ? index + 1 : ""}`
+    };
+  });
+
+  const base = historicalAdpBaseLayout(copy);
+  const layout = {
+    ...base,
+    height: positions.length <= 2 ? 780 : 1100,
+    margin: { l: 108, r: 96, t: 146, b: 150 },
+    hovermode: "closest",
+    annotations: [
+      ...(base.annotations || []),
+      ...positions.map((pos, index) => ({
+        text: `<b>${pos}</b>`,
+        xref: "paper",
+        yref: "paper",
+        x: (panelDomains[index].x[0] + panelDomains[index].x[1]) / 2,
+        y: panelDomains[index].y[1] + 0.055,
+        showarrow: false,
+        font: { color: posColors[pos], size: 16, family: "Kanit FPTS, Impact, sans-serif" }
+      }))
+    ]
+  };
+  positions.forEach((pos, index) => {
+    const suffix = index ? index + 1 : "";
+    const xRef = `x${suffix}`;
+    const yRef = `y${suffix}`;
+    layout[`xaxis${suffix}`] = {
+      title: { text: "Draft round", standoff: 12 },
+      tickangle: roundOrder.length > 12 ? -45 : 0,
+      domain: panelDomains[index].x,
+      anchor: yRef,
+      gridcolor: "rgba(240,240,240,0.08)",
+      color: "#f0f0f0",
+      automargin: true,
+      fixedrange: true
+    };
+    layout[`yaxis${suffix}`] = {
+      title: { text: `${yMetric} threshold`, standoff: 12 },
+      domain: panelDomains[index].y,
+      anchor: xRef,
+      categoryorder: "array",
+      categoryarray: thresholds.map(formatThreshold),
+      gridcolor: "rgba(240,240,240,0.08)",
+      color: "#f0f0f0",
+      automargin: true,
+      fixedrange: true
+    };
+  });
+
+  return { traces, layout };
 }
 
 function historicalBoomBustRows(rows, metric = "WAR") {
