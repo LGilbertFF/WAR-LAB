@@ -113,9 +113,9 @@
       <nav class="view-tabs" aria-label="WAR Lab views">
         <button class="active" type="button" data-view="projectionsView">Projections</button>
         <button type="button" data-view="draftOptimizerView">Draft Optimizer</button>
-        <button type="button" data-view="dynastyView">Dynasty WAR</button>
+        <button type="button" data-view="dynastyView">Dynasty WAR (Beta)</button>
         <button type="button" data-view="historicalView">Historical Looks</button>
-        <button type="button" data-view="adpView">ADP Lab</button>
+        <button type="button" data-view="adpView" hidden>ADP Lab</button>
       </nav>
 
       <section id="projectionsView" class="view-panel active">
@@ -479,6 +479,26 @@
               Max rounds
               <input id="historicalRoundLimit" type="number" min="1" max="20" value="12">
             </label>
+            <label data-control="roundHitSize">
+              Plot size
+              <select id="historicalRoundHitSize">
+                <option value="normal">Normal</option>
+                <option value="large">Large</option>
+                <option value="xl">Extra large</option>
+              </select>
+            </label>
+            <label data-control="seasonThresholds">
+              Min WAR threshold
+              <input id="historicalWarThresholdMin" type="number" min="0" max="10" step="0.1" value="0.2">
+            </label>
+            <label data-control="seasonThresholds">
+              Step below 2 WAR
+              <input id="historicalWarThresholdStepLow" type="number" min="0.1" max="2" step="0.1" value="0.2">
+            </label>
+            <label data-control="seasonThresholds">
+              Step above 2 WAR
+              <input id="historicalWarThresholdStepHigh" type="number" min="0.1" max="5" step="0.1" value="0.5">
+            </label>
             <label data-control="threshold">
               Week-winning WAR
               <input id="weekWinningWar" type="number" min="0" max="2" step="0.05" value="0.5">
@@ -689,8 +709,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "round-hit-rate-controls-20260902a";
+      window.WAR_LAB_BUILD = "round-hit-rate-threshold-controls-20260902a";
     </script>
-    <script src="app.js?v=round-hit-rate-controls-20260902a"></script>
+    <script src="app.js?v=round-hit-rate-threshold-controls-20260902a"></script>
   </body>
 </html>

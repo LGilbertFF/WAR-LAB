@@ -3569,7 +3569,7 @@ function updateHistoricalControlVisibility() {
     player: ["players", "timeline"],
     weeklyBins: ["positions", "binSize", "binMax"],
     adpThresholds: ["positions", "adpPlot", "adpScoring", "threshold"],
-    adpRoundHitRates: ["positions", "adpScoring", "roundLimit"],
+    adpRoundHitRates: ["positions", "adpScoring", "roundLimit", "roundHitSize", "seasonThresholds"],
     boomBustHeatmap: ["positions", "adpScoring", "threshold"],
     adpOutcome: ["positions", "adpScoring"],
     adpTrends: ["positions", "adpScoring"]
@@ -3672,9 +3672,12 @@ function historicalExplorerTitle(mode, metric) {
   if (mode === "adpRoundHitRates") {
     const yMetric = historicalAdpMetric(metric);
     const maxRounds = historicalRoundLimit();
+    const thresholdText = yMetric.includes("WAR")
+      ? ` - min ${historicalWarThresholdMin().toFixed(1)}, ${historicalWarThresholdStepLow().toFixed(1)} below 2 / ${historicalWarThresholdStepHigh().toFixed(1)} above 2`
+      : "";
     return {
       title: `${start}-${end} ${historicalAdpScoringLabel()} Round Hit Rates by Season ${yMetric} Threshold`,
-      subtitle: `% of each position drafted in each round that reached each season ${yMetric} mark - rounds 1-${maxRounds} - ${context.roster} - ${context.scoring}`
+      subtitle: `% of each position drafted in each round that reached each season ${yMetric} mark - rounds 1-${maxRounds}${thresholdText} - ${context.roster} - ${context.scoring}`
     };
   }
   if (mode === "adpOutcome") {
@@ -3893,6 +3896,25 @@ function historicalRoundLimit() {
   return Math.max(1, Math.min(20, number(el("historicalRoundLimit")?.value, 12)));
 }
 
+function historicalRoundHitSize() {
+  const value = el("historicalRoundHitSize")?.value || "normal";
+  if (value === "xl") return 1.45;
+  if (value === "large") return 1.2;
+  return 1;
+}
+
+function historicalWarThresholdMin() {
+  return Math.max(0, Math.min(10, number(el("historicalWarThresholdMin")?.value, 0.2)));
+}
+
+function historicalWarThresholdStepLow() {
+  return Math.max(0.1, Math.min(2, number(el("historicalWarThresholdStepLow")?.value, 0.2)));
+}
+
+function historicalWarThresholdStepHigh() {
+  return Math.max(0.1, Math.min(5, number(el("historicalWarThresholdStepHigh")?.value, 0.5)));
+}
+
 function adpRoundBucket(adp) {
   const value = number(adp, null);
   if (value === null) return null;
@@ -3917,9 +3939,13 @@ function seasonThresholdsForMetric(points, metric) {
     return thresholds.length ? thresholds : [Number(maxValue.toFixed(1))];
   }
   const thresholds = [];
-  for (let value = 0.2; value <= Math.min(2, maxValue) + 0.001; value += 0.2) thresholds.push(Number(value.toFixed(1)));
-  for (let value = 2.5; value <= maxValue + 0.001; value += 0.5) thresholds.push(Number(value.toFixed(1)));
-  return thresholds.length ? thresholds : [Number(maxValue.toFixed(1))];
+  const minValue = Math.min(historicalWarThresholdMin(), maxValue);
+  const lowStep = historicalWarThresholdStepLow();
+  const highStep = historicalWarThresholdStepHigh();
+  for (let value = minValue; value <= Math.min(2, maxValue) + 0.001; value += lowStep) thresholds.push(Number(value.toFixed(2)));
+  const highStart = minValue > 2 ? minValue : 2 + highStep;
+  for (let value = highStart; value <= maxValue + 0.001; value += highStep) thresholds.push(Number(value.toFixed(2)));
+  return thresholds.length ? [...new Set(thresholds)] : [Number(maxValue.toFixed(2))];
 }
 
 function historicalRowsWithAdp(rows) {
@@ -4275,7 +4301,6 @@ function historicalAdpHitRatePlot(rows, copy, threshold, metric = "WAR") {
 
 function historicalAdpRoundHitRatePlot(rows, copy, metric = "WAR") {
   const yMetric = historicalAdpMetric(metric);
-  const maxRounds = historicalRoundLimit();
   const points = historicalRowsWithAdp(rows)
     .map((row) => ({ ...row, MetricValue: number(row[yMetric], null) }))
     .filter((row) => row.ADPRound && row.MetricValue !== null);
@@ -4291,7 +4316,7 @@ function historicalAdpRoundHitRatePlot(rows, copy, metric = "WAR") {
   const thresholds = seasonThresholdsForMetric(points, yMetric).sort((a, b) => b - a);
   const panelDomains = historicalTrendPanelDomains(positions.length);
   const formatThreshold = (value) => yMetric === "FPTS" ? value.toFixed(0) : value.toFixed(1);
-  const visibleRoundText = `${roundOrder.length} of ${maxRounds} rounds`;
+  const sizeMultiplier = historicalRoundHitSize();
 
   const traces = positions.map((pos, index) => {
     const stats = thresholds.map((thresholdValue) => roundOrder.map((roundLabel) => {
@@ -4317,7 +4342,6 @@ function historicalAdpRoundHitRatePlot(rows, copy, metric = "WAR") {
       text,
       customdata,
       texttemplate: "%{text}",
-      textfont: { size: 11 },
       hovertemplate: `<b>${pos} %{x}</b><br>${yMetric} threshold: %{y}<br>Hit rate: %{z:.1f}%<br>Hits: %{customdata[1]} / %{customdata[2]}<br>Avg season ${yMetric}: %{customdata[0]:.2f}<extra></extra>`,
       colorscale: [
         [0, "#1a1a1a"],
@@ -4344,21 +4368,11 @@ function historicalAdpRoundHitRatePlot(rows, copy, metric = "WAR") {
   const base = historicalAdpBaseLayout(copy);
   const layout = {
     ...base,
-    height: positions.length <= 2 ? 900 : 1320,
-    margin: { l: 132, r: 112, t: 156, b: 180 },
+    height: Math.round((positions.length <= 2 ? 780 : 1100) * sizeMultiplier),
+    margin: { l: 108, r: 96, t: 146, b: 150 },
     hovermode: "closest",
     annotations: [
       ...(base.annotations || []),
-      {
-        text: `${visibleRoundText} shown. Threshold rows stop at the maximum observed ${yMetric} in the selected sample.`,
-        xref: "paper",
-        yref: "paper",
-        x: 0,
-        y: -0.12,
-        xanchor: "left",
-        showarrow: false,
-        font: { color: "rgba(240,240,240,0.66)", size: 12 }
-      },
       ...positions.map((pos, index) => ({
         text: `<b>${pos}</b>`,
         xref: "paper",
@@ -4366,19 +4380,17 @@ function historicalAdpRoundHitRatePlot(rows, copy, metric = "WAR") {
         x: (panelDomains[index].x[0] + panelDomains[index].x[1]) / 2,
         y: panelDomains[index].y[1] + 0.055,
         showarrow: false,
-        font: { color: posColors[pos], size: 18, family: "Kanit FPTS, Impact, sans-serif" }
+        font: { color: posColors[pos], size: 16, family: "Kanit FPTS, Impact, sans-serif" }
       }))
-    ],
-    font: { family: "Mulish, sans-serif", color: "#f0f0f0", size: 13 }
+    ]
   };
   positions.forEach((pos, index) => {
     const suffix = index ? index + 1 : "";
     const xRef = `x${suffix}`;
     const yRef = `y${suffix}`;
     layout[`xaxis${suffix}`] = {
-      title: { text: "Draft round", standoff: 16, font: { size: 14 } },
+      title: { text: "Draft round", standoff: 12 },
       tickangle: roundOrder.length > 12 ? -45 : 0,
-      tickfont: { size: 12 },
       domain: panelDomains[index].x,
       anchor: yRef,
       gridcolor: "rgba(240,240,240,0.08)",
@@ -4387,8 +4399,7 @@ function historicalAdpRoundHitRatePlot(rows, copy, metric = "WAR") {
       fixedrange: true
     };
     layout[`yaxis${suffix}`] = {
-      title: { text: `${yMetric} threshold`, standoff: 16, font: { size: 14 } },
-      tickfont: { size: 12 },
+      title: { text: `${yMetric} threshold`, standoff: 12 },
       domain: panelDomains[index].y,
       anchor: xRef,
       categoryorder: "array",
