@@ -475,6 +475,10 @@
                 <option value="standard">Standard</option>
               </select>
             </label>
+            <label data-control="roundLimit">
+              Max rounds
+              <input id="historicalRoundLimit" type="number" min="1" max="20" value="12">
+            </label>
             <label data-control="threshold">
               Week-winning WAR
               <input id="weekWinningWar" type="number" min="0" max="2" step="0.05" value="0.5">
@@ -685,8 +689,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "season-round-hit-rates-20260902a";
+      window.WAR_LAB_BUILD = "round-hit-rate-controls-20260902a";
     </script>
-    <script src="app.js?v=season-round-hit-rates-20260902a"></script>
+    <script src="app.js?v=round-hit-rate-controls-20260902a"></script>
   </body>
 </html>
