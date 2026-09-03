@@ -5121,6 +5121,7 @@ function draftSlotForPick(pickNo, teams) {
 }
 
 function draftMarketCost(player, fallback = 9999) {
+  if (Number.isFinite(player?._draftMarketCost)) return player._draftMarketCost;
   const adp = number(player?.ADP, null);
   const adpRank = number(player?.["ADP Rank"], null);
   if (adp === null && adpRank === null) return fallback;
@@ -5157,9 +5158,23 @@ function snakePickNumber(round, slot, teams) {
 }
 
 function draftWarValue(player, metric = "WAR") {
+  if (player?._draftMetric === metric && Number.isFinite(player?._draftMetricWar)) return player._draftMetricWar;
   if (metric === "Flex WAR") return number(player["Flex WAR"], null) ?? number(player.WAR, 0);
   if (metric === "SuperFlex WAR") return number(player["SuperFlex WAR"], null) ?? number(player.WAR, 0);
   return number(player.WAR, 0);
+}
+
+function draftPlayerPool(metric = "WAR") {
+  return [...state.results]
+    .filter((player) => player.Player && ["QB", "RB", "WR", "TE"].includes(player.Pos))
+    .map((player) => ({
+      ...player,
+      _draftMetric: metric,
+      _draftMetricWar: draftWarValue(player, metric),
+      _draftMarketCost: draftMarketCost(player),
+      _draftProjectedPoints: draftProjectedPoints(player)
+    }))
+    .sort((a, b) => (a._draftMarketCost - b._draftMarketCost) || (number(a["Overall Rank"], 9999) - number(b["Overall Rank"], 9999)));
 }
 
 function draftTargets(rosterSpots) {
@@ -5204,6 +5219,7 @@ function draftStrategyPaths() {
 }
 
 function draftProjectedPoints(player) {
+  if (Number.isFinite(player?._draftProjectedPoints)) return player._draftProjectedPoints;
   return number(player?.FPTS, null) ?? number(player?.Projected, null) ?? number(player?.AVG, 0) * 17;
 }
 
@@ -5320,7 +5336,7 @@ function draftCandidateScore(player, roster, available, pickNo, nextUserPick, op
     upside: { starter: 0.9, depth: 0.38, scarcity: 0.48, value: 0.04 },
     need: { starter: 1.9, depth: 0.34, scarcity: 0.16, value: 0.015 }
   }[opts.strategy] || { starter: 1.35, depth: 0.48, scarcity: 0.22, value: 0.025 };
-  const nextSamePos = available
+  const nextSamePos = opts.nextByPos?.[pos]?.find((row) => row.id !== player.id) || available
     .filter((row) => row.id !== player.id && row.Pos === pos)
     .sort((a, b) => draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric))[0];
   const scarcityDrop = Math.max(0, metricWar - draftWarValue(nextSamePos || {}, opts.metric));
@@ -5389,9 +5405,7 @@ function runDraftOptimization(optsOverride = null) {
     ? { ...baseOpts, ...optsOverride, caps: { ...baseOpts.caps, ...(optsOverride.caps || {}) } }
     : baseOpts;
   const maxPicks = opts.teams * opts.rounds;
-  const playerPool = [...state.results]
-    .filter((player) => player.Player && ["QB", "RB", "WR", "TE"].includes(player.Pos))
-    .sort((a, b) => (draftMarketCost(a) - draftMarketCost(b)) || (number(a["Overall Rank"], 9999) - number(b["Overall Rank"], 9999)));
+  const playerPool = opts.playerPool || draftPlayerPool(opts.metric);
   const available = new Map(playerPool.map((player) => [player.id, player]));
   const rng = seededRandom(draftSeedValue(opts));
   const agentProfiles = draftAgentProfiles(opts, rng);
@@ -5401,12 +5415,15 @@ function runDraftOptimization(optsOverride = null) {
     const profile = agentProfiles.get(slot) || { earlyTarget: "none", strategy: "balanced", adpWeight: 0.85, pointsWeight: 0.5, warWeight: 0.2, needWeight: 0.3, reachAversion: 0.06 };
     const opponentRoster = opponentRosters.get(slot) || [];
     const counts = draftPositionCounts(opponentRoster);
-    const rows = [...available.values()]
-      .filter((player) => draftPositionAllowed(player, counts, opts))
-      .sort((a, b) => (draftMarketCost(a) - draftMarketCost(b)) || (draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric)));
-    if (!rows.length || opts.uncertainty === "none") return rows[0];
     const scale = draftUncertaintyScale(opts);
-    const pool = rows.slice(0, Math.max(10, Math.min(rows.length, Math.round(scale * 2.4))));
+    const poolSize = Math.max(10, Math.round(scale * 2.4));
+    const pool = [];
+    for (const player of playerPool) {
+      if (!available.has(player.id) || !draftPositionAllowed(player, counts, opts)) continue;
+      pool.push(player);
+      if (pool.length >= poolSize) break;
+    }
+    if (!pool.length || opts.uncertainty === "none") return pool[0];
     const scored = pool
       .map((player) => ({ player, score: draftAgentPickScore(player, opponentRoster, pickNo, profile, opts, rng) }))
       .sort((a, b) => b.score - a.score);
@@ -5432,18 +5449,30 @@ function runDraftOptimization(optsOverride = null) {
       available.delete(drafted.id);
       nextPick += 1;
     }
-    const adpWindow = [...available.values()]
-      .filter((player) => draftPositionAllowed(player, draftPositionCounts(roster), opts))
-      .sort((a, b) => (draftMarketCost(a) - draftMarketCost(b)) || (draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric)))
-      .slice(0, opts.window);
-    const warWindow = [...available.values()]
-      .filter((player) => draftPositionAllowed(player, draftPositionCounts(roster), opts))
+    const userCounts = draftPositionCounts(roster);
+    const adpWindow = [];
+    for (const player of playerPool) {
+      if (!available.has(player.id) || !draftPositionAllowed(player, userCounts, opts)) continue;
+      adpWindow.push(player);
+      if (adpWindow.length >= opts.window) break;
+    }
+    const availableRows = [...available.values()];
+    const warWindow = availableRows
+      .filter((player) => draftPositionAllowed(player, userCounts, opts))
       .sort((a, b) => draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric))
       .slice(0, Math.max(5, Math.floor(opts.window / 3)));
     const candidates = [...new Map([...adpWindow, ...warWindow].map((player) => [player.id, player])).values()];
+    opts.nextByPos = {};
+    for (const pos of ["QB", "RB", "WR", "TE"]) {
+      opts.nextByPos[pos] = availableRows
+        .filter((player) => player.Pos === pos)
+        .sort((a, b) => draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric))
+        .slice(0, Math.max(8, opts.window));
+    }
     const scoredCandidates = candidates
-      .map((player) => ({ player, ...draftCandidateScore(player, roster, [...available.values()], userPick, nextUserPick, opts) }))
+      .map((player) => ({ player, ...draftCandidateScore(player, roster, availableRows, userPick, nextUserPick, opts) }))
       .sort((a, b) => b.score - a.score);
+    delete opts.nextByPos;
     const selected = scoredCandidates[0];
     const alternate = scoredCandidates[1];
     if (!selected) break;
@@ -5513,13 +5542,25 @@ function optimizedStarterWar(roster) {
   return [...optimizedStarterSelections(roster).values()].reduce((sum, value) => sum + value, 0);
 }
 
-function draftRosterTotalWar(roster, opts) {
+function draftRosterWarSummary(roster, opts) {
   const starterSelections = optimizedStarterSelections(roster);
-  return roster.reduce((sum, player, index) => {
+  let totalWar = 0;
+  let starterWar = 0;
+  roster.forEach((player, index) => {
     const starterValue = starterSelections.get(index);
     const value = starterValue ?? draftWarValue(player, opts.metric);
-    return sum + (starterValue !== undefined ? value : Math.max(0, value));
-  }, 0);
+    if (starterValue !== undefined) {
+      starterWar += value;
+      totalWar += value;
+    } else {
+      totalWar += Math.max(0, value);
+    }
+  });
+  return { totalWar, starterWar };
+}
+
+function draftRosterTotalWar(roster, opts) {
+  return draftRosterWarSummary(roster, opts).totalWar;
 }
 
 function draftReportKey(opts) {
@@ -5550,6 +5591,7 @@ function runDraftStrategyReport(baseOpts) {
   const key = draftReportKey(baseOpts);
   if (state.draftReportKey === key && state.draftReportRows.length) return state.draftReportRows;
   const runs = baseOpts.simulations || 100;
+  const playerPool = baseOpts.playerPool || draftPlayerPool(baseOpts.metric);
   const rows = draftStrategyPaths().map((path, pathIndex) => {
     const simulations = [];
     for (let run = 0; run < runs; run += 1) {
@@ -5557,13 +5599,16 @@ function runDraftStrategyReport(baseOpts) {
         ...baseOpts,
         earlyTarget: path.earlyTarget,
         strategy: path.strategy,
+        playerPool,
+        fastSimulation: true,
         seedOffset: ((pathIndex + 1) * 100000) + run
       });
       const roster = result.roster;
+      const warSummary = draftRosterWarSummary(roster, result.opts);
       simulations.push({
         roster,
-        totalWar: draftRosterTotalWar(roster, result.opts),
-        starterWar: optimizedStarterWar(roster),
+        totalWar: warSummary.totalWar,
+        starterWar: warSummary.starterWar,
         build: draftRosterBuildLabel(roster),
         opening: draftOpeningLabel(roster),
         targets: roster.slice(0, Math.min(8, roster.length)).map((player) => `${player.Player} (${player.Pos})`)
@@ -5628,6 +5673,7 @@ function runDraftStrategyReportAsync(baseOpts) {
   if (state.draftReportRequestedKey !== key) return;
   const runs = baseOpts.simulations || 100;
   const groups = draftStrategyPaths().map((path) => ({ path, simulations: [] }));
+  const playerPool = baseOpts.playerPool || draftPlayerPool(baseOpts.metric);
   let pathIndex = 0;
   let runIndex = 0;
   const step = () => {
@@ -5639,13 +5685,16 @@ function runDraftStrategyReportAsync(baseOpts) {
         ...baseOpts,
         earlyTarget: group.path.earlyTarget,
         strategy: group.path.strategy,
+        playerPool,
+        fastSimulation: true,
         seedOffset: ((pathIndex + 1) * 100000) + runIndex
       });
       const roster = result.roster;
+      const warSummary = draftRosterWarSummary(roster, result.opts);
       group.simulations.push({
         roster,
-        totalWar: draftRosterTotalWar(roster, result.opts),
-        starterWar: optimizedStarterWar(roster),
+        totalWar: warSummary.totalWar,
+        starterWar: warSummary.starterWar,
         build: draftRosterBuildLabel(roster),
         opening: draftOpeningLabel(roster),
         targets: roster.slice(0, Math.min(8, roster.length)).map((player) => `${player.Player} (${player.Pos})`)
