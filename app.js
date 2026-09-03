@@ -5108,12 +5108,24 @@ function seededRandom(seed) {
   };
 }
 
-function draftAvailability(player, pickNo, opts) {
+function draftMarketCost(player, fallback = 9999) {
   const adp = number(player?.ADP, null);
-  if (adp === null) return opts.uncertainty === "none" ? 1 : 0.72;
+  const adpRank = number(player?.["ADP Rank"], null);
+  if (adp === null && adpRank === null) return fallback;
+  if (adp === null) return adpRank;
+  if (adpRank === null) return adp;
+  const rankIsMuchEarlier = adpRank + 12 < adp;
+  const adpWeight = rankIsMuchEarlier ? 0.5 : 0.65;
+  const rankWeight = 1 - adpWeight;
+  return (adp * adpWeight) + (adpRank * rankWeight);
+}
+
+function draftAvailability(player, pickNo, opts) {
+  const marketCost = draftMarketCost(player, null);
+  if (marketCost === null) return opts.uncertainty === "none" ? 1 : 0.72;
   const scale = Math.max(4, draftUncertaintyScale(opts));
-  if (opts.uncertainty === "none") return adp >= pickNo ? 1 : 0;
-  return 1 / (1 + Math.exp((pickNo - adp) / scale));
+  if (opts.uncertainty === "none") return marketCost >= pickNo ? 1 : 0;
+  return 1 / (1 + Math.exp((pickNo - marketCost) / scale));
 }
 
 function draftAvailabilityLabel(value) {
@@ -5241,9 +5253,9 @@ function draftCandidateScore(player, roster, available, pickNo, nextUserPick, op
     .filter((row) => row.id !== player.id && row.Pos === pos)
     .sort((a, b) => draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric))[0];
   const scarcityDrop = Math.max(0, metricWar - draftWarValue(nextSamePos || {}, opts.metric));
-  const adp = number(player.ADP, pickNo);
-  const adpValue = Math.max(0, pickNo - adp);
-  const waitPenalty = Math.max(0, adp - nextUserPick) * 0.035;
+  const marketCost = draftMarketCost(player, pickNo);
+  const adpValue = Math.max(0, pickNo - marketCost);
+  const waitPenalty = Math.max(0, marketCost - nextUserPick) * 0.035;
   const availability = draftAvailability(player, pickNo, opts);
   const availabilityPenalty = Math.max(0, 0.45 - availability) * 0.85;
   const overTargetPenalty = (counts[pos] || 0) >= (targets[pos] || 0)
@@ -5283,8 +5295,8 @@ function draftCandidateScore(player, roster, available, pickNo, nextUserPick, op
   if (superflexBonus) reasonParts.push("SF QB demand");
   if (earlyTarget.label && earlyTarget.score > 0) reasonParts.push(earlyTarget.label.toLowerCase());
   if (scarcityDrop > 0.4) reasonParts.push("scarcity cliff");
-  if (adpValue >= 8) reasonParts.push("ADP fall");
-  if (adp <= nextUserPick) reasonParts.push("may not return");
+  if (adpValue >= 8) reasonParts.push("market fall");
+  if (marketCost <= nextUserPick) reasonParts.push("may not return");
   if (availability < 0.35) reasonParts.push("availability risk");
   return {
     score,
@@ -5305,21 +5317,21 @@ function runDraftOptimization() {
   const maxPicks = opts.teams * opts.rounds;
   const playerPool = [...state.results]
     .filter((player) => player.Player && ["QB", "RB", "WR", "TE"].includes(player.Pos))
-    .sort((a, b) => (number(a.ADP, 9999) - number(b.ADP, 9999)) || (number(a["Overall Rank"], 9999) - number(b["Overall Rank"], 9999)));
+    .sort((a, b) => (draftMarketCost(a) - draftMarketCost(b)) || (number(a["Overall Rank"], 9999) - number(b["Overall Rank"], 9999)));
   const available = new Map(playerPool.map((player) => [player.id, player]));
   const rng = seededRandom(draftSeedValue(opts));
   const marketPick = (pickNo) => {
     const rows = [...available.values()]
-      .sort((a, b) => (number(a.ADP, 9999) - number(b.ADP, 9999)) || (draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric)));
+      .sort((a, b) => (draftMarketCost(a) - draftMarketCost(b)) || (draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric)));
     if (!rows.length || opts.uncertainty === "none") return rows[0];
     const scale = draftUncertaintyScale(opts);
     const pool = rows.slice(0, Math.max(8, Math.min(rows.length, Math.round(scale * 1.8))));
     const scored = pool
       .map((player) => {
-        const adp = number(player.ADP, pickNo);
+        const marketCost = draftMarketCost(player, pickNo);
         const reachNoise = (rng() - 0.5) * scale;
         const warPush = Math.max(0, draftWarValue(player, opts.metric)) * 0.9;
-        return { player, cost: adp + reachNoise - warPush };
+        return { player, cost: marketCost + reachNoise - warPush };
       })
       .sort((a, b) => a.cost - b.cost);
     const weights = scored.map((_, index) => Math.exp(-index / Math.max(1.5, scale / 7)));
@@ -5344,7 +5356,7 @@ function runDraftOptimization() {
     }
     const adpWindow = [...available.values()]
       .filter((player) => draftPositionAllowed(player, draftPositionCounts(roster), opts))
-      .sort((a, b) => (number(a.ADP, 9999) - number(b.ADP, 9999)) || (draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric)))
+      .sort((a, b) => (draftMarketCost(a) - draftMarketCost(b)) || (draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric)))
       .slice(0, opts.window);
     const warWindow = [...available.values()]
       .filter((player) => draftPositionAllowed(player, draftPositionCounts(roster), opts))
@@ -5444,9 +5456,9 @@ function renderDraftOptimizer() {
   if (el("draftPositionStrategy")) el("draftPositionStrategy").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}/${targets[pos] || 0}`).join(" / ");
   const earlyTargetText = (el("draftEarlyTarget")?.selectedOptions?.[0]?.textContent || "Best WAR path").trim();
   const capText = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${opts.caps[pos]}`).join(" / ");
-  if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player window, ${opts.uncertainty} market uncertainty, ${earlyTargetText}, caps ${capText}. Alternates show the next-best pick if the target player is taken. Negative WAR only counts against the total when the player is in the optimized starting lineup.`;
+  if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player window, ${opts.uncertainty} market uncertainty, ${earlyTargetText}, caps ${capText}. Availability and opponent picks blend ADP with ADP rank. Alternates show the next-best pick if the target player is taken. Negative WAR only counts against the total when the player is in the optimized starting lineup.`;
   if (el("draftOptimizerSubtitle")) {
-    el("draftOptimizerSubtitle").textContent = `Other teams draft by ADP between turns. Your picks optimize ${opts.metric} with starter, depth, and scarcity adjustments.`;
+    el("draftOptimizerSubtitle").textContent = `Other teams draft from a blended ADP and ADP-rank market between turns. Your picks optimize ${opts.metric} with starter, depth, and scarcity adjustments.`;
   }
   const body = el("draftOptimizerBody");
   if (body) {
