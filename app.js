@@ -47,7 +47,9 @@ const state = {
   renderTimer: null,
   projectionSource: CURRENT_PROJECTIONS_PATH,
   adpSource: CURRENT_ADP_PATH,
-  baselines: {}
+  baselines: {},
+  draftReportKey: "",
+  draftReportRows: []
 };
 
 const posColors = {
@@ -5069,6 +5071,7 @@ function draftOptimizerSettings() {
     rounds: Math.max(1, Math.min(30, number(el("draftRounds")?.value, number(el("draftRosterSpots")?.value, 16)))),
     rosterSpots: Math.max(1, Math.min(30, number(el("draftRosterSpots")?.value, 16))),
     window: Math.max(3, Math.min(80, number(el("draftCandidateWindow")?.value, 24))),
+    simulations: Math.max(20, Math.min(500, number(el("draftSimulationRuns")?.value, 100))),
     uncertainty: el("draftUncertainty")?.value || "medium",
     earlyTarget: el("draftEarlyTarget")?.value || "none",
     strategy: el("draftStrategy")?.value || "balanced",
@@ -5088,7 +5091,7 @@ function draftUncertaintyScale(opts) {
 
 function draftSeedValue(opts) {
   const capText = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${opts.caps?.[pos] ?? ""}`).join("|");
-  const text = `${settings().year}|${opts.teams}|${opts.slot}|${opts.rounds}|${opts.rosterSpots}|${opts.window}|${opts.uncertainty}|${opts.earlyTarget}|${opts.strategy}|${opts.metric}|${capText}`;
+  const text = `${settings().year}|${opts.teams}|${opts.slot}|${opts.rounds}|${opts.rosterSpots}|${opts.window}|${opts.uncertainty}|${opts.earlyTarget}|${opts.strategy}|${opts.metric}|${opts.simulations}|${opts.seedOffset || 0}|${capText}`;
   let hash = 2166136261;
   for (let index = 0; index < text.length; index += 1) {
     hash ^= text.charCodeAt(index);
@@ -5106,6 +5109,12 @@ function seededRandom(seed) {
     result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
     return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+function draftSlotForPick(pickNo, teams) {
+  const round = Math.ceil(pickNo / teams);
+  const offset = (pickNo - 1) % teams;
+  return round % 2 === 1 ? offset + 1 : teams - offset;
 }
 
 function draftMarketCost(player, fallback = 9999) {
@@ -5176,6 +5185,65 @@ function draftPositionCounts(roster) {
 function draftPositionAllowed(player, counts, opts) {
   const cap = opts.caps?.[player.Pos];
   return cap === undefined || (counts[player.Pos] || 0) < cap;
+}
+
+function draftStrategyPaths() {
+  return [
+    { label: "Best WAR path", earlyTarget: "none", strategy: "balanced" },
+    { label: "Early QB", earlyTarget: "early-qb", strategy: "balanced" },
+    { label: "Early TE", earlyTarget: "early-te", strategy: "balanced" },
+    { label: "Early QB or TE", earlyTarget: "early-qb-te", strategy: "balanced" },
+    { label: "First 2 RBs", earlyTarget: "first-2-rb", strategy: "need" },
+    { label: "First 2 WRs", earlyTarget: "first-2-wr", strategy: "balanced" },
+    { label: "Hero RB", earlyTarget: "hero-rb", strategy: "balanced" },
+    { label: "Zero RB start", earlyTarget: "zero-rb", strategy: "upside" }
+  ];
+}
+
+function draftProjectedPoints(player) {
+  return number(player?.FPTS, null) ?? number(player?.Projected, null) ?? number(player?.AVG, 0) * 17;
+}
+
+function draftAgentProfiles(opts, rng) {
+  const paths = draftStrategyPaths();
+  const profiles = new Map();
+  for (let slot = 1; slot <= opts.teams; slot += 1) {
+    if (slot === opts.slot) continue;
+    const path = paths[(slot + Math.floor(rng() * paths.length)) % paths.length];
+    profiles.set(slot, {
+      ...path,
+      adpWeight: 0.75 + (rng() * 0.25),
+      pointsWeight: 0.35 + (rng() * 0.45),
+      warWeight: 0.12 + (rng() * 0.24),
+      needWeight: 0.2 + (rng() * 0.35),
+      reachAversion: 0.045 + (rng() * 0.05)
+    });
+  }
+  return profiles;
+}
+
+function draftAgentPickScore(player, roster, pickNo, profile, opts, rng) {
+  const counts = draftPositionCounts(roster);
+  const round = Math.ceil(pickNo / opts.teams);
+  const marketCost = draftMarketCost(player, pickNo);
+  const points = draftProjectedPoints(player);
+  const war = Math.max(0, draftWarValue(player, opts.metric));
+  const targets = draftTargets(opts.rosterSpots);
+  const starterTargets = settings().slots;
+  const starterNeed = Math.max(0, (starterTargets[player.Pos] || 0) - (counts[player.Pos] || 0));
+  const depthNeed = Math.max(0, (targets[player.Pos] || 0) - (counts[player.Pos] || 0));
+  const early = draftEarlyTargetAdjustment(player.Pos, counts, round, { ...opts, earlyTarget: profile.earlyTarget });
+  const marketValue = pickNo - marketCost;
+  const reachPenalty = Math.max(0, marketCost - pickNo) * profile.reachAversion;
+  const noise = (rng() - 0.5) * draftUncertaintyScale(opts) * 0.18;
+  return (
+    (marketValue * profile.adpWeight * 0.08) +
+    (points * profile.pointsWeight * 0.006) +
+    (war * profile.warWeight) +
+    ((starterNeed * 0.75 + depthNeed * 0.24 + early.score * 0.35) * profile.needWeight) -
+    reachPenalty +
+    noise
+  );
 }
 
 function draftEarlyTargetAdjustment(pos, counts, round, opts) {
@@ -5312,28 +5380,33 @@ function draftAlternateLabel(candidate, opts) {
   return `${candidate.player.Player} (${candidate.player.Pos}, ${fmt(draftWarValue(candidate.player, opts.metric))})`;
 }
 
-function runDraftOptimization() {
-  const opts = draftOptimizerSettings();
+function runDraftOptimization(optsOverride = null) {
+  const baseOpts = draftOptimizerSettings();
+  const opts = optsOverride
+    ? { ...baseOpts, ...optsOverride, caps: { ...baseOpts.caps, ...(optsOverride.caps || {}) } }
+    : baseOpts;
   const maxPicks = opts.teams * opts.rounds;
   const playerPool = [...state.results]
     .filter((player) => player.Player && ["QB", "RB", "WR", "TE"].includes(player.Pos))
     .sort((a, b) => (draftMarketCost(a) - draftMarketCost(b)) || (number(a["Overall Rank"], 9999) - number(b["Overall Rank"], 9999)));
   const available = new Map(playerPool.map((player) => [player.id, player]));
   const rng = seededRandom(draftSeedValue(opts));
+  const agentProfiles = draftAgentProfiles(opts, rng);
+  const opponentRosters = new Map();
   const marketPick = (pickNo) => {
+    const slot = draftSlotForPick(pickNo, opts.teams);
+    const profile = agentProfiles.get(slot) || { earlyTarget: "none", strategy: "balanced", adpWeight: 0.85, pointsWeight: 0.5, warWeight: 0.2, needWeight: 0.3, reachAversion: 0.06 };
+    const opponentRoster = opponentRosters.get(slot) || [];
+    const counts = draftPositionCounts(opponentRoster);
     const rows = [...available.values()]
+      .filter((player) => draftPositionAllowed(player, counts, opts))
       .sort((a, b) => (draftMarketCost(a) - draftMarketCost(b)) || (draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric)));
     if (!rows.length || opts.uncertainty === "none") return rows[0];
     const scale = draftUncertaintyScale(opts);
-    const pool = rows.slice(0, Math.max(8, Math.min(rows.length, Math.round(scale * 1.8))));
+    const pool = rows.slice(0, Math.max(10, Math.min(rows.length, Math.round(scale * 2.4))));
     const scored = pool
-      .map((player) => {
-        const marketCost = draftMarketCost(player, pickNo);
-        const reachNoise = (rng() - 0.5) * scale;
-        const warPush = Math.max(0, draftWarValue(player, opts.metric)) * 0.9;
-        return { player, cost: marketCost + reachNoise - warPush };
-      })
-      .sort((a, b) => a.cost - b.cost);
+      .map((player) => ({ player, score: draftAgentPickScore(player, opponentRoster, pickNo, profile, opts, rng) }))
+      .sort((a, b) => b.score - a.score);
     const weights = scored.map((_, index) => Math.exp(-index / Math.max(1.5, scale / 7)));
     const total = weights.reduce((sum, value) => sum + value, 0);
     let roll = rng() * total;
@@ -5351,6 +5424,8 @@ function runDraftOptimization() {
     while (nextPick < userPick && nextPick <= maxPicks && available.size) {
       const drafted = marketPick(nextPick);
       if (!drafted) break;
+      const slot = draftSlotForPick(nextPick, opts.teams);
+      opponentRosters.set(slot, [...(opponentRosters.get(slot) || []), drafted]);
       available.delete(drafted.id);
       nextPick += 1;
     }
@@ -5444,6 +5519,101 @@ function draftRosterTotalWar(roster, opts) {
   }, 0);
 }
 
+function draftReportKey(opts) {
+  const firstIds = state.results.slice(0, 20).map((player) => `${player.id}:${player.ADP}:${player["ADP Rank"]}:${player.WAR}`).join("|");
+  return `${draftSeedValue(opts)}|${firstIds}|${state.results.length}`;
+}
+
+function mostCommonLabel(values, limit = 1) {
+  const counts = new Map();
+  values.filter(Boolean).forEach((value) => counts.set(value, (counts.get(value) || 0) + 1));
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))
+    .slice(0, limit)
+    .map(([value, count]) => limit === 1 ? value : `${value} ${Math.round((count / values.length) * 100)}%`)
+    .join(", ") || "-";
+}
+
+function draftRosterBuildLabel(roster) {
+  const counts = draftPositionCounts(roster);
+  return ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}`).join(" / ");
+}
+
+function draftOpeningLabel(roster) {
+  return roster.slice(0, 4).map((player) => player.Pos).join("-") || "-";
+}
+
+function runDraftStrategyReport(baseOpts) {
+  const key = draftReportKey(baseOpts);
+  if (state.draftReportKey === key && state.draftReportRows.length) return state.draftReportRows;
+  const runs = baseOpts.simulations || 100;
+  const rows = draftStrategyPaths().map((path, pathIndex) => {
+    const simulations = [];
+    for (let run = 0; run < runs; run += 1) {
+      const result = runDraftOptimization({
+        ...baseOpts,
+        earlyTarget: path.earlyTarget,
+        strategy: path.strategy,
+        seedOffset: ((pathIndex + 1) * 100000) + run
+      });
+      const roster = result.roster;
+      simulations.push({
+        roster,
+        totalWar: draftRosterTotalWar(roster, result.opts),
+        starterWar: optimizedStarterWar(roster),
+        build: draftRosterBuildLabel(roster),
+        opening: draftOpeningLabel(roster),
+        targets: roster.slice(0, Math.min(8, roster.length)).map((player) => `${player.Player} (${player.Pos})`)
+      });
+    }
+    const totalWars = simulations.map((sim) => sim.totalWar);
+    const starterWars = simulations.map((sim) => sim.starterWar);
+    const targets = simulations.flatMap((sim) => sim.targets);
+    return {
+      label: path.label,
+      earlyTarget: path.earlyTarget,
+      strategy: path.strategy,
+      averageWar: average(totalWars),
+      starterWar: average(starterWars),
+      p25: percentile(totalWars, 0.25),
+      p75: percentile(totalWars, 0.75),
+      maxWar: Math.max(...totalWars),
+      commonBuild: mostCommonLabel(simulations.map((sim) => sim.build)),
+      opening: mostCommonLabel(simulations.map((sim) => sim.opening)),
+      commonTargets: mostCommonLabel(targets, 3)
+    };
+  }).sort((a, b) => b.averageWar - a.averageWar);
+  const best = rows[0]?.averageWar || 0;
+  rows.forEach((row, index) => {
+    row.rank = index + 1;
+    row.opportunityCost = Math.max(0, best - row.averageWar);
+  });
+  state.draftReportKey = key;
+  state.draftReportRows = rows;
+  return rows;
+}
+
+function renderDraftStrategyReport(opts) {
+  const body = el("draftReportBody");
+  if (!body) return;
+  const rows = runDraftStrategyReport(opts);
+  if (el("draftReportSubtitle")) {
+    el("draftReportSubtitle").textContent = `${opts.simulations} simulated drafts per strategy against ADP-heavy agent teams using varied position builds and projected fantasy points.`;
+  }
+  body.innerHTML = rows.map((row) => `
+    <tr class="${row.rank === 1 ? "draft-report-best" : ""}">
+      <td><strong>${escapeHtml(row.label)}</strong></td>
+      <td>${fmt(row.averageWar)}</td>
+      <td>${fmt(row.starterWar)}</td>
+      <td>${fmt(row.p75)}-${fmt(row.maxWar)}</td>
+      <td class="${row.opportunityCost > 0.4 ? "value-neg" : ""}">${row.rank === 1 ? "Best" : fmt(row.opportunityCost)}</td>
+      <td>${escapeHtml(row.commonBuild)}</td>
+      <td>${escapeHtml(row.opening)}</td>
+      <td>${escapeHtml(row.commonTargets)}</td>
+    </tr>
+  `).join("");
+}
+
 function renderDraftOptimizer() {
   const { opts, roster } = runDraftOptimization();
   const counts = draftPositionCounts(roster);
@@ -5460,6 +5630,7 @@ function renderDraftOptimizer() {
   if (el("draftOptimizerSubtitle")) {
     el("draftOptimizerSubtitle").textContent = `Other teams draft from a blended ADP and ADP-rank market between turns. Your picks optimize ${opts.metric} with starter, depth, and scarcity adjustments.`;
   }
+  renderDraftStrategyReport(opts);
   const body = el("draftOptimizerBody");
   if (body) {
     body.innerHTML = roster.map((player) => `

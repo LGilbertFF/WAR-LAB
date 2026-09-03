@@ -6,7 +6,7 @@
     <title>WAR Projection Lab</title>
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=availability-adjusted-avg-20260811a">
+    <link rel="stylesheet" href="styles.css?v=draft-agent-sims-20260902a">
   </head>
   <body>
     <main class="app-shell">
@@ -184,6 +184,10 @@
               <input id="draftCandidateWindow" type="number" min="3" max="80" value="24">
             </label>
             <label>
+              Sim drafts
+              <input id="draftSimulationRuns" type="number" min="20" max="500" step="10" value="100">
+            </label>
+            <label>
               Market uncertainty
               <select id="draftUncertainty">
                 <option value="medium">Medium</option>
@@ -248,6 +252,31 @@
             <article><span>Position strategy</span><strong id="draftPositionStrategy">-</strong></article>
           </div>
           <p class="draft-simulation-note" id="draftSimulationNote">-</p>
+          <section class="draft-report-panel">
+            <div class="panel-header">
+              <div>
+                <h3>Draft Strategy Report</h3>
+                <p id="draftReportSubtitle">100 simulated drafts per strategy against ADP-heavy agent teams.</p>
+              </div>
+            </div>
+            <div class="table-wrap adp-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Strategy path</th>
+                    <th>Avg WAR</th>
+                    <th>Start WAR</th>
+                    <th>Upside</th>
+                    <th>Cost vs best</th>
+                    <th>Common build</th>
+                    <th>Opening</th>
+                    <th>Common targets</th>
+                  </tr>
+                </thead>
+                <tbody id="draftReportBody"></tbody>
+              </table>
+            </div>
+          </section>
           <div class="draft-optimizer-grid">
             <div class="chart-panel">
               <div id="draftOptimizerChart"></div>
@@ -709,8 +738,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "draft-market-blend-20260902a";
+      window.WAR_LAB_BUILD = "draft-agent-sims-20260902a";
     </script>
-    <script src="app.js?v=draft-market-blend-20260902a"></script>
+    <script src="app.js?v=draft-agent-sims-20260902a"></script>
   </body>
 </html>
