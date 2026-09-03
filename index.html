@@ -6,7 +6,7 @@
     <title>WAR Projection Lab</title>
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=draft-agent-sims-fast-20260903a">
+    <link rel="stylesheet" href="styles.css?v=draft-report-narrative-20260903a">
   </head>
   <body>
     <main class="app-shell">
@@ -260,6 +260,7 @@
               </div>
               <button id="runDraftReport" type="button">Run 100 Draft Sims</button>
             </div>
+            <div class="draft-report-narrative" id="draftReportNarrative"></div>
             <div class="table-wrap adp-table-wrap">
               <table>
                 <thead>
@@ -271,7 +272,7 @@
                     <th>Cost vs best</th>
                     <th>Common build</th>
                     <th>Opening</th>
-                    <th>Common targets</th>
+                    <th>Target share</th>
                   </tr>
                 </thead>
                 <tbody id="draftReportBody"></tbody>
@@ -739,8 +740,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "draft-agent-sims-fast-20260903a";
+      window.WAR_LAB_BUILD = "draft-report-narrative-20260903a";
     </script>
-    <script src="app.js?v=draft-agent-sims-fast-20260903a"></script>
+    <script src="app.js?v=draft-report-narrative-20260903a"></script>
   </body>
 </html>

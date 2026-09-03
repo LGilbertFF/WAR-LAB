@@ -5578,6 +5578,16 @@ function mostCommonLabel(values, limit = 1) {
     .join(", ") || "-";
 }
 
+function mostCommonShareLabel(values, denominator, limit = 3) {
+  const counts = new Map();
+  values.filter(Boolean).forEach((value) => counts.set(value, (counts.get(value) || 0) + 1));
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))
+    .slice(0, limit)
+    .map(([value, count]) => `${value} ${Math.round((count / Math.max(1, denominator)) * 100)}%`)
+    .join(", ") || "-";
+}
+
 function draftRosterBuildLabel(roster) {
   const counts = draftPositionCounts(roster);
   return ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}`).join(" / ");
@@ -5585,6 +5595,10 @@ function draftRosterBuildLabel(roster) {
 
 function draftOpeningLabel(roster) {
   return roster.slice(0, 4).map((player) => player.Pos).join("-") || "-";
+}
+
+function draftRosterNames(roster, limit = 8) {
+  return roster.slice(0, limit).map((player) => `${player.Player} (${player.Pos})`).join(", ");
 }
 
 function runDraftStrategyReport(baseOpts) {
@@ -5616,7 +5630,8 @@ function runDraftStrategyReport(baseOpts) {
     }
     const totalWars = simulations.map((sim) => sim.totalWar);
     const starterWars = simulations.map((sim) => sim.starterWar);
-    const targets = simulations.flatMap((sim) => sim.targets);
+    const targetShares = simulations.flatMap((sim) => [...new Set(sim.roster.map((player) => `${player.Player} (${player.Pos})`))]);
+    const bestSimulation = [...simulations].sort((a, b) => b.totalWar - a.totalWar)[0] || { roster: [], totalWar: 0, starterWar: 0 };
     return {
       label: path.label,
       earlyTarget: path.earlyTarget,
@@ -5628,7 +5643,11 @@ function runDraftStrategyReport(baseOpts) {
       maxWar: Math.max(...totalWars),
       commonBuild: mostCommonLabel(simulations.map((sim) => sim.build)),
       opening: mostCommonLabel(simulations.map((sim) => sim.opening)),
-      commonTargets: mostCommonLabel(targets, 3)
+      commonTargets: mostCommonShareLabel(targetShares, simulations.length, 3),
+      bestRoster: draftRosterNames(bestSimulation.roster, 10),
+      bestBuild: draftRosterBuildLabel(bestSimulation.roster),
+      bestWar: bestSimulation.totalWar,
+      bestStarterWar: bestSimulation.starterWar
     };
   }).sort((a, b) => b.averageWar - a.averageWar);
   const best = rows[0]?.averageWar || 0;
@@ -5645,7 +5664,8 @@ function summarizeDraftStrategyReport(simulationGroups) {
   const rows = simulationGroups.map(({ path, simulations }) => {
     const totalWars = simulations.map((sim) => sim.totalWar);
     const starterWars = simulations.map((sim) => sim.starterWar);
-    const targets = simulations.flatMap((sim) => sim.targets);
+    const targetShares = simulations.flatMap((sim) => [...new Set(sim.roster.map((player) => `${player.Player} (${player.Pos})`))]);
+    const bestSimulation = [...simulations].sort((a, b) => b.totalWar - a.totalWar)[0] || { roster: [], totalWar: 0, starterWar: 0 };
     return {
       label: path.label,
       earlyTarget: path.earlyTarget,
@@ -5657,7 +5677,11 @@ function summarizeDraftStrategyReport(simulationGroups) {
       maxWar: Math.max(...totalWars),
       commonBuild: mostCommonLabel(simulations.map((sim) => sim.build)),
       opening: mostCommonLabel(simulations.map((sim) => sim.opening)),
-      commonTargets: mostCommonLabel(targets, 3)
+      commonTargets: mostCommonShareLabel(targetShares, simulations.length, 3),
+      bestRoster: draftRosterNames(bestSimulation.roster, 10),
+      bestBuild: draftRosterBuildLabel(bestSimulation.roster),
+      bestWar: bestSimulation.totalWar,
+      bestStarterWar: bestSimulation.starterWar
     };
   }).sort((a, b) => b.averageWar - a.averageWar);
   const best = rows[0]?.averageWar || 0;
@@ -5721,12 +5745,53 @@ function runDraftStrategyReportAsync(baseOpts) {
   step();
 }
 
+function renderDraftReportNarrative(rows, opts) {
+  const target = el("draftReportNarrative");
+  if (!target) return;
+  if (!rows.length) {
+    target.innerHTML = "";
+    return;
+  }
+  const best = rows[0];
+  const close = rows.slice(1).filter((row) => row.opportunityCost <= 0.35).slice(0, 3);
+  const costly = rows.slice(1).filter((row) => row.opportunityCost > 0.75).slice(0, 3);
+  const closeText = close.length
+    ? close.map((row) => `${row.label} trails by ${fmt(row.opportunityCost)} WAR`).join("; ")
+    : "No other predefined strategy finished within 0.35 WAR of the best path.";
+  const costlyText = costly.length
+    ? costly.map((row) => `${row.label} costs about ${fmt(row.opportunityCost)} WAR`).join("; ")
+    : "The other strategy paths stay reasonably close in this room.";
+  target.innerHTML = `
+    <article class="draft-report-hero">
+      <span>Recommended path</span>
+      <h4>${escapeHtml(best.label)}</h4>
+      <p>The strongest simulated approach from slot ${opts.slot} averaged <strong>${fmt(best.averageWar)}</strong> total WAR with <strong>${fmt(best.starterWar)}</strong> starter WAR. The best observed version reached <strong>${fmt(best.bestWar)}</strong> WAR with a ${escapeHtml(best.bestBuild)} build.</p>
+      <p><strong>Best roster sample:</strong> ${escapeHtml(best.bestRoster || "-")}</p>
+    </article>
+    <div class="draft-report-takeaways">
+      <article>
+        <span>Best alternatives</span>
+        <p>${escapeHtml(closeText)}</p>
+      </article>
+      <article>
+        <span>Opportunity costs</span>
+        <p>${escapeHtml(costlyText)}</p>
+      </article>
+      <article>
+        <span>Most repeatable targets</span>
+        <p>${escapeHtml(best.commonTargets)}. These percentages show the share of simulated teams using this strategy that included each player.</p>
+      </article>
+    </div>
+  `;
+}
+
 function renderDraftStrategyReport(opts) {
   const body = el("draftReportBody");
   if (!body) return;
   const key = draftReportKey(opts);
   const runButton = el("runDraftReport");
   if (state.draftReportKey === key && state.draftReportRows.length) {
+    renderDraftReportNarrative(state.draftReportRows, opts);
     if (runButton) {
       runButton.disabled = false;
       runButton.textContent = `Rerun ${opts.simulations} Draft Sims`;
@@ -5749,6 +5814,7 @@ function renderDraftStrategyReport(opts) {
     return;
   }
   if (state.draftReportRunning && state.draftReportRequestedKey === key) {
+    renderDraftReportNarrative([], opts);
     if (runButton) {
       runButton.disabled = true;
       runButton.textContent = "Running...";
@@ -5761,6 +5827,7 @@ function renderDraftStrategyReport(opts) {
     return;
   }
   if (!state.draftReportRequested || state.draftReportRequestedKey !== key) {
+    renderDraftReportNarrative([], opts);
     if (runButton) {
       runButton.disabled = false;
       runButton.textContent = `Run ${opts.simulations} Draft Sims`;

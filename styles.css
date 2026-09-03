@@ -1155,6 +1155,56 @@ summary::marker {
   text-transform: uppercase;
 }
 
+.draft-report-narrative {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 14px;
+}
+
+.draft-report-hero,
+.draft-report-takeaways article {
+  border: 1px solid var(--line);
+  background: rgba(17, 17, 17, 0.56);
+  padding: 14px;
+}
+
+.draft-report-hero {
+  border-left: 4px solid var(--accent);
+}
+
+.draft-report-hero span,
+.draft-report-takeaways span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.draft-report-hero h4 {
+  margin: 4px 0 8px;
+  color: var(--white);
+  font-family: "Kanit FPTS", Impact, sans-serif;
+  font-size: 1.35rem;
+  font-style: italic;
+  text-transform: uppercase;
+}
+
+.draft-report-hero p,
+.draft-report-takeaways p {
+  margin: 6px 0 0;
+  color: var(--white);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.draft-report-takeaways {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .draft-report-best {
   background: rgba(204, 51, 51, 0.14);
 }
@@ -1654,7 +1704,8 @@ tbody tr.selected-row {
   }
 
   .draft-control-bar,
-  .draft-optimizer-grid {
+  .draft-optimizer-grid,
+  .draft-report-takeaways {
     grid-template-columns: 1fr;
   }
 
