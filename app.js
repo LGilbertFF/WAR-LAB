@@ -49,7 +49,10 @@ const state = {
   adpSource: CURRENT_ADP_PATH,
   baselines: {},
   draftReportKey: "",
-  draftReportRows: []
+  draftReportRows: [],
+  draftReportRequested: false,
+  draftReportRequestedKey: "",
+  draftReportRunning: false
 };
 
 const posColors = {
@@ -5593,25 +5596,153 @@ function runDraftStrategyReport(baseOpts) {
   return rows;
 }
 
+function summarizeDraftStrategyReport(simulationGroups) {
+  const rows = simulationGroups.map(({ path, simulations }) => {
+    const totalWars = simulations.map((sim) => sim.totalWar);
+    const starterWars = simulations.map((sim) => sim.starterWar);
+    const targets = simulations.flatMap((sim) => sim.targets);
+    return {
+      label: path.label,
+      earlyTarget: path.earlyTarget,
+      strategy: path.strategy,
+      averageWar: average(totalWars),
+      starterWar: average(starterWars),
+      p25: percentile(totalWars, 0.25),
+      p75: percentile(totalWars, 0.75),
+      maxWar: Math.max(...totalWars),
+      commonBuild: mostCommonLabel(simulations.map((sim) => sim.build)),
+      opening: mostCommonLabel(simulations.map((sim) => sim.opening)),
+      commonTargets: mostCommonLabel(targets, 3)
+    };
+  }).sort((a, b) => b.averageWar - a.averageWar);
+  const best = rows[0]?.averageWar || 0;
+  rows.forEach((row, index) => {
+    row.rank = index + 1;
+    row.opportunityCost = Math.max(0, best - row.averageWar);
+  });
+  return rows;
+}
+
+function runDraftStrategyReportAsync(baseOpts) {
+  const key = draftReportKey(baseOpts);
+  if (state.draftReportRequestedKey !== key) return;
+  const runs = baseOpts.simulations || 100;
+  const groups = draftStrategyPaths().map((path) => ({ path, simulations: [] }));
+  let pathIndex = 0;
+  let runIndex = 0;
+  const step = () => {
+    if (state.draftReportRequestedKey !== key) return;
+    const started = performance.now();
+    while (pathIndex < groups.length && performance.now() - started < 35) {
+      const group = groups[pathIndex];
+      const result = runDraftOptimization({
+        ...baseOpts,
+        earlyTarget: group.path.earlyTarget,
+        strategy: group.path.strategy,
+        seedOffset: ((pathIndex + 1) * 100000) + runIndex
+      });
+      const roster = result.roster;
+      group.simulations.push({
+        roster,
+        totalWar: draftRosterTotalWar(roster, result.opts),
+        starterWar: optimizedStarterWar(roster),
+        build: draftRosterBuildLabel(roster),
+        opening: draftOpeningLabel(roster),
+        targets: roster.slice(0, Math.min(8, roster.length)).map((player) => `${player.Player} (${player.Pos})`)
+      });
+      runIndex += 1;
+      if (runIndex >= runs) {
+        pathIndex += 1;
+        runIndex = 0;
+      }
+    }
+    if (pathIndex < groups.length) {
+      const completed = (pathIndex * runs) + runIndex;
+      if (el("draftReportSubtitle")) {
+        el("draftReportSubtitle").textContent = `Running strategy simulations: ${completed}/${groups.length * runs} drafts complete.`;
+      }
+      window.setTimeout(step, 0);
+      return;
+    }
+    state.draftReportRows = summarizeDraftStrategyReport(groups);
+    state.draftReportKey = key;
+    state.draftReportRunning = false;
+    scheduleRender(0);
+  };
+  step();
+}
+
 function renderDraftStrategyReport(opts) {
   const body = el("draftReportBody");
   if (!body) return;
-  const rows = runDraftStrategyReport(opts);
-  if (el("draftReportSubtitle")) {
-    el("draftReportSubtitle").textContent = `${opts.simulations} simulated drafts per strategy against ADP-heavy agent teams using varied position builds and projected fantasy points.`;
+  const key = draftReportKey(opts);
+  const runButton = el("runDraftReport");
+  if (state.draftReportKey === key && state.draftReportRows.length) {
+    if (runButton) {
+      runButton.disabled = false;
+      runButton.textContent = `Rerun ${opts.simulations} Draft Sims`;
+    }
+    if (el("draftReportSubtitle")) {
+      el("draftReportSubtitle").textContent = `${opts.simulations} simulated drafts per strategy against ADP-heavy agent teams using varied position builds and projected fantasy points.`;
+    }
+    body.innerHTML = state.draftReportRows.map((row) => `
+      <tr class="${row.rank === 1 ? "draft-report-best" : ""}">
+        <td><strong>${escapeHtml(row.label)}</strong></td>
+        <td>${fmt(row.averageWar)}</td>
+        <td>${fmt(row.starterWar)}</td>
+        <td>${fmt(row.p75)}-${fmt(row.maxWar)}</td>
+        <td class="${row.opportunityCost > 0.4 ? "value-neg" : ""}">${row.rank === 1 ? "Best" : fmt(row.opportunityCost)}</td>
+        <td>${escapeHtml(row.commonBuild)}</td>
+        <td>${escapeHtml(row.opening)}</td>
+        <td>${escapeHtml(row.commonTargets)}</td>
+      </tr>
+    `).join("");
+    return;
   }
-  body.innerHTML = rows.map((row) => `
-    <tr class="${row.rank === 1 ? "draft-report-best" : ""}">
-      <td><strong>${escapeHtml(row.label)}</strong></td>
-      <td>${fmt(row.averageWar)}</td>
-      <td>${fmt(row.starterWar)}</td>
-      <td>${fmt(row.p75)}-${fmt(row.maxWar)}</td>
-      <td class="${row.opportunityCost > 0.4 ? "value-neg" : ""}">${row.rank === 1 ? "Best" : fmt(row.opportunityCost)}</td>
-      <td>${escapeHtml(row.commonBuild)}</td>
-      <td>${escapeHtml(row.opening)}</td>
-      <td>${escapeHtml(row.commonTargets)}</td>
-    </tr>
-  `).join("");
+  if (state.draftReportRunning && state.draftReportRequestedKey === key) {
+    if (runButton) {
+      runButton.disabled = true;
+      runButton.textContent = "Running...";
+    }
+    body.innerHTML = `
+      <tr>
+        <td colspan="8">Running strategy simulations...</td>
+      </tr>
+    `;
+    return;
+  }
+  if (!state.draftReportRequested || state.draftReportRequestedKey !== key) {
+    if (runButton) {
+      runButton.disabled = false;
+      runButton.textContent = `Run ${opts.simulations} Draft Sims`;
+    }
+    if (el("draftReportSubtitle")) {
+      el("draftReportSubtitle").textContent = `Run ${opts.simulations} simulated drafts per strategy when you want the full strategy comparison.`;
+    }
+    body.innerHTML = `
+      <tr>
+        <td colspan="8">Strategy report not run for these settings yet.</td>
+      </tr>
+    `;
+    return;
+  }
+}
+
+function requestDraftStrategyReport() {
+  if (state.activeView !== "draftOptimizerView") state.activeView = "draftOptimizerView";
+  const opts = draftOptimizerSettings();
+  state.draftReportRequested = true;
+  state.draftReportRequestedKey = draftReportKey(opts);
+  state.draftReportKey = "";
+  state.draftReportRows = [];
+  state.draftReportRunning = true;
+  const button = el("runDraftReport");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Running...";
+  }
+  scheduleRender(0);
+  window.setTimeout(() => runDraftStrategyReportAsync(opts), 25);
 }
 
 function renderDraftOptimizer() {
@@ -6058,6 +6189,7 @@ function bindEvents() {
     scheduleRender(0);
   });
   el("adpFilterReset")?.addEventListener("click", resetAdpFilters);
+  el("runDraftReport")?.addEventListener("click", requestDraftStrategyReport);
   el("adpFilterOverlay")?.addEventListener("click", (event) => {
     if (event.target === el("adpFilterOverlay")) closeAdpFilters();
   });

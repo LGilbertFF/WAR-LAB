@@ -6,7 +6,7 @@
     <title>WAR Projection Lab</title>
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=draft-agent-sims-20260902a">
+    <link rel="stylesheet" href="styles.css?v=draft-agent-sims-manual-20260903b">
   </head>
   <body>
     <main class="app-shell">
@@ -256,8 +256,9 @@
             <div class="panel-header">
               <div>
                 <h3>Draft Strategy Report</h3>
-                <p id="draftReportSubtitle">100 simulated drafts per strategy against ADP-heavy agent teams.</p>
+                <p id="draftReportSubtitle">Run the strategy report to compare simulated draft paths against ADP-heavy agent teams.</p>
               </div>
+              <button id="runDraftReport" type="button">Run 100 Draft Sims</button>
             </div>
             <div class="table-wrap adp-table-wrap">
               <table>
@@ -738,8 +739,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "draft-agent-sims-20260902a";
+      window.WAR_LAB_BUILD = "draft-agent-sims-manual-20260903b";
     </script>
-    <script src="app.js?v=draft-agent-sims-20260902a"></script>
+    <script src="app.js?v=draft-agent-sims-manual-20260903b"></script>
   </body>
 </html>
