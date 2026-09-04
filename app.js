@@ -5091,11 +5091,13 @@ function renderPlayerCard(player) {
 
 function draftOptimizerSettings() {
   const cfg = settings();
+  const rounds = Math.max(1, Math.min(30, number(el("draftRounds")?.value, number(el("draftRosterSpots")?.value, 16))));
+  const enteredRosterSpots = Math.max(1, Math.min(30, number(el("draftRosterSpots")?.value, rounds)));
   return {
     teams: cfg.teams,
     slot: Math.max(1, Math.min(cfg.teams, number(el("draftSlot")?.value, 1))),
-    rounds: Math.max(1, Math.min(30, number(el("draftRounds")?.value, number(el("draftRosterSpots")?.value, 16)))),
-    rosterSpots: Math.max(1, Math.min(30, number(el("draftRosterSpots")?.value, 16))),
+    rounds,
+    rosterSpots: Math.max(rounds, enteredRosterSpots),
     window: Math.max(3, Math.min(80, number(el("draftCandidateWindow")?.value, 24))),
     simulations: Math.max(20, Math.min(500, number(el("draftSimulationRuns")?.value, 100))),
     uncertainty: el("draftUncertainty")?.value || "medium",
@@ -5663,7 +5665,7 @@ function draftRosterBoardHtml(roster) {
   const rowHtml = (row) => row.player
     ? `<div class="draft-roster-player"><span>${escapeHtml(row.slot)}</span><strong>${escapeHtml(row.player.Player)}</strong><em>${escapeHtml(row.player.Pos)} - R${fmt(row.player.draftRound, 0)} - ${fmt(row.value)} WAR</em></div>`
     : `<div class="draft-roster-player empty"><span>${escapeHtml(row.slot)}</span><strong>Open</strong><em>-</em></div>`;
-  const bench = sections.bench.slice(0, 8).map(rowHtml).join("");
+  const bench = sections.bench.map(rowHtml).join("");
   return `
     <div class="draft-roster-board">
       <section>
@@ -5675,6 +5677,36 @@ function draftRosterBoardHtml(roster) {
         <div>${bench || "<p>No bench picks in this roster size.</p>"}</div>
       </section>
     </div>
+  `;
+}
+
+function draftStrategyComparisonHtml(rows, opts) {
+  if (!rows.length) return "";
+  const best = rows[0];
+  return `
+    <section class="draft-strategy-comparison" aria-label="Draft strategy comparison">
+      <div class="draft-strategy-comparison-header">
+        <span>Strategy builds</span>
+        <p>Representative best rosters from each simulated strategy. Cost is average WAR lost versus the top path.</p>
+      </div>
+      <div class="draft-strategy-card-grid">
+        ${rows.map((row) => `
+          <article class="draft-strategy-card ${row.rank === 1 ? "best" : ""}">
+            <div class="draft-strategy-card-head">
+              <div>
+                <span>#${fmt(row.rank, 0)}</span>
+                <h5>${escapeHtml(row.label)}</h5>
+              </div>
+              <strong>${row.rank === 1 ? "Best" : `${fmt(row.opportunityCost)} WAR`}</strong>
+            </div>
+            <p><b>${fmt(row.averageWar)}</b> avg WAR, <b>${fmt(row.starterWar)}</b> starter WAR. Most common build: ${escapeHtml(row.commonBuild)}.</p>
+            <p>Most associated targets: ${escapeHtml(row.commonTargets)}.</p>
+            ${row.rank === 1 ? "" : `<p>Key swaps: ${escapeHtml(draftStrategySwapText(best.bestRosterRows || [], row.bestRosterRows || [], opts))}</p>`}
+            ${draftRosterBoardHtml(row.bestRosterRows || [])}
+          </article>
+        `).join("")}
+      </div>
+    </section>
   `;
 }
 
@@ -5945,6 +5977,7 @@ function renderDraftReportNarrative(rows, opts) {
         <p>${escapeHtml(best.nearMissTargets && best.nearMissTargets !== "-" ? `${best.nearMissTargets}. These are the players most often drafted shortly before your pick; if one slips, he is a priority pivot.` : draftPickInsight(best.bestRosterRows || [], "fall"))}</p>
       </article>
     </div>
+    ${draftStrategyComparisonHtml(rows, opts)}
   `;
 }
 

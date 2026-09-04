@@ -1270,6 +1270,103 @@ summary::marker {
   background: rgba(204, 51, 51, 0.14);
 }
 
+.draft-strategy-comparison {
+  display: grid;
+  gap: 12px;
+}
+
+.draft-strategy-comparison-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.draft-strategy-comparison-header span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.draft-strategy-comparison-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.draft-strategy-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.draft-strategy-card {
+  border: 1px solid var(--line);
+  background: rgba(17, 17, 17, 0.56);
+  padding: 12px;
+}
+
+.draft-strategy-card.best {
+  border-left: 4px solid var(--accent);
+}
+
+.draft-strategy-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.draft-strategy-card-head span {
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.draft-strategy-card h5 {
+  margin: 2px 0 0;
+  color: var(--white);
+  font-family: "Kanit FPTS", Impact, sans-serif;
+  font-size: 1.02rem;
+  font-style: italic;
+  text-transform: uppercase;
+}
+
+.draft-strategy-card-head strong {
+  color: var(--white);
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.draft-strategy-card p {
+  margin: 8px 0 0;
+  color: var(--white);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.draft-strategy-card .draft-roster-board {
+  grid-template-columns: 1fr;
+}
+
+.draft-strategy-card .draft-roster-player {
+  grid-template-columns: 54px minmax(100px, 1fr) minmax(90px, auto);
+}
+
+.draft-strategy-card .draft-roster-player strong {
+  font-size: 0.8rem;
+}
+
+.draft-strategy-card .draft-roster-player em {
+  font-size: 0.72rem;
+}
+
 .dynasty-control-bar .checkbox-control {
   align-items: center;
   flex-direction: row;
@@ -1768,8 +1865,18 @@ tbody tr.selected-row {
   .draft-optimizer-grid,
   .draft-report-takeaways,
   .draft-report-takeaways-wide,
+  .draft-strategy-card-grid,
   .draft-roster-board {
     grid-template-columns: 1fr;
+  }
+
+  .draft-strategy-comparison-header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .draft-strategy-comparison-header p {
+    text-align: left;
   }
 
   .draft-roster-player {
