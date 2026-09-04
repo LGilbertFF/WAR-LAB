@@ -57,6 +57,24 @@ for PPR, half PPR, and standard ADP, then writes `data/current_adp.csv`,
 exports `data/war/current_adp.json.gz`, and updates the manifests. Your login
 session stays local and should not be committed.
 
+If FantasyPros shows a human-verification screen in the automated browser,
+download the CSVs manually in your normal browser instead:
+
+```text
+https://www.fantasypros.com/nfl/adp/ppr-overall.php?year=2026
+https://www.fantasypros.com/nfl/adp/half-point-ppr-overall.php?year=2026
+https://www.fantasypros.com/nfl/adp/overall.php?year=2026
+```
+
+Then import the downloaded files:
+
+```powershell
+C:\Users\lgilb\anaconda3\python.exe scripts\fantasypros_authenticated_adp.py --current --season-year 2026 --ppr-csv "C:\Users\lgilb\Downloads\ppr.csv" --half-csv "C:\Users\lgilb\Downloads\half.csv" --standard-csv "C:\Users\lgilb\Downloads\standard.csv"
+```
+
+Use the actual downloaded filenames. This writes the same current ADP files as
+the browser automation.
+
 Fantasy Points projections require a logged-in browser session. Install
 Playwright once:
 

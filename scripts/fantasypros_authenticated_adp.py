@@ -30,6 +30,11 @@ ADP_URLS = {
     "half": "https://www.fantasypros.com/nfl/adp/half-point-ppr-overall.php",
     "standard": "https://www.fantasypros.com/nfl/adp/overall.php",
 }
+SCORING_CSV_ARGS = {
+    "ppr": "ppr_csv",
+    "half": "half_csv",
+    "standard": "standard_csv",
+}
 
 
 def add_query_params(url: str, **params: object) -> str:
@@ -231,6 +236,11 @@ async def download_year_scoring(page, year: int, scoring: str, login_wait_second
 
 
 async def async_main(args: argparse.Namespace) -> None:
+    manual_rows = import_manual_csvs(args)
+    if manual_rows:
+        write_outputs(args, manual_rows)
+        return
+
     try:
         from playwright.async_api import async_playwright
     except ImportError as exc:
@@ -266,6 +276,32 @@ async def async_main(args: argparse.Namespace) -> None:
                 print(f"downloaded {year} {scoring}: {len(frame):,} rows")
         await context.close()
 
+    write_outputs(args, rows)
+
+
+def import_manual_csvs(args: argparse.Namespace) -> list[pd.DataFrame]:
+    rows: list[pd.DataFrame] = []
+    if any(getattr(args, attr) for attr in SCORING_CSV_ARGS.values()) and not args.current:
+        raise SystemExit("Manual CSV imports are for current ADP. Add --current and --season-year.")
+    year = args.season_year
+    for scoring, attr in SCORING_CSV_ARGS.items():
+        path = getattr(args, attr)
+        if not path:
+            continue
+        if not path.exists():
+            raise SystemExit(f"{scoring} CSV does not exist: {path}")
+        frame = read_downloaded_table(path, scoring, year)
+        if len(frame) < args.min_rows:
+            raise SystemExit(f"{scoring} CSV only produced {len(frame):,} usable ADP rows from {path}")
+        rows.append(frame)
+        print(f"imported {year} {scoring}: {len(frame):,} rows from {path}")
+    return rows
+
+
+def write_outputs(args: argparse.Namespace, rows: list[pd.DataFrame]) -> None:
+    mode_current = args.current
+    start_year = args.season_year if mode_current else args.start_year
+    end_year = args.season_year if mode_current else args.end_year
     output = args.current_output if mode_current else args.historical_output
     combined = save_adp(rows, output, append_existing=args.append_existing and not mode_current)
     if combined.empty:
@@ -308,6 +344,9 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--login-wait-seconds", type=int, default=600)
     parser.add_argument("--min-rows", type=int, default=100)
     parser.add_argument("--export-json", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--ppr-csv", type=Path, help="Import a manually downloaded FantasyPros PPR ADP CSV.")
+    parser.add_argument("--half-csv", type=Path, help="Import a manually downloaded FantasyPros half-PPR ADP CSV.")
+    parser.add_argument("--standard-csv", type=Path, help="Import a manually downloaded FantasyPros standard ADP CSV.")
     return parser.parse_args(argv)
 
 
