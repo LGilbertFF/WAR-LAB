@@ -21,22 +21,41 @@ Opening `index.html` directly with `file://` may block bundled CSV loading in so
 
 ## Scraping Data
 
-Current projections and ADP are scraped from the same FantasyPros pages used by the original Tkinter app. The season year is explicit, so the 2026 app data is built with `--season-year 2026`:
+Current projections can still be refreshed without logging in. The season year is explicit, so the 2026 app data is built with `--season-year 2026`:
 
 ```powershell
-C:\Users\lgilb\anaconda3\python.exe scripts\fantasypros_scraper.py --current --season-year 2026 --adp-scoring ppr
+C:\Users\lgilb\anaconda3\python.exe scripts\fantasypros_scraper.py --current --season-year 2026 --skip-current-adp
 ```
 
-This writes:
+This writes the current projection CSV and refreshes the compressed app data:
 
 ```text
 data/war/current_projections.json.gz
-data/war/current_adp.json.gz
 data/war/manifest.json
 data/scrape_manifest.json
 ```
 
 The scraper still creates local CSV intermediates, but the site prefers the compressed JSON files in `data/war/`.
+
+Current FantasyPros ADP requires a logged-in browser session. Install
+Playwright once:
+
+```powershell
+C:\Users\lgilb\anaconda3\python.exe -m pip install playwright
+C:\Users\lgilb\anaconda3\python.exe -m playwright install chromium
+```
+
+Then run:
+
+```powershell
+C:\Users\lgilb\anaconda3\python.exe scripts\fantasypros_authenticated_adp.py --current --season-year 2026 --scoring ppr half standard
+```
+
+A browser will open using the ignored local profile in `.local/fantasypros-profile`.
+Sign in normally if prompted. The script clicks the FantasyPros Export CSV button
+for PPR, half PPR, and standard ADP, then writes `data/current_adp.csv`,
+exports `data/war/current_adp.json.gz`, and updates the manifests. Your login
+session stays local and should not be committed.
 
 Fantasy Points projections require a logged-in browser session. Install
 Playwright once:
@@ -82,8 +101,8 @@ C:\Users\lgilb\anaconda3\python.exe scripts\fantasypros_scraper.py --historical 
 ```
 
 If FantasyPros requires a login before showing historical ADP tables, use the
-local authenticated sync instead of the GitHub Action scraper. Install
-Playwright once:
+same local authenticated CSV download flow. Install Playwright once if you have
+not already:
 
 ```powershell
 C:\Users\lgilb\anaconda3\python.exe -m pip install playwright

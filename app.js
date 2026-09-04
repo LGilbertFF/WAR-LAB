@@ -370,8 +370,15 @@ function calculateFantasyPoints(row, pos, scoring) {
 }
 
 function normalizeAdp(rows) {
+  const wantedScoring = currentAdpScoringKey();
+  const hasScoring = rows.some((row) => String(firstValue(row, ["Scoring", "scoring"], "") || "").trim());
   const cleaned = rows
-    .filter((row) => firstValue(row, ["Player", "player", "Player Team (Bye)", "Name"]))
+    .filter((row) => {
+      if (!firstValue(row, ["Player", "player", "Player Team (Bye)", "Name"])) return false;
+      if (!hasScoring) return true;
+      const rowScoring = normalizeCurrentAdpScoring(firstValue(row, ["Scoring", "scoring"], ""));
+      return !rowScoring || rowScoring === wantedScoring;
+    })
     .map((row) => {
       const combined = firstValue(row, ["Player Team (Bye)"], "");
       const extracted = String(combined).match(/^(.*?)\s+[A-Z]{2,3}\s+\(\d+\)$/);
@@ -379,7 +386,7 @@ function normalizeAdp(rows) {
       return {
         Player: String(player || "").trim(),
         ADP: number(firstValue(row, ["ADP", "AVG", "Average"], null), null),
-        "ADP Rank": number(firstValue(row, ["ADP Rank", "Rank"], null), null)
+        "ADP Rank": number(firstValue(row, ["ADP Rank", "Rank", "RK"], null), null)
       };
     });
   const map = new Map();
@@ -389,6 +396,22 @@ function normalizeAdp(rows) {
     });
   });
   return map;
+}
+
+function currentAdpScoringKey() {
+  const rec = settings().scoring.rec;
+  if (rec >= 0.75) return "ppr";
+  if (rec >= 0.25) return "half";
+  return "standard";
+}
+
+function normalizeCurrentAdpScoring(value) {
+  const raw = String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (!raw) return "";
+  if (["ppr", "full_ppr"].includes(raw)) return "ppr";
+  if (["half", "half_ppr", "half_point_ppr", "0.5_ppr"].includes(raw)) return "half";
+  if (["standard", "std", "non_ppr", "nonppr"].includes(raw)) return "standard";
+  return raw;
 }
 
 function startersByPosition(players, pos, count) {
@@ -6320,47 +6343,6 @@ function setDataStatus(projectionSource, adpSource, manifest) {
       ? `${updatedAt.toLocaleString()}${year}${historical}`
       : `Not recorded${historical}`;
   }
-  renderCurrentAdpPreview(manifest);
-}
-
-function renderCurrentAdpPreview(manifest) {
-  const body = el("currentAdpPreviewBody");
-  const status = el("currentAdpPreviewStatus");
-  if (!body || !status) return;
-
-  const rows = [...(state.adpRows || [])]
-    .map((row) => ({
-      year: number(firstValue(row, ["Year", "year"], null), manifest?.season_year ?? settings().year),
-      player: firstValue(row, ["Player", "player", "Name"], ""),
-      team: firstValue(row, ["Team", "team", "TEAM"], ""),
-      pos: firstValue(row, ["POS", "Pos", "position"], ""),
-      rank: number(firstValue(row, ["ADP Rank", "Rank"], null), null),
-      adp: number(firstValue(row, ["ADP", "AVG", "Average"], null), null)
-    }))
-    .filter((row) => row.player && row.adp !== null)
-    .sort((a, b) => (a.rank ?? a.adp ?? 9999) - (b.rank ?? b.adp ?? 9999));
-
-  const updatedAt = manifest?.updated_at ? new Date(manifest.updated_at) : null;
-  const updatedText = updatedAt && !Number.isNaN(updatedAt.valueOf()) ? updatedAt.toLocaleString() : "not recorded";
-  const staleText = manifest?.current_adp_stale
-    ? `Marked stale: ${manifest.current_adp_error || "latest scrape did not replace the stored file."}`
-    : "Marked fresh by the latest scraper run.";
-  const scoring = manifest?.adp_scoring ? String(manifest.adp_scoring).toUpperCase() : "ADP";
-  const year = manifest?.season_year ?? rows[0]?.year ?? settings().year;
-
-  status.textContent = rows.length
-    ? `${rows.length.toLocaleString()} stored ${year} ${scoring} rows. Last app refresh: ${updatedText}. ${staleText}`
-    : `No current ADP rows loaded. ${staleText}`;
-
-  body.innerHTML = rows.slice(0, 12).map((row, index) => `
-    <tr>
-      <td>${fmt(row.rank ?? index + 1, 0)}</td>
-      <td>${escapeHtml(row.player)}</td>
-      <td>${escapeHtml(row.team || "-")}</td>
-      <td>${escapeHtml(row.pos || "-")}</td>
-      <td>${fmt(row.adp, 1)}</td>
-    </tr>
-  `).join("");
 }
 
 function downloadCsv(filename, columns, rows) {

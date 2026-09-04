@@ -21,8 +21,8 @@ jobs:
       - name: Install scraper dependencies
         run: pip install -r scripts/requirements.txt
 
-      - name: Scrape current projections and ADP
-        run: python scripts/fantasypros_scraper.py --current --season-year 2026 --adp-scoring ppr
+      - name: Scrape current projections
+        run: python scripts/fantasypros_scraper.py --current --season-year 2026 --skip-current-adp
 
       - name: Export browser-ready WAR data
         run: python scripts/export_war_data.py --current

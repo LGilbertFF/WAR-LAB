@@ -329,65 +329,6 @@ summary::marker {
   font-size: 0.9rem;
 }
 
-.current-adp-preview {
-  display: grid;
-  grid-template-columns: minmax(220px, 0.9fr) minmax(360px, 1.4fr);
-  gap: 14px;
-  align-items: start;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-}
-
-.current-adp-preview h3 {
-  margin: 0;
-  color: var(--white);
-  font-family: "Kanit FPTS", Impact, sans-serif;
-  font-size: 1.1rem;
-  font-style: italic;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.current-adp-preview p {
-  margin: 7px 0 0;
-  color: rgba(240, 240, 240, 0.78);
-  font-size: 0.86rem;
-  line-height: 1.45;
-}
-
-.mini-table-wrap {
-  max-height: 330px;
-  overflow: auto;
-  border: 1px solid var(--line);
-  background: rgba(17, 17, 17, 0.78);
-}
-
-.mini-table-wrap table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.82rem;
-}
-
-.mini-table-wrap th,
-.mini-table-wrap td {
-  padding: 8px 9px;
-  border-bottom: 1px solid rgba(240, 240, 240, 0.1);
-  text-align: left;
-  white-space: nowrap;
-}
-
-.mini-table-wrap th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--white);
-  color: var(--black);
-  font-size: 0.72rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
 .summary-grid {
   display: grid;
   grid-template-columns: 0.6fr 1fr 1fr 1.5fr;
@@ -1723,7 +1664,6 @@ tbody tr.selected-row {
   .scoring-grid,
   .file-grid,
   .data-status-grid,
-  .current-adp-preview,
   .historical-controls,
   .historical-rank-actions,
   .historical-season-export,

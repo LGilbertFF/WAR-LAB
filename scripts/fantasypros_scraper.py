@@ -365,6 +365,11 @@ def main() -> None:
     parser.add_argument("--start-year", type=int, default=2015)
     parser.add_argument("--end-year", type=int, default=datetime.now().year - 1)
     parser.add_argument("--adp-scoring", choices=sorted(ADP_URLS), default="ppr")
+    parser.add_argument(
+        "--skip-current-adp",
+        action="store_true",
+        help="Only scrape current projections. Current ADP is login-gated and should use fantasypros_authenticated_adp.py.",
+    )
     parser.add_argument("--historical-adp-scoring", nargs="+", choices=sorted(ADP_URLS), default=sorted(ADP_URLS))
     parser.add_argument(
         "--positions",
@@ -395,21 +400,24 @@ def main() -> None:
                 raise RuntimeError(f"FantasyPros projections returned only {len(projections):,} rows")
         else:
             outputs["current_projections_stale"] = False
-        current_adp_path = DATA_DIR / "current_adp.csv"
-        try:
-            scrape_adp(args.adp_scoring, current_adp_path, args.season_year)
-            outputs["current_adp_stale"] = False
-        except Exception as exc:
-            if current_adp_path.exists():
-                print(f"WARNING: FantasyPros ADP scrape failed; keeping existing {current_adp_path}: {exc}")
-                outputs["current_adp_stale"] = True
-                outputs["current_adp_error"] = str(exc)
-            else:
-                raise
         outputs["current_projections"] = "data/current_projections.csv"
-        outputs["current_adp"] = "data/current_adp.csv"
         outputs["season_year"] = args.season_year
-        outputs["adp_scoring"] = args.adp_scoring
+        if not args.skip_current_adp:
+            current_adp_path = DATA_DIR / "current_adp.csv"
+            try:
+                scrape_adp(args.adp_scoring, current_adp_path, args.season_year)
+                outputs["current_adp"] = "data/current_adp.csv"
+                outputs["current_adp_stale"] = False
+                outputs["adp_scoring"] = args.adp_scoring
+            except Exception as exc:
+                if current_adp_path.exists():
+                    print(f"WARNING: FantasyPros ADP scrape failed; keeping existing {current_adp_path}: {exc}")
+                    outputs["current_adp"] = "data/current_adp.csv"
+                    outputs["current_adp_stale"] = True
+                    outputs["current_adp_error"] = str(exc)
+                    outputs["adp_scoring"] = args.adp_scoring
+                else:
+                    raise
 
     if args.historical:
         output = DATA_DIR / f"fantasypros_weekly_{args.start_year}_{args.end_year}.csv"
