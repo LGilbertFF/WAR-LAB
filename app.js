@@ -5437,6 +5437,7 @@ function runDraftOptimization(optsOverride = null) {
     return scored[0].player;
   };
   const roster = [];
+  const nearMisses = [];
   let nextPick = 1;
   for (let round = 1; round <= opts.rounds && roster.length < opts.rosterSpots; round += 1) {
     const userPick = snakePickNumber(round, opts.slot, opts.teams);
@@ -5444,6 +5445,9 @@ function runDraftOptimization(optsOverride = null) {
     while (nextPick < userPick && nextPick <= maxPicks && available.size) {
       const drafted = marketPick(nextPick);
       if (!drafted) break;
+      if (userPick - nextPick <= Math.max(2, Math.ceil(opts.teams / 3)) && draftWarValue(drafted, opts.metric) > 0) {
+        nearMisses.push(`${drafted.Player} (${drafted.Pos})`);
+      }
       const slot = draftSlotForPick(nextPick, opts.teams);
       opponentRosters.set(slot, [...(opponentRosters.get(slot) || []), drafted]);
       available.delete(drafted.id);
@@ -5491,7 +5495,7 @@ function runDraftOptimization(optsOverride = null) {
     });
     nextPick = userPick + 1;
   }
-  return { opts, roster };
+  return { opts, roster, nearMisses };
 }
 
 function optimizedStarterSelections(roster) {
@@ -5601,6 +5605,105 @@ function draftRosterNames(roster, limit = 8) {
   return roster.slice(0, limit).map((player) => `${player.Player} (${player.Pos})`).join(", ");
 }
 
+function draftBestSimulation(simulations) {
+  return [...simulations].sort((a, b) => b.totalWar - a.totalWar)[0] || { roster: [], totalWar: 0, starterWar: 0 };
+}
+
+function draftRosterSections(roster) {
+  const cfg = settings();
+  const starterIndexes = optimizedStarterSelections(roster);
+  const slots = [
+    ...Array.from({ length: cfg.slots.QB }, (_, index) => ({ label: `QB${index + 1}`, eligible: (player) => player.Pos === "QB", metric: "WAR" })),
+    ...Array.from({ length: cfg.slots.RB }, (_, index) => ({ label: `RB${index + 1}`, eligible: (player) => player.Pos === "RB", metric: "WAR" })),
+    ...Array.from({ length: cfg.slots.WR }, (_, index) => ({ label: `WR${index + 1}`, eligible: (player) => player.Pos === "WR", metric: "WAR" })),
+    ...Array.from({ length: cfg.slots.TE }, (_, index) => ({ label: `TE${index + 1}`, eligible: (player) => player.Pos === "TE", metric: "WAR" })),
+    ...Array.from({ length: cfg.slots.FLEX }, (_, index) => ({ label: `FLEX${index + 1}`, eligible: (player) => ["RB", "WR", "TE"].includes(player.Pos), metric: "Flex WAR" })),
+    ...Array.from({ length: cfg.slots.SUPERFLEX }, (_, index) => ({ label: `SF${index + 1}`, eligible: () => true, metric: "SuperFlex WAR" }))
+  ];
+  const assigned = new Set();
+  const starterRows = slots.map((slot) => {
+    const rosterIndex = [...starterIndexes.keys()]
+      .filter((index) => !assigned.has(index) && slot.eligible(roster[index]))
+      .sort((a, b) => draftWarValue(roster[b], slot.metric) - draftWarValue(roster[a], slot.metric))[0];
+    if (rosterIndex === undefined) return { slot: slot.label, player: null, value: null };
+    assigned.add(rosterIndex);
+    return { slot: slot.label, player: roster[rosterIndex], value: draftWarValue(roster[rosterIndex], slot.metric) };
+  });
+  const benchRows = roster
+    .filter((_, index) => !assigned.has(index))
+    .map((player) => ({ slot: "Bench", player, value: Math.max(0, draftWarValue(player, "WAR")) }));
+  return { starters: starterRows, bench: benchRows };
+}
+
+function draftRosterBoardHtml(roster) {
+  const sections = draftRosterSections(roster);
+  const rowHtml = (row) => row.player
+    ? `<div class="draft-roster-player"><span>${escapeHtml(row.slot)}</span><strong>${escapeHtml(row.player.Player)}</strong><em>${escapeHtml(row.player.Pos)} - R${fmt(row.player.draftRound, 0)} - ${fmt(row.value)} WAR</em></div>`
+    : `<div class="draft-roster-player empty"><span>${escapeHtml(row.slot)}</span><strong>Open</strong><em>-</em></div>`;
+  const bench = sections.bench.slice(0, 8).map(rowHtml).join("");
+  return `
+    <div class="draft-roster-board">
+      <section>
+        <h5>Starters</h5>
+        <div>${sections.starters.map(rowHtml).join("")}</div>
+      </section>
+      <section>
+        <h5>Bench</h5>
+        <div>${bench || "<p>No bench picks in this roster size.</p>"}</div>
+      </section>
+    </div>
+  `;
+}
+
+function draftPlayerLabel(player) {
+  return player ? `${player.Player} (${player.Pos})` : "open roster spot";
+}
+
+function draftStrategySwapText(bestRoster, strategyRoster, opts) {
+  const swaps = [];
+  const maxRows = Math.max(bestRoster.length, strategyRoster.length);
+  for (let index = 0; index < maxRows; index += 1) {
+    const bestPlayer = bestRoster[index];
+    const strategyPlayer = strategyRoster[index];
+    if (!bestPlayer || !strategyPlayer || bestPlayer.id === strategyPlayer.id) continue;
+    const diff = draftWarValue(bestPlayer, opts.metric) - draftWarValue(strategyPlayer, opts.metric);
+    swaps.push({
+      text: `R${index + 1}: ${draftPlayerLabel(strategyPlayer)} instead of ${draftPlayerLabel(bestPlayer)} (${fmt(diff)} WAR swing)`,
+      diff: Math.abs(diff)
+    });
+  }
+  return swaps.sort((a, b) => b.diff - a.diff).slice(0, 3).map((swap) => swap.text).join("; ") || "The best roster construction is very similar to the optimal path.";
+}
+
+function draftPickInsight(roster, type) {
+  const rows = roster.map((player) => ({
+    player,
+    marketCost: draftMarketCost(player, player.draftPick),
+    pick: number(player.draftPick, null),
+    war: draftWarValue(player, "WAR"),
+    availability: number(player.draftAvailability, null)
+  })).filter((row) => row.pick !== null && Number.isFinite(row.marketCost));
+  if (type === "reach") {
+    const reach = rows
+      .map((row) => ({ ...row, gap: row.marketCost - row.pick }))
+      .filter((row) => row.gap >= 4)
+      .sort((a, b) => (b.war + b.gap * 0.04) - (a.war + a.gap * 0.04))[0];
+    return reach ? `${draftPlayerLabel(reach.player)} around pick ${fmt(reach.pick, 0)} despite a market cost near ${fmt(reach.marketCost, 1)}` : "No major reach was required in the best simulated roster.";
+  }
+  if (type === "wait") {
+    const wait = rows
+      .map((row) => ({ ...row, gap: row.marketCost - row.pick }))
+      .filter((row) => row.gap >= 10 || row.availability >= 0.7)
+      .sort((a, b) => (b.gap + b.availability * 8) - (a.gap + a.availability * 8))[0];
+    return wait ? `${draftPlayerLabel(wait.player)} was safe to let come to you near pick ${fmt(wait.pick, 0)}` : "The best path did not reveal a clear wait target.";
+  }
+  const faller = rows
+    .map((row) => ({ ...row, gap: row.pick - row.marketCost }))
+    .filter((row) => row.gap >= 3)
+    .sort((a, b) => (b.war + b.gap * 0.06) - (a.war + a.gap * 0.06))[0];
+  return faller ? `${draftPlayerLabel(faller.player)} falling to pick ${fmt(faller.pick, 0)} materially improved the roster` : "No single falling player drove the best roster.";
+}
+
 function runDraftStrategyReport(baseOpts) {
   const key = draftReportKey(baseOpts);
   if (state.draftReportKey === key && state.draftReportRows.length) return state.draftReportRows;
@@ -5625,13 +5728,14 @@ function runDraftStrategyReport(baseOpts) {
         starterWar: warSummary.starterWar,
         build: draftRosterBuildLabel(roster),
         opening: draftOpeningLabel(roster),
-        targets: roster.slice(0, Math.min(8, roster.length)).map((player) => `${player.Player} (${player.Pos})`)
+        targets: roster.slice(0, Math.min(8, roster.length)).map((player) => `${player.Player} (${player.Pos})`),
+        nearMisses: result.nearMisses || []
       });
     }
     const totalWars = simulations.map((sim) => sim.totalWar);
     const starterWars = simulations.map((sim) => sim.starterWar);
     const targetShares = simulations.flatMap((sim) => [...new Set(sim.roster.map((player) => `${player.Player} (${player.Pos})`))]);
-    const bestSimulation = [...simulations].sort((a, b) => b.totalWar - a.totalWar)[0] || { roster: [], totalWar: 0, starterWar: 0 };
+    const bestSimulation = draftBestSimulation(simulations);
     return {
       label: path.label,
       earlyTarget: path.earlyTarget,
@@ -5644,7 +5748,9 @@ function runDraftStrategyReport(baseOpts) {
       commonBuild: mostCommonLabel(simulations.map((sim) => sim.build)),
       opening: mostCommonLabel(simulations.map((sim) => sim.opening)),
       commonTargets: mostCommonShareLabel(targetShares, simulations.length, 3),
+      nearMissTargets: mostCommonShareLabel(simulations.flatMap((sim) => [...new Set(sim.nearMisses)]), simulations.length, 3),
       bestRoster: draftRosterNames(bestSimulation.roster, 10),
+      bestRosterRows: bestSimulation.roster,
       bestBuild: draftRosterBuildLabel(bestSimulation.roster),
       bestWar: bestSimulation.totalWar,
       bestStarterWar: bestSimulation.starterWar
@@ -5665,7 +5771,7 @@ function summarizeDraftStrategyReport(simulationGroups) {
     const totalWars = simulations.map((sim) => sim.totalWar);
     const starterWars = simulations.map((sim) => sim.starterWar);
     const targetShares = simulations.flatMap((sim) => [...new Set(sim.roster.map((player) => `${player.Player} (${player.Pos})`))]);
-    const bestSimulation = [...simulations].sort((a, b) => b.totalWar - a.totalWar)[0] || { roster: [], totalWar: 0, starterWar: 0 };
+    const bestSimulation = draftBestSimulation(simulations);
     return {
       label: path.label,
       earlyTarget: path.earlyTarget,
@@ -5678,7 +5784,9 @@ function summarizeDraftStrategyReport(simulationGroups) {
       commonBuild: mostCommonLabel(simulations.map((sim) => sim.build)),
       opening: mostCommonLabel(simulations.map((sim) => sim.opening)),
       commonTargets: mostCommonShareLabel(targetShares, simulations.length, 3),
+      nearMissTargets: mostCommonShareLabel(simulations.flatMap((sim) => [...new Set(sim.nearMisses || [])]), simulations.length, 3),
       bestRoster: draftRosterNames(bestSimulation.roster, 10),
+      bestRosterRows: bestSimulation.roster,
       bestBuild: draftRosterBuildLabel(bestSimulation.roster),
       bestWar: bestSimulation.totalWar,
       bestStarterWar: bestSimulation.starterWar
@@ -5721,7 +5829,8 @@ function runDraftStrategyReportAsync(baseOpts) {
         starterWar: warSummary.starterWar,
         build: draftRosterBuildLabel(roster),
         opening: draftOpeningLabel(roster),
-        targets: roster.slice(0, Math.min(8, roster.length)).map((player) => `${player.Player} (${player.Pos})`)
+        targets: roster.slice(0, Math.min(8, roster.length)).map((player) => `${player.Player} (${player.Pos})`),
+        nearMisses: result.nearMisses || []
       });
       runIndex += 1;
       if (runIndex >= runs) {
@@ -5761,12 +5870,19 @@ function renderDraftReportNarrative(rows, opts) {
   const costlyText = costly.length
     ? costly.map((row) => `${row.label} costs about ${fmt(row.opportunityCost)} WAR`).join("; ")
     : "The other strategy paths stay reasonably close in this room.";
+  const primaryCost = rows[1]
+    ? `${rows[1].label}: ${draftStrategySwapText(best.bestRosterRows || [], rows[1].bestRosterRows || [], opts)}`
+    : "No alternate strategy was available for comparison.";
+  const selectedStrategy = rows.find((row) => row.earlyTarget === opts.earlyTarget && row.strategy === opts.strategy);
+  const selectedText = selectedStrategy && selectedStrategy !== best
+    ? `${selectedStrategy.label}: ${draftStrategySwapText(best.bestRosterRows || [], selectedStrategy.bestRosterRows || [], opts)}`
+    : "Your selected strategy aligns with the top simulated path for these settings.";
   target.innerHTML = `
     <article class="draft-report-hero">
       <span>Recommended path</span>
       <h4>${escapeHtml(best.label)}</h4>
       <p>The strongest simulated approach from slot ${opts.slot} averaged <strong>${fmt(best.averageWar)}</strong> total WAR with <strong>${fmt(best.starterWar)}</strong> starter WAR. The best observed version reached <strong>${fmt(best.bestWar)}</strong> WAR with a ${escapeHtml(best.bestBuild)} build.</p>
-      <p><strong>Best roster sample:</strong> ${escapeHtml(best.bestRoster || "-")}</p>
+      ${draftRosterBoardHtml(best.bestRosterRows || [])}
     </article>
     <div class="draft-report-takeaways">
       <article>
@@ -5780,6 +5896,30 @@ function renderDraftReportNarrative(rows, opts) {
       <article>
         <span>Most repeatable targets</span>
         <p>${escapeHtml(best.commonTargets)}. These percentages show the share of simulated teams using this strategy that included each player.</p>
+      </article>
+    </div>
+    <div class="draft-report-takeaways draft-report-takeaways-wide">
+      <article>
+        <span>Key player swaps</span>
+        <p>${escapeHtml(primaryCost)}</p>
+      </article>
+      <article>
+        <span>Selected strategy comparison</span>
+        <p>${escapeHtml(selectedText)}</p>
+      </article>
+    </div>
+    <div class="draft-report-takeaways">
+      <article>
+        <span>ADP reach target</span>
+        <p>${escapeHtml(draftPickInsight(best.bestRosterRows || [], "reach"))}</p>
+      </article>
+      <article>
+        <span>Player you can wait on</span>
+        <p>${escapeHtml(draftPickInsight(best.bestRosterRows || [], "wait"))}</p>
+      </article>
+      <article>
+        <span>If he falls</span>
+        <p>${escapeHtml(best.nearMissTargets && best.nearMissTargets !== "-" ? `${best.nearMissTargets}. These are the players most often drafted shortly before your pick; if one slips, he is a priority pivot.` : draftPickInsight(best.bestRosterRows || [], "fall"))}</p>
       </article>
     </div>
   `;

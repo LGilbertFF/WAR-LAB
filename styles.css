@@ -1199,10 +1199,71 @@ summary::marker {
   line-height: 1.45;
 }
 
+.draft-roster-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.draft-roster-board section {
+  border: 1px solid var(--line);
+  background: rgba(240, 240, 240, 0.04);
+  padding: 10px;
+}
+
+.draft-roster-board h5 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.draft-roster-player {
+  display: grid;
+  grid-template-columns: 62px minmax(120px, 1fr) minmax(128px, auto);
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid rgba(240, 240, 240, 0.1);
+  padding: 7px 0;
+}
+
+.draft-roster-player:first-child {
+  border-top: 0;
+}
+
+.draft-roster-player span {
+  color: var(--accent);
+  font-size: 0.76rem;
+}
+
+.draft-roster-player strong {
+  color: var(--white);
+  font-size: 0.88rem;
+}
+
+.draft-roster-player em {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: normal;
+  text-align: right;
+}
+
+.draft-roster-player.empty strong,
+.draft-roster-player.empty em {
+  color: var(--muted);
+}
+
 .draft-report-takeaways {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.draft-report-takeaways-wide {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .draft-report-best {
@@ -1705,8 +1766,19 @@ tbody tr.selected-row {
 
   .draft-control-bar,
   .draft-optimizer-grid,
-  .draft-report-takeaways {
+  .draft-report-takeaways,
+  .draft-report-takeaways-wide,
+  .draft-roster-board {
     grid-template-columns: 1fr;
+  }
+
+  .draft-roster-player {
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .draft-roster-player em {
+    grid-column: 2;
+    text-align: left;
   }
 
   #draftOptimizerChart {
