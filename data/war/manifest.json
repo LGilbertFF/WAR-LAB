@@ -8,8 +8,8 @@
   "current_adp": {
     "path": "data/war/current_adp.json.gz",
     "source": "data/current_adp.csv",
-    "rows": 412,
-    "bytes": 8003
+    "rows": 1385,
+    "bytes": 25941
   },
   "historical_weekly": {
     "source": "data/fantasypros_weekly_2015_2025.csv",
@@ -84,7 +84,7 @@
     ]
   },
   "version": 1,
-  "updated_at": "2026-09-04T09:41:08.138630+00:00",
+  "updated_at": "2026-09-04T11:54:29.404570+00:00",
   "historical_adp": {
     "path": "data/war/historical_adp.json.gz",
     "source": "data/historical_adp.csv",
