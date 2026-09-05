@@ -6,6 +6,7 @@ const WAR_DATA_MANIFEST_PATH = "data/war/manifest.json";
 const HISTORICAL_ADP_PATH = "data/historical_adp.csv";
 const HISTORICAL_ADP_PLAYER_CAP = 200;
 const DRAFT_METADATA_PATH = "data/nfl_skill_players_2000_2026.csv";
+const PLAYER_HEADSHOTS_PATH = "data/player_headshots.json";
 const TRUSTED_WAR_CURVE_PATH = "data/historical_WAR_PPR2WR.csv";
 const FALLBACK_PROJECTIONS_PATH = "data/WARProjections2024_PPR2WR.csv";
 const HISTORICAL_WEEKLY_PATH = "data/fantasypros_weekly_2015_2025.csv";
@@ -36,6 +37,7 @@ const state = {
   historicalModelKey: "",
   historicalScoredRows: [],
   historicalScoredRowsKey: "",
+  playerHeadshots: null,
   manifest: null,
   warManifest: null,
   results: [],
@@ -272,6 +274,26 @@ function playerKeyVariants(name) {
     }
   }
   return [...variants].filter(Boolean);
+}
+
+function playerHeadshotUrl(row, fallback = "") {
+  const name = firstValue(row, ["Player", "player", "full_name", "name"], "");
+  const pos = firstValue(row, ["Pos", "position", "POS"], "");
+  const byKey = state.playerHeadshots?.by_key || {};
+  for (const key of playerKeyVariants(name)) {
+    const posMatch = byKey[`${key}|${pos}`];
+    if (posMatch?.headshot_url) return posMatch.headshot_url;
+    const nameMatch = byKey[key];
+    if (nameMatch?.headshot_url) return nameMatch.headshot_url;
+  }
+  return fallback || firstValue(row, ["headshot_url", "headshot"], "") || "";
+}
+
+function headshotImg(row, className = "adp-row-headshot", fallback = "") {
+  const src = playerHeadshotUrl(row, fallback);
+  return src
+    ? `<img class="${className}" src="${escapeHtml(src)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+    : "";
 }
 
 function setPlayerMapVariants(map, player, pos, value) {
@@ -2889,7 +2911,7 @@ function renderAdpTable(rows) {
       <td>${fmt(row.rank, 0)}</td>
       <td>
         <div class="adp-player-cell">
-          <img class="adp-row-headshot" src="${escapeHtml(row.headshot_url)}" alt="" loading="lazy" onerror="this.style.display='none'">
+          ${headshotImg(row, "adp-row-headshot", row.headshot_url)}
           <strong>${escapeHtml(row.full_name)}</strong>
         </div>
       </td>
@@ -2910,7 +2932,7 @@ function renderAdpPlayerDetail(selected) {
   return `
     <div class="inline-player-detail adp-inline-detail">
       <div class="adp-card-layout">
-        <img class="adp-headshot" src="${escapeHtml(selected.headshot_url)}" alt="${escapeHtml(selected.full_name)} headshot" onerror="this.style.display='none'">
+        ${headshotImg(selected, "adp-headshot", selected.headshot_url)}
         <div>
           <p class="eyebrow">ADP profile</p>
           <h2>${escapeHtml(selected.full_name)}</h2>
@@ -3052,7 +3074,7 @@ function renderDynastyTable(rows) {
       <td>${fmt(row.rank, 0)}</td>
       <td>
         <div class="adp-player-cell">
-          <img class="adp-row-headshot" src="${escapeHtml(row.headshot_url || "")}" alt="" loading="lazy" onerror="this.style.display='none'">
+          ${headshotImg(row, "adp-row-headshot", row.headshot_url || "")}
           <strong>${escapeHtml(row.Player)}</strong>
         </div>
       </td>
@@ -5016,7 +5038,7 @@ function renderTable(rows) {
     return `
       <tr data-id="${player.id}" class="${selected ? "selected-row" : ""}">
         <td>${fmt(player["Overall Rank"], 0)}</td>
-        <td><strong>${escapeHtml(player.Player)}</strong></td>
+        <td><div class="adp-player-cell">${headshotImg(player)}<strong>${escapeHtml(player.Player)}</strong></div></td>
         <td><span class="pos-pill pos-${player.Pos}">${player.Pos}</span></td>
         <td>${escapeHtml(player.Team || "-")}</td>
         <td>${fmt(player.WAR)}</td>
@@ -5081,9 +5103,14 @@ function renderPlayerDetail(player) {
   const historyRows = playerHistory(player);
   return `
     <div class="inline-player-detail">
-    <p class="eyebrow">Selected player</p>
-    <h2>${escapeHtml(player.Player)}</h2>
-    <p class="muted">${escapeHtml(player.Team || "-")} - <span class="pos-pill pos-${player.Pos}">${player.Pos}</span> - ${escapeHtml(player["Pos Rank"])}</p>
+    <div class="adp-card-layout">
+      ${headshotImg(player, "adp-headshot")}
+      <div>
+        <p class="eyebrow">Selected player</p>
+        <h2>${escapeHtml(player.Player)}</h2>
+        <p class="muted">${escapeHtml(player.Team || "-")} - <span class="pos-pill pos-${player.Pos}">${player.Pos}</span> - ${escapeHtml(player["Pos Rank"])}</p>
+      </div>
+    </div>
     <div class="player-stats">
       <div><span>WAR</span><strong>${fmt(player.WAR)}</strong></div>
       <div><span>Historical rank WAR</span><strong>${fmt(player["Historical WAR"])}</strong></div>
@@ -5771,7 +5798,7 @@ function recommendationHtml(rows) {
   return `<div class="draft-rec-list">${rows.map((row, index) => `
     <div class="draft-rec">
       <div>
-        <strong>${index + 1}. ${escapeHtml(row.player.Player)} <span class="pos-pill pos-${row.player.Pos}">${escapeHtml(row.player.Pos)}</span></strong>
+        <div class="adp-player-cell">${headshotImg(row.player)}<strong>${index + 1}. ${escapeHtml(row.player.Player)} <span class="pos-pill pos-${row.player.Pos}">${escapeHtml(row.player.Pos)}</span></strong></div>
         <small>${escapeHtml(row.positionStrategy || "Best available")} - ${escapeHtml(row.reason || "best WAR in window")}</small>
       </div>
       <b>${fmt(draftWarValue(row.player, row.player._draftMetric || draftMetric()))}</b>
@@ -5818,7 +5845,7 @@ function renderInteractiveDraftLog(ctx) {
       <td>${fmt(pick.draftRound, 0)}</td>
       <td>${fmt(pick.draftSlot, 0)}</td>
       <td>${escapeHtml(pick.draftManager)}</td>
-      <td><strong>${escapeHtml(pick.Player)}</strong></td>
+      <td><div class="adp-player-cell">${headshotImg(pick)}<strong>${escapeHtml(pick.Player)}</strong></div></td>
       <td><span class="pos-pill pos-${pick.Pos}">${escapeHtml(pick.Pos)}</span></td>
       <td>${escapeHtml(pick.Team || "-")}</td>
       <td>${fmt(pick.ADP, 1)}</td>
@@ -6935,6 +6962,11 @@ async function initData() {
     state.warManifest = await loadJson(WAR_DATA_MANIFEST_PATH);
   } catch {
     state.warManifest = null;
+  }
+  try {
+    state.playerHeadshots = await loadJson(PLAYER_HEADSHOTS_PATH);
+  } catch {
+    state.playerHeadshots = null;
   }
   try {
     const currentProjectionPath = state.warManifest?.current_projections?.path || CURRENT_PROJECTIONS_PATH;
