@@ -9,6 +9,7 @@ import requests
 
 
 ROSTER_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/{team}/roster"
+SLEEPER_PLAYERS_URL = "https://api.sleeper.app/v1/players/nfl"
 FANTASY_POSITIONS = {"QB", "RB", "WR", "TE"}
 NFL_TEAMS = [
     "ari", "atl", "bal", "buf", "car", "chi", "cin", "cle",
@@ -65,20 +66,65 @@ def iter_roster_players(team: str):
                 "position": position,
                 "team": team_abbr,
                 "espn_id": str(player.get("id") or ""),
+                "source": "espn",
                 "headshot_url": href,
             }
+
+
+def iter_sleeper_players():
+    data = fetch_json(SLEEPER_PLAYERS_URL)
+    for player_id, player in data.items():
+        position = player.get("position")
+        if position not in FANTASY_POSITIONS:
+            continue
+        full_name = player.get("full_name") or " ".join(
+            part for part in [player.get("first_name"), player.get("last_name")] if part
+        )
+        if not full_name:
+            continue
+        yield {
+            "name": full_name,
+            "key": clean_key(full_name),
+            "position": position,
+            "team": player.get("team") or "",
+            "sleeper_id": str(player_id),
+            "source": "sleeper",
+            "headshot_url": f"https://sleepercdn.com/content/nfl/players/{player_id}.jpg",
+        }
+
+
+def add_player(players: list[dict], by_key: dict[str, dict], player: dict, prefer_existing: bool) -> bool:
+    key = player["key"]
+    pos_key = f"{key}|{player['position']}"
+    if not key:
+        return False
+    if prefer_existing and pos_key in by_key:
+        return False
+    players.append(player)
+    if prefer_existing:
+        by_key.setdefault(pos_key, player)
+        by_key.setdefault(key, player)
+    else:
+        by_key[pos_key] = player
+        by_key.setdefault(key, player)
+    return True
 
 
 def build_map() -> dict:
     by_key: dict[str, dict] = {}
     players = []
+    espn_count = 0
+    sleeper_count = 0
     for team in NFL_TEAMS:
         for player in iter_roster_players(team):
-            players.append(player)
-            by_key[f"{player['key']}|{player['position']}"] = player
-            by_key.setdefault(player["key"], player)
+            if add_player(players, by_key, player, prefer_existing=False):
+                espn_count += 1
+    for player in iter_sleeper_players():
+        if add_player(players, by_key, player, prefer_existing=True):
+            sleeper_count += 1
     return {
-        "source": "ESPN team roster API",
+        "source": "ESPN team roster API with Sleeper fallback",
+        "counts": {"espn": espn_count, "sleeper_fallback": sleeper_count},
         "players": sorted(players, key=lambda row: (row["position"], row["name"])),
         "by_key": by_key,
     }
@@ -91,7 +137,11 @@ def main() -> None:
     data = build_map()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(data, separators=(",", ":"), sort_keys=True), encoding="utf-8")
-    print(f"wrote {len(data['players'])} ESPN headshots to {args.out}")
+    counts = data.get("counts", {})
+    print(
+        f"wrote {len(data['players'])} headshots to {args.out} "
+        f"({counts.get('espn', 0)} ESPN, {counts.get('sleeper_fallback', 0)} Sleeper fallback)"
+    )
 
 
 if __name__ == "__main__":
