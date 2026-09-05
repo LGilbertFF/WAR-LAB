@@ -5358,6 +5358,38 @@ function draftEarlyTargetAdjustment(pos, counts, round, opts) {
   return { score: 0, label: "" };
 }
 
+function draftEarlyTargetNeed(counts, round, opts) {
+  const target = opts.earlyTarget || "none";
+  if (target === "early-qb" && (counts.QB || 0) < 1 && round <= 4) {
+    return { positions: ["QB"], deadline: 4, label: "Early QB" };
+  }
+  if (target === "early-te" && (counts.TE || 0) < 1 && round <= 4) {
+    return { positions: ["TE"], deadline: 4, label: "Early TE" };
+  }
+  if (target === "early-qb-te" && (counts.QB || 0) < 1 && (counts.TE || 0) < 1 && round <= 4) {
+    return { positions: ["QB", "TE"], deadline: 4, label: "Early QB or TE" };
+  }
+  if (target === "first-2-rb" && (counts.RB || 0) < 2 && round <= 3) {
+    return { positions: ["RB"], deadline: 3, label: "First 2 RBs" };
+  }
+  if (target === "first-2-wr" && (counts.WR || 0) < 2 && round <= 3) {
+    return { positions: ["WR"], deadline: 3, label: "First 2 WRs" };
+  }
+  if (target === "hero-rb") {
+    if ((counts.RB || 0) < 2 && round <= 3) return { positions: ["RB"], deadline: 3, label: "Hero RB" };
+    if ((counts.RB || 0) < 4 && round <= 7) return { positions: ["RB"], deadline: 7, label: "Hero RB" };
+  }
+  return null;
+}
+
+function draftEarlyTargetDeadlinePenalty(pos, counts, round, opts) {
+  const need = draftEarlyTargetNeed(counts, round, opts);
+  if (!need || need.positions.includes(pos)) return { penalty: 0, label: "" };
+  if (round >= need.deadline) return { penalty: 9.5, label: need.label };
+  if (round === need.deadline - 1) return { penalty: 4.5, label: need.label };
+  return { penalty: 0.9, label: need.label };
+}
+
 function draftCandidateScore(player, roster, available, pickNo, nextUserPick, opts) {
   const cfg = settings();
   const counts = draftPositionCounts(roster);
@@ -5392,6 +5424,7 @@ function draftCandidateScore(player, roster, available, pickNo, nextUserPick, op
   const flexBonus = flexEligible && flexCount < flexTarget ? 0.9 : 0;
   const superflexBonus = cfg.slots.SUPERFLEX && pos === "QB" && (counts.QB || 0) < targets.QB ? 1.1 : 0;
   const earlyTarget = draftEarlyTargetAdjustment(pos, counts, round, opts);
+  const deadline = draftEarlyTargetDeadlinePenalty(pos, counts, round, opts);
   const needScore =
     (starterMissing * strategyWeights.starter) +
     (depthMissing * strategyWeights.depth) +
@@ -5406,7 +5439,8 @@ function draftCandidateScore(player, roster, available, pickNo, nextUserPick, op
     (adpValue * strategyWeights.value) -
     waitPenalty -
     availabilityPenalty -
-    overTargetPenalty;
+    overTargetPenalty -
+    deadline.penalty;
   const reasonParts = [];
   let positionStrategy = "Maximize WAR";
   if (starterMissing) reasonParts.push("starter need");
@@ -5418,6 +5452,7 @@ function draftCandidateScore(player, roster, available, pickNo, nextUserPick, op
   else if (depthMissing) positionStrategy = `Build ${pos} depth`;
   else if (scarcityDrop > 0.4) positionStrategy = `Attack ${pos} scarcity`;
   if (earlyTarget.label && earlyTarget.score > 0) positionStrategy = earlyTarget.label;
+  if (deadline.label && deadline.penalty >= 4.5) reasonParts.push(`${deadline.label.toLowerCase()} deadline`);
   if (flexBonus) reasonParts.push("flex depth");
   if (superflexBonus) reasonParts.push("SF QB demand");
   if (earlyTarget.label && earlyTarget.score > 0) reasonParts.push(earlyTarget.label.toLowerCase());
@@ -5505,7 +5540,20 @@ function runDraftOptimization(optsOverride = null) {
       .filter((player) => draftPositionAllowed(player, userCounts, opts))
       .sort((a, b) => draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric))
       .slice(0, Math.max(5, Math.floor(opts.window / 3)));
-    const candidates = [...new Map([...adpWindow, ...warWindow].map((player) => [player.id, player])).values()];
+    const earlyNeed = draftEarlyTargetNeed(userCounts, round, opts);
+    const priorityWindow = earlyNeed
+      ? availableRows
+        .filter((player) => earlyNeed.positions.includes(player.Pos) && draftPositionAllowed(player, userCounts, opts))
+        .sort((a, b) => {
+          const aCost = draftMarketCost(a, userPick);
+          const bCost = draftMarketCost(b, userPick);
+          const aValue = draftWarValue(a, opts.metric);
+          const bValue = draftWarValue(b, opts.metric);
+          return (aCost - bCost) || (bValue - aValue);
+        })
+        .slice(0, Math.max(8, Math.ceil(opts.window / 2)))
+      : [];
+    const candidates = [...new Map([...adpWindow, ...warWindow, ...priorityWindow].map((player) => [player.id, player])).values()];
     opts.nextByPos = {};
     for (const pos of ["QB", "RB", "WR", "TE"]) {
       opts.nextByPos[pos] = availableRows
