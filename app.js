@@ -5114,7 +5114,7 @@ function draftOptimizerSettings() {
     rounds,
     rosterSpots: Math.max(rounds, enteredRosterSpots),
     window: Math.max(3, Math.min(80, number(el("draftCandidateWindow")?.value, 24))),
-    simulations: Math.max(20, Math.min(500, number(el("draftSimulationRuns")?.value, 100))),
+    simulations: Math.max(20, Math.min(500, number(el("draftSimulationRuns")?.value, 50))),
     uncertainty: el("draftUncertainty")?.value || "medium",
     earlyTarget: el("draftEarlyTarget")?.value || "none",
     strategy: el("draftStrategy")?.value || "balanced",
@@ -5942,7 +5942,7 @@ function draftPickInsight(roster, type) {
 function runDraftStrategyReport(baseOpts) {
   const key = draftReportKey(baseOpts);
   if (state.draftReportKey === key && state.draftReportRows.length) return state.draftReportRows;
-  const runs = baseOpts.simulations || 100;
+  const runs = baseOpts.simulations || 50;
   const playerPool = baseOpts.playerPool || draftPlayerPool(baseOpts.metric);
   const rows = draftStrategyPaths().map((path, pathIndex) => {
     const simulations = [];
@@ -6080,7 +6080,7 @@ function summarizeDraftStrategyReport(simulationGroups) {
 function runDraftStrategyReportAsync(baseOpts) {
   const key = draftReportKey(baseOpts);
   if (state.draftReportRequestedKey !== key) return;
-  const runs = baseOpts.simulations || 100;
+  const runs = baseOpts.simulations || 50;
   const groups = draftStrategyPaths().map((path) => ({ path, simulations: [] }));
   const playerPool = baseOpts.playerPool || draftPlayerPool(baseOpts.metric);
   let pathIndex = 0;
