@@ -1123,6 +1123,110 @@ summary::marker {
   margin-top: -4px;
 }
 
+.draft-mode-panel {
+  display: none;
+}
+
+.draft-mode-panel.active {
+  display: block;
+}
+
+.draft-interactive-panel {
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: rgba(17, 17, 17, 0.48);
+}
+
+.draft-pick-controls {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin: 12px 0;
+}
+
+.draft-pick-controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.draft-assistant-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.draft-assistant-card {
+  border: 1px solid var(--line);
+  background: rgba(240, 240, 240, 0.06);
+  padding: 12px;
+}
+
+.draft-assistant-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.draft-rec-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.draft-rec {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px;
+  border-left: 3px solid var(--accent);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.draft-rec strong {
+  display: block;
+  color: var(--white);
+}
+
+.draft-rec small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.draft-grade {
+  margin-top: 8px;
+}
+
+.draft-grade strong {
+  display: block;
+  color: var(--white);
+  font-family: "Kanit FPTS", Impact, sans-serif;
+  font-size: 2.2rem;
+  font-style: italic;
+  line-height: 1;
+}
+
+.draft-grade p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.draft-interactive-log {
+  margin-top: 16px;
+}
+
 .draft-optimizer-grid {
   display: grid;
   grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.1fr);
@@ -1907,6 +2011,8 @@ tbody tr.selected-row {
 
   .draft-control-bar,
   .draft-optimizer-grid,
+  .draft-pick-controls,
+  .draft-assistant-grid,
   .draft-report-takeaways,
   .draft-report-takeaways-wide,
   .draft-strategy-card-grid,

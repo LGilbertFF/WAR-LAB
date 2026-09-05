@@ -52,7 +52,9 @@ const state = {
   draftReportRows: [],
   draftReportRequested: false,
   draftReportRequestedKey: "",
-  draftReportRunning: false
+  draftReportRunning: false,
+  mockDraft: null,
+  liveDraft: null
 };
 
 const posColors = {
@@ -5586,6 +5588,292 @@ function runDraftOptimization(optsOverride = null) {
   return { opts, roster, nearMisses };
 }
 
+function draftToolMode() {
+  return el("draftToolMode")?.value || "optimizer";
+}
+
+function interactiveDraftKey(opts) {
+  const capText = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${opts.caps?.[pos] ?? ""}`).join("|");
+  return `${settings().year}|${opts.teams}|${opts.slot}|${opts.rounds}|${opts.rosterSpots}|${opts.window}|${opts.uncertainty}|${opts.metric}|${capText}`;
+}
+
+function createInteractiveDraft(mode) {
+  const opts = draftOptimizerSettings();
+  const playerPool = draftPlayerPool(opts.metric);
+  const rng = seededRandom(draftSeedValue({ ...opts, seedOffset: mode === "mock" ? 41001 : 91001 }));
+  return {
+    mode,
+    key: interactiveDraftKey(opts),
+    opts,
+    playerPool,
+    available: new Map(playerPool.map((player) => [player.id, player])),
+    rosters: new Map(),
+    userRoster: [],
+    log: [],
+    pickNo: 1,
+    rng,
+    agentProfiles: draftAgentProfiles(opts, rng),
+    nearMisses: []
+  };
+}
+
+function interactiveSlotLabel(slot, opts) {
+  return slot === opts.slot ? "You" : `Team ${slot}`;
+}
+
+function interactiveDraftPick(ctx, player, managerSlot) {
+  if (!ctx || !player || !ctx.available.has(player.id)) return false;
+  const opts = ctx.opts;
+  const pickNo = ctx.pickNo;
+  const round = Math.ceil(pickNo / opts.teams);
+  const slot = managerSlot ?? draftSlotForPick(pickNo, opts.teams);
+  const roster = slot === opts.slot ? ctx.userRoster : (ctx.rosters.get(slot) || []);
+  ctx.available.delete(player.id);
+  const pick = {
+    ...player,
+    draftRound: round,
+    draftPick: pickNo,
+    draftSlot: slot,
+    draftManager: interactiveSlotLabel(slot, opts),
+    draftMetricValue: draftWarValue(player, opts.metric)
+  };
+  if (slot === opts.slot) ctx.userRoster.push(pick);
+  else ctx.rosters.set(slot, [...roster, pick]);
+  ctx.log.push(pick);
+  ctx.pickNo += 1;
+  return true;
+}
+
+function interactiveMarketPick(ctx) {
+  const opts = ctx.opts;
+  const slot = draftSlotForPick(ctx.pickNo, opts.teams);
+  const profile = ctx.agentProfiles.get(slot) || { earlyTarget: "none", strategy: "balanced", adpWeight: 0.85, pointsWeight: 0.5, warWeight: 0.2, needWeight: 0.3, reachAversion: 0.06 };
+  const roster = ctx.rosters.get(slot) || [];
+  const counts = draftPositionCounts(roster);
+  const scale = draftUncertaintyScale(opts);
+  const poolSize = Math.max(10, Math.round(scale * 2.4));
+  const pool = [];
+  for (const player of ctx.playerPool) {
+    if (!ctx.available.has(player.id) || !draftPositionAllowed(player, counts, opts)) continue;
+    pool.push(player);
+    if (pool.length >= poolSize) break;
+  }
+  if (!pool.length) return null;
+  if (opts.uncertainty === "none") return pool[0];
+  const scored = pool
+    .map((player) => ({ player, score: draftAgentPickScore(player, roster, ctx.pickNo, profile, opts, ctx.rng) }))
+    .sort((a, b) => b.score - a.score);
+  const weights = scored.map((_, index) => Math.exp(-index / Math.max(1.5, scale / 7)));
+  const total = weights.reduce((sum, value) => sum + value, 0);
+  let roll = ctx.rng() * total;
+  for (let index = 0; index < scored.length; index += 1) {
+    roll -= weights[index];
+    if (roll <= 0) return scored[index].player;
+  }
+  return scored[0].player;
+}
+
+function advanceMockDraftToUser() {
+  const ctx = state.mockDraft;
+  if (!ctx) return;
+  const maxPicks = ctx.opts.teams * ctx.opts.rounds;
+  while (ctx.pickNo <= maxPicks && draftSlotForPick(ctx.pickNo, ctx.opts.teams) !== ctx.opts.slot && ctx.available.size) {
+    const drafted = interactiveMarketPick(ctx);
+    if (!drafted) break;
+    if (Math.abs(ctx.pickNo - snakePickNumber(Math.ceil(ctx.pickNo / ctx.opts.teams), ctx.opts.slot, ctx.opts.teams)) <= Math.max(2, Math.ceil(ctx.opts.teams / 3)) && draftWarValue(drafted, ctx.opts.metric) > 0) {
+      ctx.nearMisses.push(`${drafted.Player} (${drafted.Pos})`);
+    }
+    interactiveDraftPick(ctx, drafted);
+  }
+}
+
+function draftCandidatePool(roster, availableRows, pickNo, nextUserPick, opts) {
+  const counts = draftPositionCounts(roster);
+  const availableIds = new Set(availableRows.map((row) => row.id));
+  const adpWindow = [];
+  for (const player of opts.playerPool || draftPlayerPool(opts.metric)) {
+    if (!availableIds.has(player.id) || !draftPositionAllowed(player, counts, opts)) continue;
+    adpWindow.push(player);
+    if (adpWindow.length >= opts.window) break;
+  }
+  const warWindow = availableRows
+    .filter((player) => draftPositionAllowed(player, counts, opts))
+    .sort((a, b) => draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric))
+    .slice(0, Math.max(5, Math.floor(opts.window / 3)));
+  const round = Math.ceil(pickNo / opts.teams);
+  const earlyNeed = draftEarlyTargetNeed(counts, round, opts);
+  const priorityWindow = earlyNeed
+    ? availableRows
+      .filter((player) => earlyNeed.positions.includes(player.Pos) && draftPositionAllowed(player, counts, opts))
+      .sort((a, b) => (draftMarketCost(a, pickNo) - draftMarketCost(b, pickNo)) || (draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric)))
+      .slice(0, Math.max(8, Math.ceil(opts.window / 2)))
+    : [];
+  opts.nextByPos = {};
+  for (const pos of ["QB", "RB", "WR", "TE"]) {
+    opts.nextByPos[pos] = availableRows
+      .filter((player) => player.Pos === pos)
+      .sort((a, b) => draftWarValue(b, opts.metric) - draftWarValue(a, opts.metric))
+      .slice(0, Math.max(8, opts.window));
+  }
+  const rows = [...new Map([...adpWindow, ...warWindow, ...priorityWindow].map((player) => [player.id, player])).values()]
+    .map((player) => ({ player, ...draftCandidateScore(player, roster, availableRows, pickNo, nextUserPick, opts) }))
+    .sort((a, b) => b.score - a.score);
+  delete opts.nextByPos;
+  return rows;
+}
+
+function interactiveRecommendations(ctx, limit = 5) {
+  if (!ctx) return [];
+  const opts = { ...ctx.opts, playerPool: ctx.playerPool };
+  const maxPicks = opts.teams * opts.rounds;
+  const nextUserPick = (() => {
+    for (let pick = ctx.pickNo + 1; pick <= maxPicks; pick += 1) {
+      if (draftSlotForPick(pick, opts.teams) === opts.slot) return pick;
+    }
+    return maxPicks + 1;
+  })();
+  return draftCandidatePool(ctx.userRoster, [...ctx.available.values()], ctx.pickNo, nextUserPick, opts).slice(0, limit);
+}
+
+function interactiveStrategyRecommendations(ctx) {
+  if (!ctx) return [];
+  const seen = new Set();
+  return draftStrategyPaths().map((path) => {
+    const opts = { ...ctx.opts, ...path, playerPool: ctx.playerPool };
+    return draftCandidatePool(ctx.userRoster, [...ctx.available.values()], ctx.pickNo, ctx.pickNo + ctx.opts.teams, opts)[0];
+  }).filter(Boolean).filter((row) => {
+    const key = row.player.id;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 5);
+}
+
+function findInteractivePlayer(ctx, inputId) {
+  const raw = (el(inputId)?.value || "").trim().toLowerCase();
+  if (!ctx || !raw) return null;
+  return [...ctx.available.values()].find((player) => {
+    const label = `${player.Player} ${player.Pos} ${player.Team || ""}`.toLowerCase();
+    return label === raw || player.Player.toLowerCase() === raw || label.includes(raw);
+  }) || null;
+}
+
+function updateInteractiveDatalist(ctx, datalistId) {
+  const list = el(datalistId);
+  if (!list || !ctx) return;
+  list.innerHTML = [...ctx.available.values()].slice(0, 260).map((player) => (
+    `<option value="${escapeHtml(`${player.Player} ${player.Pos} ${player.Team || ""}`.trim())}"></option>`
+  )).join("");
+}
+
+function recommendationHtml(rows) {
+  if (!rows.length) return "<p>No recommendations available yet.</p>";
+  return `<div class="draft-rec-list">${rows.map((row, index) => `
+    <div class="draft-rec">
+      <div>
+        <strong>${index + 1}. ${escapeHtml(row.player.Player)} <span class="pos-pill pos-${row.player.Pos}">${escapeHtml(row.player.Pos)}</span></strong>
+        <small>${escapeHtml(row.positionStrategy || "Best available")} - ${escapeHtml(row.reason || "best WAR in window")}</small>
+      </div>
+      <b>${fmt(draftWarValue(row.player, row.player._draftMetric || draftMetric()))}</b>
+    </div>
+  `).join("")}</div>`;
+}
+
+function interactiveNextPlan(ctx) {
+  if (!ctx) return "Start the live board to see a forward plan.";
+  const picks = [];
+  const maxPicks = ctx.opts.teams * ctx.opts.rounds;
+  for (let pick = ctx.pickNo; pick <= maxPicks && picks.length < 3; pick += 1) {
+    if (draftSlotForPick(pick, ctx.opts.teams) === ctx.opts.slot) picks.push(pick);
+  }
+  if (!picks.length) return "No remaining picks for your draft slot.";
+  return `<div class="draft-rec-list">${picks.map((pick) => {
+    const opts = { ...ctx.opts, playerPool: ctx.playerPool };
+    const rows = draftCandidatePool(ctx.userRoster, [...ctx.available.values()], pick, pick + ctx.opts.teams, opts).slice(0, 3);
+    return `<div class="draft-rec"><div><strong>Pick ${pick}</strong><small>${rows.map((row) => `${row.player.Player} (${row.player.Pos})`).join(" / ") || "No target"}</small></div><b>Plan</b></div>`;
+  }).join("")}</div>`;
+}
+
+function interactiveDraftGrade(ctx) {
+  if (!ctx) return "Complete the mock draft to compare this roster against the optimized WAR path.";
+  const maxPicks = ctx.opts.teams * ctx.opts.rounds;
+  if (ctx.pickNo <= maxPicks || ctx.userRoster.length < ctx.opts.rosterSpots) {
+    return "Grade appears after your roster is complete.";
+  }
+  const actual = draftRosterWarSummary(ctx.userRoster, ctx.opts);
+  const optimal = runDraftOptimization({ ...ctx.opts, playerPool: ctx.playerPool, seedOffset: 77331 }).roster;
+  const target = draftRosterWarSummary(optimal, ctx.opts);
+  const ratio = target.totalWar > 0 ? actual.totalWar / target.totalWar : 1;
+  const letter = ratio >= 0.96 ? "A" : ratio >= 0.9 ? "B+" : ratio >= 0.82 ? "B" : ratio >= 0.74 ? "C+" : "C";
+  const benchUpside = ctx.userRoster.filter((player, index) => !optimizedStarterSelections(ctx.userRoster).has(index) && draftProjectedPoints(player) >= 120).length;
+  return `<div class="draft-grade"><strong>${letter}</strong><p>${fmt(actual.totalWar)} total WAR versus ${fmt(target.totalWar)} optimized WAR from this slot. Starter WAR: ${fmt(actual.starterWar)}. Bench downside is softened in the grade because upside depth is a valid draft-room choice${benchUpside ? `, and this roster has ${benchUpside} bench upside profiles.` : "."}</p></div>`;
+}
+
+function renderInteractiveDraftLog(ctx) {
+  const body = el("interactiveDraftLogBody");
+  if (!body) return;
+  body.innerHTML = ctx?.log?.length ? ctx.log.map((pick) => `
+    <tr>
+      <td>${fmt(pick.draftPick, 0)}</td>
+      <td>${fmt(pick.draftRound, 0)}</td>
+      <td>${fmt(pick.draftSlot, 0)}</td>
+      <td>${escapeHtml(pick.draftManager)}</td>
+      <td><strong>${escapeHtml(pick.Player)}</strong></td>
+      <td><span class="pos-pill pos-${pick.Pos}">${escapeHtml(pick.Pos)}</span></td>
+      <td>${escapeHtml(pick.Team || "-")}</td>
+      <td>${fmt(pick.ADP, 1)}</td>
+      <td>${fmt(draftWarValue(pick, ctx.opts.metric))}</td>
+    </tr>
+  `).join("") : `<tr><td colspan="9">Start a mock or live draft to build the board.</td></tr>`;
+  if (el("interactiveDraftLogSummary")) {
+    el("interactiveDraftLogSummary").textContent = ctx
+      ? `${ctx.log.length}/${ctx.opts.teams * ctx.opts.rounds} picks recorded. Your roster: ${draftRosterBuildLabel(ctx.userRoster)}.`
+      : "Interactive picks will appear here.";
+  }
+}
+
+function startMockDraft() {
+  state.mockDraft = createInteractiveDraft("mock");
+  advanceMockDraftToUser();
+  scheduleRender(0);
+}
+
+function resetMockDraft() {
+  state.mockDraft = null;
+  scheduleRender(0);
+}
+
+function makeMockPick() {
+  if (!state.mockDraft) startMockDraft();
+  const ctx = state.mockDraft;
+  const player = findInteractivePlayer(ctx, "mockDraftPlayerInput") || interactiveRecommendations(ctx, 1)[0]?.player;
+  if (!player) return;
+  interactiveDraftPick(ctx, player, ctx.opts.slot);
+  if (el("mockDraftPlayerInput")) el("mockDraftPlayerInput").value = "";
+  advanceMockDraftToUser();
+  scheduleRender(0);
+}
+
+function startLiveDraft() {
+  state.liveDraft = createInteractiveDraft("live");
+  scheduleRender(0);
+}
+
+function resetLiveDraft() {
+  state.liveDraft = null;
+  scheduleRender(0);
+}
+
+function recordLivePick() {
+  if (!state.liveDraft) startLiveDraft();
+  const ctx = state.liveDraft;
+  const player = findInteractivePlayer(ctx, "liveDraftPlayerInput");
+  if (!player) return;
+  interactiveDraftPick(ctx, player);
+  if (el("liveDraftPlayerInput")) el("liveDraftPlayerInput").value = "";
+  scheduleRender(0);
+}
+
 function optimizedStarterSelections(roster) {
   const cfg = settings();
   const slots = [
@@ -6411,6 +6699,7 @@ function exportDraftReportPdf() {
 }
 
 function renderDraftOptimizer() {
+  const mode = draftToolMode();
   const { opts, roster } = runDraftOptimization();
   const counts = draftPositionCounts(roster);
   const targets = draftTargets(opts.rosterSpots);
@@ -6424,12 +6713,57 @@ function renderDraftOptimizer() {
   const capText = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${opts.caps[pos]}`).join(" / ");
   if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player window, ${opts.uncertainty} market uncertainty, ${earlyTargetText}, caps ${capText}. Availability and opponent picks blend ADP with ADP rank. Alternates show the next-best pick if the target player is taken. Negative WAR only counts against the total when the player is in the optimized starting lineup.`;
   if (el("draftOptimizerSubtitle")) {
-    el("draftOptimizerSubtitle").textContent = `Other teams draft from a blended ADP and ADP-rank market between turns. Your picks optimize ${opts.metric} with starter, depth, and scarcity adjustments.`;
+    el("draftOptimizerSubtitle").textContent = mode === "mock"
+      ? "Draft against ADP-heavy agent teams, then compare your roster against the optimized WAR path from the same slot."
+      : mode === "live"
+        ? "Enter each real draft pick and get multiple strategy-based recommendations when your slot is on the clock."
+        : `Other teams draft from a blended ADP and ADP-rank market between turns. Your picks optimize ${opts.metric} with starter, depth, and scarcity adjustments.`;
   }
+  document.querySelectorAll("[data-draft-mode-panel]").forEach((panel) => {
+    const modes = (panel.dataset.draftModePanel || "").split(/\s+/);
+    panel.classList.toggle("active", modes.includes(mode));
+  });
   renderDraftStrategyReport(opts);
+  if (mode === "mock") {
+    const ctx = state.mockDraft;
+    if (ctx && ctx.key !== interactiveDraftKey(opts)) state.mockDraft = null;
+    const active = state.mockDraft;
+    updateInteractiveDatalist(active, "mockDraftPlayerOptions");
+    const maxPicks = active ? active.opts.teams * active.opts.rounds : 0;
+    if (el("mockDraftStatus")) {
+      el("mockDraftStatus").textContent = active
+        ? active.pickNo > maxPicks
+          ? "Mock draft complete. Review your grade and roster below."
+          : `Pick ${active.pickNo}: ${interactiveSlotLabel(draftSlotForPick(active.pickNo, active.opts.teams), active.opts)} is on the clock.`
+        : "Start a mock draft to pick against ADP-heavy agent teams.";
+    }
+    if (el("mockDraftRecommendations")) el("mockDraftRecommendations").innerHTML = recommendationHtml(interactiveRecommendations(active, 5));
+    if (el("mockDraftGrade")) el("mockDraftGrade").innerHTML = interactiveDraftGrade(active);
+  }
+  if (mode === "live") {
+    const ctx = state.liveDraft;
+    if (ctx && ctx.key !== interactiveDraftKey(opts)) state.liveDraft = null;
+    const active = state.liveDraft;
+    updateInteractiveDatalist(active, "liveDraftPlayerOptions");
+    const onClockSlot = active ? draftSlotForPick(active.pickNo, active.opts.teams) : null;
+    if (el("liveDraftStatus")) {
+      el("liveDraftStatus").textContent = active
+        ? `Pick ${active.pickNo}: ${interactiveSlotLabel(onClockSlot, active.opts)} is on the clock.`
+        : "Start a live board, enter each pick, and get options when your slot is on the clock.";
+    }
+    if (el("liveDraftRecommendations")) {
+      el("liveDraftRecommendations").innerHTML = active && onClockSlot === active.opts.slot
+        ? recommendationHtml(interactiveStrategyRecommendations(active))
+        : "<p>Record the room's picks until your slot comes up.</p>";
+    }
+    if (el("liveDraftPlan")) el("liveDraftPlan").innerHTML = interactiveNextPlan(active);
+  }
+  const interactive = mode === "mock" ? state.mockDraft : mode === "live" ? state.liveDraft : null;
+  renderInteractiveDraftLog(interactive);
   const body = el("draftOptimizerBody");
   if (body) {
-    body.innerHTML = roster.map((player) => `
+    const displayRoster = interactive?.userRoster?.length ? interactive.userRoster : roster;
+    body.innerHTML = displayRoster.map((player) => `
       <tr>
         <td>${fmt(player.draftRound, 0)}</td>
         <td>${fmt(player.draftPick, 0)}</td>
@@ -6446,7 +6780,7 @@ function renderDraftOptimizer() {
       </tr>
     `).join("");
   }
-  renderDraftOptimizerChart(roster, opts);
+  renderDraftOptimizerChart(interactive?.userRoster?.length ? interactive.userRoster : roster, opts);
 }
 
 function renderDraftOptimizerChart(roster, opts) {
@@ -6856,6 +7190,18 @@ function bindEvents() {
   el("adpFilterReset")?.addEventListener("click", resetAdpFilters);
   el("runDraftReport")?.addEventListener("click", requestDraftStrategyReport);
   el("exportDraftReportPdf")?.addEventListener("click", exportDraftReportPdf);
+  el("startMockDraft")?.addEventListener("click", startMockDraft);
+  el("resetMockDraft")?.addEventListener("click", resetMockDraft);
+  el("makeMockPick")?.addEventListener("click", makeMockPick);
+  el("mockDraftPlayerInput")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") makeMockPick();
+  });
+  el("startLiveDraft")?.addEventListener("click", startLiveDraft);
+  el("resetLiveDraft")?.addEventListener("click", resetLiveDraft);
+  el("recordLivePick")?.addEventListener("click", recordLivePick);
+  el("liveDraftPlayerInput")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") recordLivePick();
+  });
   el("adpFilterOverlay")?.addEventListener("click", (event) => {
     if (event.target === el("adpFilterOverlay")) closeAdpFilters();
   });
