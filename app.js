@@ -5759,6 +5759,109 @@ function draftStrategySwapHtml(bestRoster, strategyRoster, opts) {
   }).join("; ");
 }
 
+function draftReportTableRows(roster, opts) {
+  const starterSelections = optimizedStarterSelections(roster);
+  return roster.map((player, index) => {
+    const starterValue = starterSelections.get(index);
+    const value = starterValue ?? draftWarValue(player, opts.metric);
+    return {
+      round: player.draftRound,
+      pick: player.draftPick,
+      player: player.Player,
+      pos: player.Pos,
+      team: player.Team || "-",
+      adp: player.ADP,
+      war: value,
+      role: starterValue !== undefined ? "Starter" : "Bench",
+      note: player.draftReason || "-"
+    };
+  });
+}
+
+function draftReportRosterTableHtml(roster, opts) {
+  const rows = draftReportTableRows(roster, opts);
+  return `
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>Rd</th>
+          <th>Pick</th>
+          <th>Player</th>
+          <th>Pos</th>
+          <th>Team</th>
+          <th>ADP</th>
+          <th>WAR</th>
+          <th>Role</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row) => `
+          <tr>
+            <td>${fmt(row.round, 0)}</td>
+            <td>${fmt(row.pick, 0)}</td>
+            <td><strong>${escapeHtml(row.player)}</strong></td>
+            <td>${escapeHtml(row.pos)}</td>
+            <td>${escapeHtml(row.team)}</td>
+            <td>${fmt(row.adp, 1)}</td>
+            <td class="${row.war < 0 ? "report-neg" : ""}">${fmt(row.war)}</td>
+            <td>${escapeHtml(row.role)}</td>
+            <td>${escapeHtml(row.note)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function draftReportStrategyTableHtml(rows) {
+  return `
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Strategy</th>
+          <th>Avg WAR</th>
+          <th>Starter WAR</th>
+          <th>Upside</th>
+          <th>Cost</th>
+          <th>Build</th>
+          <th>Opening</th>
+          <th>Common targets</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row) => `
+          <tr>
+            <td>${fmt(row.rank, 0)}</td>
+            <td><strong>${escapeHtml(row.label)}</strong></td>
+            <td>${fmt(row.averageWar)}</td>
+            <td>${fmt(row.starterWar)}</td>
+            <td>${fmt(row.p75)}-${fmt(row.maxWar)}</td>
+            <td>${row.rank === 1 ? "Best" : `${fmt(row.opportunityCost)} WAR`}</td>
+            <td>${escapeHtml(row.commonBuild)}</td>
+            <td>${escapeHtml(row.opening)}</td>
+            <td>${escapeHtml(row.commonTargets)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function draftReportStrategyRosterHtml(rows, opts) {
+  const best = rows[0];
+  return rows.map((row) => `
+    <article class="report-strategy">
+      <h3>${escapeHtml(row.label)}</h3>
+      <p><strong>${fmt(row.averageWar)}</strong> avg WAR, <strong>${fmt(row.starterWar)}</strong> starter WAR, ${row.rank === 1 ? "best overall path" : `${fmt(row.opportunityCost)} WAR behind the best path`}.</p>
+      <p><strong>Associated targets:</strong> ${escapeHtml(row.commonTargets)}</p>
+      ${row.rank === 1 ? "" : `<p><strong>Key swaps:</strong> ${draftStrategySwapHtml(best.bestRosterRows || [], row.bestRosterRows || [], opts)}</p>`}
+      ${draftReportRosterTableHtml(row.bestRosterRows || [], opts)}
+    </article>
+  `).join("");
+}
+
 function draftPickInsight(roster, type) {
   const rows = roster.map((player) => ({
     player,
@@ -6138,22 +6241,125 @@ function exportDraftReportPdf() {
   const key = draftReportKey(opts);
   if (state.draftReportKey !== key || !state.draftReportRows.length) {
     requestDraftStrategyReport();
-    window.alert("Run the draft strategy report for the current settings first. Once it finishes, click Export PDF again.");
+    window.alert("Run the draft strategy report for the current settings first. Once it finishes, click Print Report again.");
     return;
   }
-  const previousTitle = document.title;
-  const cleanup = () => {
-    document.body.classList.remove("printing-draft-report");
-    document.title = previousTitle;
-    window.removeEventListener("afterprint", cleanup);
-  };
-  document.title = `WAR Lab Draft Strategy Report - Slot ${opts.slot}`;
-  document.body.classList.add("printing-draft-report");
-  window.addEventListener("afterprint", cleanup);
-  window.setTimeout(() => {
-    window.print();
-    window.setTimeout(cleanup, 1500);
-  }, 50);
+  const rows = state.draftReportRows;
+  const best = rows[0];
+  const runnerUp = rows[1];
+  const close = rows.slice(1).filter((row) => row.opportunityCost <= 0.35).slice(0, 3);
+  const costly = rows.slice(1).filter((row) => row.opportunityCost > 0.75).slice(0, 3);
+  const reportWindow = window.open("", "_blank");
+  if (!reportWindow) {
+    window.alert("The report window was blocked. Allow popups for this site, then click Print Report again.");
+    return;
+  }
+  const settingsSummary = [
+    `${opts.teams} teams`,
+    `slot ${opts.slot}`,
+    `${opts.rounds} rounds`,
+    `${opts.rosterSpots} roster spots`,
+    `${opts.window}-player candidate window`,
+    `${opts.uncertainty} uncertainty`,
+    `${opts.metric} optimized`
+  ].join(" | ");
+  const closeText = close.length
+    ? close.map((row) => `${row.label} (${fmt(row.opportunityCost)} WAR behind)`).join(", ")
+    : "No close alternate finished within 0.35 WAR.";
+  const costlyText = costly.length
+    ? costly.map((row) => `${row.label} (${fmt(row.opportunityCost)} WAR cost)`).join(", ")
+    : "No predefined path created a severe opportunity cost.";
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WAR Lab Draft Strategy Report - Slot ${opts.slot}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f3f1ed; color: #161616; font-family: Arial, Helvetica, sans-serif; line-height: 1.35; }
+    main { max-width: 1060px; margin: 0 auto; padding: 34px; }
+    header { border-bottom: 4px solid #cc3333; padding-bottom: 18px; margin-bottom: 20px; }
+    h1, h2, h3 { margin: 0; line-height: 1.05; }
+    h1 { font-size: 34px; text-transform: uppercase; letter-spacing: .02em; }
+    h2 { margin: 24px 0 10px; font-size: 20px; text-transform: uppercase; border-bottom: 1px solid #c8c1b8; padding-bottom: 6px; }
+    h3 { font-size: 16px; text-transform: uppercase; }
+    p { margin: 7px 0; }
+    .meta { color: #555; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+    .card { background: #fff; border: 1px solid #d6d0c8; padding: 12px; }
+    .card span { display: block; color: #666; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .card strong { display: block; margin-top: 4px; font-size: 18px; }
+    .brief { display: grid; grid-template-columns: 1.2fr .8fr; gap: 14px; }
+    .brief article, .report-strategy { background: #fff; border: 1px solid #d6d0c8; padding: 14px; break-inside: avoid; }
+    .brief article strong { color: #a92929; }
+    .report-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 11px; margin-top: 8px; }
+    .report-table th { background: #161616; color: #fff; text-align: left; padding: 7px 6px; font-size: 10px; text-transform: uppercase; }
+    .report-table td { border: 1px solid #d6d0c8; padding: 6px; vertical-align: top; }
+    .report-table tbody tr:nth-child(even) { background: #faf9f7; }
+    .report-neg { color: #b00020; font-weight: 800; }
+    .draft-war-swing { display: inline-block; border: 1px solid #999; padding: 1px 5px; margin: 0 1px; font-size: 10px; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+    .draft-war-swing.negative { background: #ffe0e0; border-color: #cc3333; color: #a92929; }
+    .draft-war-swing.positive { background: #dff5e2; border-color: #3c8f48; color: #21652b; }
+    .footer { margin-top: 22px; color: #666; font-size: 10px; }
+    @media print {
+      body { background: #fff; }
+      main { padding: 0; max-width: none; }
+      .report-strategy { page-break-inside: avoid; }
+      button { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="meta">WAR Projection Lab | Draft Strategy Report</p>
+      <h1>${opts.rounds}-Round Draft Plan from Slot ${opts.slot}</h1>
+      <p>${escapeHtml(settingsSummary)}</p>
+    </header>
+
+    <section class="grid">
+      <div class="card"><span>Recommended path</span><strong>${escapeHtml(best.label)}</strong></div>
+      <div class="card"><span>Avg WAR</span><strong>${fmt(best.averageWar)}</strong></div>
+      <div class="card"><span>Starter WAR</span><strong>${fmt(best.starterWar)}</strong></div>
+      <div class="card"><span>Best build</span><strong>${escapeHtml(best.bestBuild)}</strong></div>
+    </section>
+
+    <section class="brief">
+      <article>
+        <h2>Executive Summary</h2>
+        <p>The preferred plan is <strong>${escapeHtml(best.label)}</strong>. ${runnerUp ? `It beat ${escapeHtml(runnerUp.label)} by ${fmt(best.averageWar - runnerUp.averageWar)} average WAR across ${opts.simulations} simulations per strategy.` : "It was the only completed strategy path."}</p>
+        <p>The representative best roster opened <strong>${escapeHtml(best.opening)}</strong> and reached <strong>${fmt(best.bestWar)}</strong> total WAR.</p>
+        <p><strong>Closest alternatives:</strong> ${escapeHtml(closeText)}</p>
+        <p><strong>Major opportunity costs:</strong> ${escapeHtml(costlyText)}</p>
+      </article>
+      <article>
+        <h2>Draft-Room Notes</h2>
+        <p><strong>Reach target:</strong> ${escapeHtml(draftPickInsight(best.bestRosterRows || [], "reach"))}</p>
+        <p><strong>Wait target:</strong> ${escapeHtml(draftPickInsight(best.bestRosterRows || [], "wait"))}</p>
+        <p><strong>If he falls:</strong> ${escapeHtml(best.nearMissTargets && best.nearMissTargets !== "-" ? best.nearMissTargets : draftPickInsight(best.bestRosterRows || [], "fall"))}</p>
+        <p><strong>Risk:</strong> ${escapeHtml(draftNegativeWarText(best.bestRosterRows || [], opts))}</p>
+      </article>
+    </section>
+
+    <h2>Recommended Team Sheet</h2>
+    ${draftReportRosterTableHtml(best.bestRosterRows || [], opts)}
+
+    <h2>Strategy Comparison</h2>
+    ${draftReportStrategyTableHtml(rows)}
+
+    <h2>Strategy Team Sheets</h2>
+    ${draftReportStrategyRosterHtml(rows, opts)}
+
+    <p class="footer">Generated from WAR Lab simulations. Agent teams draft with an ADP-heavy mix of ADP rank, projected fantasy points, team need, and market uncertainty.</p>
+    <button onclick="window.print()">Save as PDF</button>
+  </main>
+</body>
+</html>`;
+  reportWindow.document.open();
+  reportWindow.document.write(html);
+  reportWindow.document.close();
+  reportWindow.focus();
+  window.setTimeout(() => reportWindow.print(), 300);
 }
 
 function renderDraftOptimizer() {
