@@ -7,7 +7,7 @@
     <link rel="icon" href="assets/favicon.svg?v=browser-fire-20260904a" type="image/svg+xml">
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=espn-headshots-20260905a">
+    <link rel="stylesheet" href="styles.css?v=clickable-draft-board-20260905a">
   </head>
   <body>
     <main class="app-shell">
@@ -302,14 +302,6 @@
                 <button id="resetMockDraft" type="button">Reset</button>
               </div>
             </div>
-            <div class="draft-pick-controls">
-              <label>
-                Draft player
-                <input id="mockDraftPlayerInput" type="text" list="mockDraftPlayerOptions" placeholder="Type a player name">
-                <datalist id="mockDraftPlayerOptions"></datalist>
-              </label>
-              <button id="makeMockPick" type="button">Draft Player</button>
-            </div>
             <div class="draft-assistant-grid">
               <article class="draft-assistant-card">
                 <span>Current Recommendations</span>
@@ -320,6 +312,7 @@
                 <div id="mockDraftGrade">Complete the mock draft to compare this roster against the optimized WAR path.</div>
               </article>
             </div>
+            <div id="mockDraftBoard" class="draft-player-board"></div>
           </section>
           <section class="draft-interactive-panel draft-mode-panel" data-draft-mode-panel="live">
             <div class="panel-header">
@@ -332,14 +325,6 @@
                 <button id="resetLiveDraft" type="button">Reset</button>
               </div>
             </div>
-            <div class="draft-pick-controls">
-              <label>
-                Pick taken
-                <input id="liveDraftPlayerInput" type="text" list="liveDraftPlayerOptions" placeholder="Type the drafted player">
-                <datalist id="liveDraftPlayerOptions"></datalist>
-              </label>
-              <button id="recordLivePick" type="button">Record Pick</button>
-            </div>
             <div class="draft-assistant-grid">
               <article class="draft-assistant-card">
                 <span>On-Clock Recommendations</span>
@@ -350,6 +335,7 @@
                 <div id="liveDraftPlan"></div>
               </article>
             </div>
+            <div id="liveDraftBoard" class="draft-player-board"></div>
           </section>
           <div class="draft-optimizer-grid">
             <div class="chart-panel">
@@ -838,8 +824,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "espn-headshots-20260905a";
+      window.WAR_LAB_BUILD = "clickable-draft-board-20260905a";
     </script>
-    <script src="app.js?v=espn-headshots-20260905a"></script>
+    <script src="app.js?v=clickable-draft-board-20260905a"></script>
   </body>
 </html>

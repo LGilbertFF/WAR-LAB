@@ -5762,6 +5762,22 @@ function interactiveRecommendations(ctx, limit = 5) {
   return draftCandidatePool(ctx.userRoster, [...ctx.available.values()], ctx.pickNo, nextUserPick, opts).slice(0, limit);
 }
 
+function draftPrimaryWarMetric(player, opts) {
+  const selected = opts.metric || draftMetric();
+  if (selected !== "auto" && selected !== "WAR") return selected;
+  if (settings().slots.SUPERFLEX > 0) return "SuperFlex WAR";
+  return ["RB", "WR", "TE"].includes(player?.Pos) ? "Flex WAR" : "WAR";
+}
+
+function draftWarChipsHtml(player, opts) {
+  const primary = draftPrimaryWarMetric(player, opts);
+  const secondary = settings().slots.SUPERFLEX > 0 ? "SuperFlex WAR" : "Flex WAR";
+  const metrics = ["WAR", secondary].filter((metric, index, arr) => arr.indexOf(metric) === index);
+  return `<div class="draft-card-metrics">${metrics.map((metric) => `
+    <span class="draft-war-chip ${metric === primary ? "primary" : ""}">${escapeHtml(metric.replace(" WAR", ""))}: ${fmt(draftWarValue(player, metric))}</span>
+  `).join("")}</div>`;
+}
+
 function interactiveStrategyRecommendations(ctx) {
   if (!ctx) return [];
   const seen = new Set();
@@ -5774,6 +5790,58 @@ function interactiveStrategyRecommendations(ctx) {
     seen.add(key);
     return true;
   }).slice(0, 5);
+}
+
+function topAvailableByPosition(ctx, excludeIds = new Set()) {
+  if (!ctx) return [];
+  return ["QB", "RB", "WR", "TE"].map((pos) => {
+    const player = [...ctx.available.values()]
+      .filter((row) => row.Pos === pos && !excludeIds.has(row.id))
+      .sort((a, b) => draftWarValue(b, draftPrimaryWarMetric(b, ctx.opts)) - draftWarValue(a, draftPrimaryWarMetric(a, ctx.opts)))[0];
+    return player ? { player, positionStrategy: `Top available ${pos}`, reason: "position scan" } : null;
+  }).filter(Boolean);
+}
+
+function draftPlayerCardHtml(player, opts, tag = "") {
+  const adp = draftMarketCost(player, null);
+  return `
+    <button class="draft-player-card" type="button" data-draft-player-id="${escapeHtml(player.id)}">
+      ${headshotImg(player)}
+      <span>
+        <strong>${escapeHtml(player.Player)}</strong>
+        <small>${escapeHtml(tag ? `${tag} - ` : "")}${escapeHtml(player.Pos)} ${escapeHtml(player.Team || "-")} - ADP ${adp === null ? "-" : fmt(adp, 1)}</small>
+        ${draftWarChipsHtml(player, opts)}
+      </span>
+    </button>
+  `;
+}
+
+function renderInteractivePlayerBoard(ctx, targetId) {
+  const target = el(targetId);
+  if (!target) return;
+  if (!ctx) {
+    target.innerHTML = `<section class="draft-board-section"><h4>Available Player Board</h4><p class="muted">Start the draft to load the clickable board.</p></section>`;
+    return;
+  }
+  const recs = interactiveRecommendations(ctx, 5);
+  const recIds = new Set(recs.map((row) => row.player.id));
+  const posRows = topAvailableByPosition(ctx, recIds);
+  const exclude = new Set([...recIds, ...posRows.map((row) => row.player.id)]);
+  const rest = ctx.playerPool.filter((player) => ctx.available.has(player.id) && !exclude.has(player.id)).slice(0, 220);
+  target.innerHTML = `
+    <section class="draft-board-section">
+      <h4>Recommended top 5</h4>
+      <div class="draft-board-grid">${recs.map((row, index) => draftPlayerCardHtml(row.player, ctx.opts, `#${index + 1} ${row.positionStrategy || "Best"}`)).join("") || "<p class=\"muted\">No recommendations available.</p>"}</div>
+    </section>
+    <section class="draft-board-section">
+      <h4>Top available by position</h4>
+      <div class="draft-board-grid">${posRows.map((row) => draftPlayerCardHtml(row.player, ctx.opts, row.positionStrategy)).join("") || "<p class=\"muted\">No positional options available.</p>"}</div>
+    </section>
+    <section class="draft-board-section">
+      <h4>Scrollable ADP board</h4>
+      <div class="draft-board-grid draft-board-scroll">${rest.map((player) => draftPlayerCardHtml(player, ctx.opts)).join("")}</div>
+    </section>
+  `;
 }
 
 function findInteractivePlayer(ctx, inputId) {
@@ -5793,17 +5861,38 @@ function updateInteractiveDatalist(ctx, datalistId) {
   )).join("");
 }
 
-function recommendationHtml(rows) {
+function recommendationPlanText(ctx, player) {
+  if (!ctx || !player) return "";
+  const shadowRoster = [...ctx.userRoster, player];
+  const picks = [];
+  const maxPicks = ctx.opts.teams * ctx.opts.rounds;
+  for (let pick = ctx.pickNo + 1; pick <= maxPicks && picks.length < 2; pick += 1) {
+    if (draftSlotForPick(pick, ctx.opts.teams) === ctx.opts.slot) picks.push(pick);
+  }
+  if (!picks.length) return "";
+  return picks.map((pick) => {
+    const opts = { ...ctx.opts, playerPool: ctx.playerPool };
+    const rows = draftCandidatePool(shadowRoster, [...ctx.available.values()].filter((row) => row.id !== player.id), pick, pick + ctx.opts.teams, opts).slice(0, 2);
+    return `P${pick}: ${rows.map((row) => `${row.player.Player} (${row.player.Pos})`).join(" / ") || "no target"}`;
+  }).join("; ");
+}
+
+function recommendationHtml(rows, ctx = null) {
   if (!rows.length) return "<p>No recommendations available yet.</p>";
-  return `<div class="draft-rec-list">${rows.map((row, index) => `
-    <div class="draft-rec">
-      <div>
-        <div class="adp-player-cell">${headshotImg(row.player)}<strong>${index + 1}. ${escapeHtml(row.player.Player)} <span class="pos-pill pos-${row.player.Pos}">${escapeHtml(row.player.Pos)}</span></strong></div>
-        <small>${escapeHtml(row.positionStrategy || "Best available")} - ${escapeHtml(row.reason || "best WAR in window")}</small>
+  return `<div class="draft-rec-list">${rows.map((row, index) => {
+    const nextPlan = ctx ? recommendationPlanText(ctx, row.player) : "";
+    const pivot = rows[index + 1]?.player ? `${rows[index + 1].player.Player} (${rows[index + 1].player.Pos})` : "no clear pivot";
+    return `
+      <div class="draft-rec">
+        <div>
+          <div class="adp-player-cell">${headshotImg(row.player)}<strong>${index + 1}. ${escapeHtml(row.player.Player)} <span class="pos-pill pos-${row.player.Pos}">${escapeHtml(row.player.Pos)}</span></strong></div>
+          <small>${escapeHtml(row.positionStrategy || "Best available")} - ${escapeHtml(row.reason || "best WAR in window")}</small>
+          ${ctx ? `<small>Pivot: ${escapeHtml(pivot)}${nextPlan ? ` - Next: ${escapeHtml(nextPlan)}` : ""}</small>` : ""}
+        </div>
+        ${draftWarChipsHtml(row.player, ctx?.opts || { metric: row.player._draftMetric || draftMetric() })}
       </div>
-      <b>${fmt(draftWarValue(row.player, row.player._draftMetric || draftMetric()))}</b>
-    </div>
-  `).join("")}</div>`;
+    `;
+  }).join("")}</div>`;
 }
 
 function interactiveNextPlan(ctx) {
@@ -5833,7 +5922,7 @@ function interactiveDraftGrade(ctx) {
   const ratio = target.totalWar > 0 ? actual.totalWar / target.totalWar : 1;
   const letter = ratio >= 0.96 ? "A" : ratio >= 0.9 ? "B+" : ratio >= 0.82 ? "B" : ratio >= 0.74 ? "C+" : "C";
   const benchUpside = ctx.userRoster.filter((player, index) => !optimizedStarterSelections(ctx.userRoster).has(index) && draftProjectedPoints(player) >= 120).length;
-  return `<div class="draft-grade"><strong>${letter}</strong><p>${fmt(actual.totalWar)} total WAR versus ${fmt(target.totalWar)} optimized WAR from this slot. Starter WAR: ${fmt(actual.starterWar)}. Bench downside is softened in the grade because upside depth is a valid draft-room choice${benchUpside ? `, and this roster has ${benchUpside} bench upside profiles.` : "."}</p></div>`;
+  return `<div class="draft-grade"><strong>${letter}</strong><p>${fmt(actual.totalWar)} overall WAR versus ${fmt(target.totalWar)} optimized overall WAR from this slot. Starter WAR: ${fmt(actual.starterWar)} versus ${fmt(target.starterWar)} optimized starter WAR. Bench downside is softened in the grade because upside depth is a valid draft-room choice${benchUpside ? `, and this roster has ${benchUpside} bench upside profiles.` : "."}</p></div>`;
 }
 
 function renderInteractiveDraftLog(ctx) {
@@ -5899,6 +5988,39 @@ function recordLivePick() {
   interactiveDraftPick(ctx, player);
   if (el("liveDraftPlayerInput")) el("liveDraftPlayerInput").value = "";
   scheduleRender(0);
+}
+
+function makeInteractivePickFromCard(mode, playerId) {
+  if (mode === "mock") {
+    if (!state.mockDraft) startMockDraft();
+    const ctx = state.mockDraft;
+    const maxPicks = ctx.opts.teams * ctx.opts.rounds;
+    if (ctx.pickNo > maxPicks) return;
+    if (draftSlotForPick(ctx.pickNo, ctx.opts.teams) !== ctx.opts.slot) advanceMockDraftToUser();
+    if (draftSlotForPick(ctx.pickNo, ctx.opts.teams) !== ctx.opts.slot) return;
+    const player = ctx.available.get(playerId);
+    if (!player) return;
+    interactiveDraftPick(ctx, player, ctx.opts.slot);
+    advanceMockDraftToUser();
+    scheduleRender(0);
+    return;
+  }
+  if (mode === "live") {
+    if (!state.liveDraft) startLiveDraft();
+    const ctx = state.liveDraft;
+    const player = ctx.available.get(playerId);
+    if (!player) return;
+    interactiveDraftPick(ctx, player);
+    scheduleRender(0);
+  }
+}
+
+function bindDraftBoardClick(boardId, mode) {
+  el(boardId)?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-draft-player-id]");
+    if (!button) return;
+    makeInteractivePickFromCard(mode, button.dataset.draftPlayerId);
+  });
 }
 
 function optimizedStarterSelections(roster) {
@@ -6131,6 +6253,7 @@ function draftReportTableRows(roster, opts) {
       round: player.draftRound,
       pick: player.draftPick,
       player: player.Player,
+      source: player,
       pos: player.Pos,
       team: player.Team || "-",
       adp: player.ADP,
@@ -6163,7 +6286,7 @@ function draftReportRosterTableHtml(roster, opts) {
           <tr>
             <td>${fmt(row.round, 0)}</td>
             <td>${fmt(row.pick, 0)}</td>
-            <td><strong>${escapeHtml(row.player)}</strong></td>
+            <td><div class="adp-player-cell">${headshotImg(row.source)}<strong>${escapeHtml(row.player)}</strong></div></td>
             <td>${escapeHtml(row.pos)}</td>
             <td>${escapeHtml(row.team)}</td>
             <td>${fmt(row.adp, 1)}</td>
@@ -6764,8 +6887,11 @@ function renderDraftOptimizer() {
           : `Pick ${active.pickNo}: ${interactiveSlotLabel(draftSlotForPick(active.pickNo, active.opts.teams), active.opts)} is on the clock.`
         : "Start a mock draft to pick against ADP-heavy agent teams.";
     }
-    if (el("mockDraftRecommendations")) el("mockDraftRecommendations").innerHTML = recommendationHtml(interactiveRecommendations(active, 5));
+    if (el("mockDraftRecommendations")) el("mockDraftRecommendations").innerHTML = recommendationHtml(interactiveRecommendations(active, 5), active);
     if (el("mockDraftGrade")) el("mockDraftGrade").innerHTML = interactiveDraftGrade(active);
+    renderInteractivePlayerBoard(active, "mockDraftBoard");
+  } else {
+    renderInteractivePlayerBoard(null, "mockDraftBoard");
   }
   if (mode === "live") {
     const ctx = state.liveDraft;
@@ -6780,10 +6906,13 @@ function renderDraftOptimizer() {
     }
     if (el("liveDraftRecommendations")) {
       el("liveDraftRecommendations").innerHTML = active && onClockSlot === active.opts.slot
-        ? recommendationHtml(interactiveStrategyRecommendations(active))
+        ? recommendationHtml(interactiveStrategyRecommendations(active), active)
         : "<p>Record the room's picks until your slot comes up.</p>";
     }
     if (el("liveDraftPlan")) el("liveDraftPlan").innerHTML = interactiveNextPlan(active);
+    renderInteractivePlayerBoard(active, "liveDraftBoard");
+  } else {
+    renderInteractivePlayerBoard(null, "liveDraftBoard");
   }
   const interactive = mode === "mock" ? state.mockDraft : mode === "live" ? state.liveDraft : null;
   renderInteractiveDraftLog(interactive);
@@ -6794,7 +6923,7 @@ function renderDraftOptimizer() {
       <tr>
         <td>${fmt(player.draftRound, 0)}</td>
         <td>${fmt(player.draftPick, 0)}</td>
-        <td><strong>${escapeHtml(player.Player)}</strong></td>
+        <td><div class="adp-player-cell">${headshotImg(player)}<strong>${escapeHtml(player.Player)}</strong></div></td>
         <td><span class="pos-pill pos-${player.Pos}">${escapeHtml(player.Pos)}</span></td>
         <td>${escapeHtml(player.draftPositionStrategy || "-")}</td>
         <td>${escapeHtml(player.Team || "-")}</td>
@@ -7228,12 +7357,14 @@ function bindEvents() {
   el("mockDraftPlayerInput")?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") makeMockPick();
   });
+  bindDraftBoardClick("mockDraftBoard", "mock");
   el("startLiveDraft")?.addEventListener("click", startLiveDraft);
   el("resetLiveDraft")?.addEventListener("click", resetLiveDraft);
   el("recordLivePick")?.addEventListener("click", recordLivePick);
   el("liveDraftPlayerInput")?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") recordLivePick();
   });
+  bindDraftBoardClick("liveDraftBoard", "live");
   el("adpFilterOverlay")?.addEventListener("click", (event) => {
     if (event.target === el("adpFilterOverlay")) closeAdpFilters();
   });
