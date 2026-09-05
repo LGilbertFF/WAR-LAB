@@ -114,6 +114,21 @@ function fmt(value, digits = 2) {
   return parsed === null ? "-" : parsed.toFixed(digits);
 }
 
+function signedFmt(value, digits = 2) {
+  const parsed = number(value);
+  if (parsed === null) return "-";
+  if (parsed > 0) return `+${parsed.toFixed(digits)}`;
+  return parsed.toFixed(digits);
+}
+
+function draftWarBadgeHtml(value, digits = 2, suffix = "WAR") {
+  const parsed = number(value);
+  if (parsed === null) return `<span class="draft-war-badge neutral">-</span>`;
+  const tone = parsed < 0 ? "negative" : parsed > 0 ? "positive" : "neutral";
+  const label = parsed < 0 ? "NEG" : parsed > 0 ? "POS" : "EVEN";
+  return `<span class="draft-war-badge ${tone}"><b>${label}</b>${signedFmt(parsed, digits)}${suffix ? ` ${suffix}` : ""}</span>`;
+}
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
@@ -5421,7 +5436,7 @@ function draftCandidateScore(player, roster, available, pickNo, nextUserPick, op
 
 function draftAlternateLabel(candidate, opts) {
   if (!candidate?.player) return "-";
-  return `${candidate.player.Player} (${candidate.player.Pos}, ${fmt(draftWarValue(candidate.player, opts.metric))})`;
+  return `${candidate.player.Player} (${candidate.player.Pos}, ${signedFmt(draftWarValue(candidate.player, opts.metric))} WAR)`;
 }
 
 function runDraftOptimization(optsOverride = null) {
@@ -5663,7 +5678,7 @@ function draftRosterSections(roster) {
 function draftRosterBoardHtml(roster) {
   const sections = draftRosterSections(roster);
   const rowHtml = (row) => row.player
-    ? `<div class="draft-roster-player"><span>${escapeHtml(row.slot)}</span><strong>${escapeHtml(row.player.Player)}</strong><em>${escapeHtml(row.player.Pos)} - R${fmt(row.player.draftRound, 0)} - ${fmt(row.value)} WAR</em></div>`
+    ? `<div class="draft-roster-player ${number(row.value, 0) < 0 ? "negative-war-row" : ""}"><span>${escapeHtml(row.slot)}</span><strong>${escapeHtml(row.player.Player)}</strong><em>${escapeHtml(row.player.Pos)} - R${fmt(row.player.draftRound, 0)} ${draftWarBadgeHtml(row.value)}</em></div>`
     : `<div class="draft-roster-player empty"><span>${escapeHtml(row.slot)}</span><strong>Open</strong><em>-</em></div>`;
   const bench = sections.bench.map(rowHtml).join("");
   return `
@@ -5699,7 +5714,7 @@ function draftStrategyComparisonHtml(rows, opts) {
               </div>
               <strong>${row.rank === 1 ? "Best" : `${fmt(row.opportunityCost)} WAR`}</strong>
             </div>
-            <p><b>${fmt(row.averageWar)}</b> avg WAR, <b>${fmt(row.starterWar)}</b> starter WAR. Most common build: ${escapeHtml(row.commonBuild)}.</p>
+            <p>${draftWarBadgeHtml(row.averageWar)} average roster value, ${draftWarBadgeHtml(row.starterWar)} from starters. Most common build: ${escapeHtml(row.commonBuild)}.</p>
             <p>Most associated targets: ${escapeHtml(row.commonTargets)}.</p>
             ${row.rank === 1 ? "" : `<p>Key swaps: ${escapeHtml(draftStrategySwapText(best.bestRosterRows || [], row.bestRosterRows || [], opts))}</p>`}
             ${draftRosterBoardHtml(row.bestRosterRows || [])}
@@ -5821,6 +5836,48 @@ function runDraftStrategyReport(baseOpts) {
   return rows;
 }
 
+function draftNegativeWarText(roster, opts) {
+  const starterSelections = optimizedStarterSelections(roster);
+  const starterNegatives = [];
+  const benchNegatives = [];
+  roster.forEach((player, index) => {
+    const starterValue = starterSelections.get(index);
+    const value = starterValue ?? draftWarValue(player, opts.metric);
+    if (value >= 0) return;
+    const label = `${player.Player} (${player.Pos}, ${signedFmt(value)} WAR)`;
+    if (starterValue !== undefined) starterNegatives.push(label);
+    else benchNegatives.push(label);
+  });
+  if (starterNegatives.length) {
+    return `Watch the starting lineup risk: ${starterNegatives.slice(0, 3).join(", ")} project below replacement and count against the team total.`;
+  }
+  if (benchNegatives.length) {
+    return `There are ${benchNegatives.length} negative-WAR bench picks, but they do not reduce total WAR unless they are forced into the optimized starting lineup.`;
+  }
+  return "No negative-WAR players appear in the representative best roster.";
+}
+
+function draftStrategyStory(rows, opts) {
+  if (!rows.length) return "";
+  const best = rows[0];
+  const runnerUp = rows[1];
+  const bestEdge = runnerUp ? best.averageWar - runnerUp.averageWar : 0;
+  const positionText = best.commonBuild !== "-" ? `The strongest build most often landed at ${best.commonBuild}` : "The strongest build stayed flexible by position";
+  const edgeText = runnerUp
+    ? `${best.label} beat the next-best path, ${runnerUp.label}, by ${fmt(bestEdge)} average WAR.`
+    : `${best.label} was the only completed strategy path.`;
+  return `
+    <article>
+      <span>Draft room read</span>
+      <p>${escapeHtml(`${positionText}. ${edgeText} Its best version opened ${best.opening}, which is the clearest signal of where the room allowed value to fall.`)}</p>
+    </article>
+    <article>
+      <span>Risk check</span>
+      <p>${escapeHtml(draftNegativeWarText(best.bestRosterRows || [], opts))}</p>
+    </article>
+  `;
+}
+
 function summarizeDraftStrategyReport(simulationGroups) {
   const rows = simulationGroups.map(({ path, simulations }) => {
     const totalWars = simulations.map((sim) => sim.totalWar);
@@ -5940,6 +5997,7 @@ function renderDraftReportNarrative(rows, opts) {
       ${draftRosterBoardHtml(best.bestRosterRows || [])}
     </article>
     <div class="draft-report-takeaways">
+      ${draftStrategyStory(rows, opts)}
       <article>
         <span>Best alternatives</span>
         <p>${escapeHtml(closeText)}</p>
@@ -5986,21 +6044,23 @@ function renderDraftStrategyReport(opts) {
   if (!body) return;
   const key = draftReportKey(opts);
   const runButton = el("runDraftReport");
+  const exportButton = el("exportDraftReportPdf");
   if (state.draftReportKey === key && state.draftReportRows.length) {
     renderDraftReportNarrative(state.draftReportRows, opts);
     if (runButton) {
       runButton.disabled = false;
       runButton.textContent = `Rerun ${opts.simulations} Draft Sims`;
     }
+    if (exportButton) exportButton.disabled = false;
     if (el("draftReportSubtitle")) {
       el("draftReportSubtitle").textContent = `${opts.simulations} simulated drafts per strategy against ADP-heavy agent teams using varied position builds and projected fantasy points.`;
     }
     body.innerHTML = state.draftReportRows.map((row) => `
       <tr class="${row.rank === 1 ? "draft-report-best" : ""}">
         <td><strong>${escapeHtml(row.label)}</strong></td>
-        <td>${fmt(row.averageWar)}</td>
-        <td>${fmt(row.starterWar)}</td>
-        <td>${fmt(row.p75)}-${fmt(row.maxWar)}</td>
+        <td>${draftWarBadgeHtml(row.averageWar)}</td>
+        <td>${draftWarBadgeHtml(row.starterWar)}</td>
+        <td>${draftWarBadgeHtml(row.p75)} to ${draftWarBadgeHtml(row.maxWar)}</td>
         <td class="${row.opportunityCost > 0.4 ? "value-neg" : ""}">${row.rank === 1 ? "Best" : fmt(row.opportunityCost)}</td>
         <td>${escapeHtml(row.commonBuild)}</td>
         <td>${escapeHtml(row.opening)}</td>
@@ -6015,6 +6075,7 @@ function renderDraftStrategyReport(opts) {
       runButton.disabled = true;
       runButton.textContent = "Running...";
     }
+    if (exportButton) exportButton.disabled = true;
     body.innerHTML = `
       <tr>
         <td colspan="8">Running strategy simulations...</td>
@@ -6028,6 +6089,7 @@ function renderDraftStrategyReport(opts) {
       runButton.disabled = false;
       runButton.textContent = `Run ${opts.simulations} Draft Sims`;
     }
+    if (exportButton) exportButton.disabled = true;
     if (el("draftReportSubtitle")) {
       el("draftReportSubtitle").textContent = `Run ${opts.simulations} simulated drafts per strategy when you want the full strategy comparison.`;
     }
@@ -6057,14 +6119,37 @@ function requestDraftStrategyReport() {
   window.setTimeout(() => runDraftStrategyReportAsync(opts), 25);
 }
 
+function exportDraftReportPdf() {
+  const opts = draftOptimizerSettings();
+  const key = draftReportKey(opts);
+  if (state.draftReportKey !== key || !state.draftReportRows.length) {
+    requestDraftStrategyReport();
+    window.alert("Run the draft strategy report for the current settings first. Once it finishes, click Export PDF again.");
+    return;
+  }
+  const previousTitle = document.title;
+  const cleanup = () => {
+    document.body.classList.remove("printing-draft-report");
+    document.title = previousTitle;
+    window.removeEventListener("afterprint", cleanup);
+  };
+  document.title = `WAR Lab Draft Strategy Report - Slot ${opts.slot}`;
+  document.body.classList.add("printing-draft-report");
+  window.addEventListener("afterprint", cleanup);
+  window.setTimeout(() => {
+    window.print();
+    window.setTimeout(cleanup, 1500);
+  }, 50);
+}
+
 function renderDraftOptimizer() {
   const { opts, roster } = runDraftOptimization();
   const counts = draftPositionCounts(roster);
   const targets = draftTargets(opts.rosterSpots);
   const totalWar = draftRosterTotalWar(roster, opts);
   const starterWar = optimizedStarterWar(roster);
-  if (el("draftTotalWar")) el("draftTotalWar").textContent = fmt(totalWar);
-  if (el("draftStarterWar")) el("draftStarterWar").textContent = fmt(starterWar);
+  if (el("draftTotalWar")) el("draftTotalWar").innerHTML = draftWarBadgeHtml(totalWar);
+  if (el("draftStarterWar")) el("draftStarterWar").innerHTML = draftWarBadgeHtml(starterWar);
   if (el("draftRosterBuild")) el("draftRosterBuild").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}`).join(" / ");
   if (el("draftPositionStrategy")) el("draftPositionStrategy").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}/${targets[pos] || 0}`).join(" / ");
   const earlyTargetText = (el("draftEarlyTarget")?.selectedOptions?.[0]?.textContent || "Best WAR path").trim();
@@ -6085,7 +6170,7 @@ function renderDraftOptimizer() {
         <td>${escapeHtml(player.draftPositionStrategy || "-")}</td>
         <td>${escapeHtml(player.Team || "-")}</td>
         <td>${fmt(player.ADP, 1)}</td>
-        <td>${fmt(player.draftMetricValue)}</td>
+        <td>${draftWarBadgeHtml(player.draftMetricValue)}</td>
         <td>${draftAvailabilityLabel(player.draftAvailability)}</td>
         <td>${escapeHtml(player.draftAlternate || "-")}</td>
         <td>${fmt(player.draftNeedScore)}</td>
@@ -6502,6 +6587,7 @@ function bindEvents() {
   });
   el("adpFilterReset")?.addEventListener("click", resetAdpFilters);
   el("runDraftReport")?.addEventListener("click", requestDraftStrategyReport);
+  el("exportDraftReportPdf")?.addEventListener("click", exportDraftReportPdf);
   el("adpFilterOverlay")?.addEventListener("click", (event) => {
     if (event.target === el("adpFilterOverlay")) closeAdpFilters();
   });

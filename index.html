@@ -6,7 +6,7 @@
     <title>WAR Projection Lab</title>
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=draft-report-comparison-20260904a">
+    <link rel="stylesheet" href="styles.css?v=draft-report-pdf-20260904a">
   </head>
   <body>
     <main class="app-shell">
@@ -112,7 +112,7 @@
 
       <nav class="view-tabs" aria-label="WAR Lab views">
         <button class="active" type="button" data-view="projectionsView">Projections</button>
-        <button type="button" data-view="draftOptimizerView">Draft Optimizer</button>
+        <button type="button" data-view="draftOptimizerView"><span aria-hidden="true">🔥</span> Draft Optimizer</button>
         <button type="button" data-view="dynastyView">Dynasty WAR (Beta)</button>
         <button type="button" data-view="historicalView">Historical Looks</button>
         <button type="button" data-view="adpView" hidden>ADP Lab</button>
@@ -258,7 +258,10 @@
                 <h3>Draft Strategy Report</h3>
                 <p id="draftReportSubtitle">Run the strategy report to compare simulated draft paths against ADP-heavy agent teams.</p>
               </div>
-              <button id="runDraftReport" type="button">Run 100 Draft Sims</button>
+              <div class="draft-report-actions">
+                <button id="runDraftReport" type="button">Run 100 Draft Sims</button>
+                <button id="exportDraftReportPdf" type="button">Export PDF</button>
+              </div>
             </div>
             <div class="draft-report-narrative" id="draftReportNarrative"></div>
             <div class="table-wrap adp-table-wrap">
@@ -740,8 +743,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "draft-report-comparison-20260904a";
+      window.WAR_LAB_BUILD = "draft-report-pdf-20260904a";
     </script>
-    <script src="app.js?v=draft-report-comparison-20260904a"></script>
+    <script src="app.js?v=draft-report-pdf-20260904a"></script>
   </body>
 </html>

@@ -1155,6 +1155,13 @@ summary::marker {
   text-transform: uppercase;
 }
 
+.draft-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .draft-report-narrative {
   display: grid;
   gap: 12px;
@@ -1251,8 +1258,45 @@ summary::marker {
   text-align: right;
 }
 
+.draft-roster-player.negative-war-row {
+  background: linear-gradient(90deg, rgba(204, 51, 51, 0.16), rgba(204, 51, 51, 0));
+}
+
 .draft-roster-player.empty strong,
 .draft-roster-player.empty em {
+  color: var(--muted);
+}
+
+.draft-war-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(240, 240, 240, 0.18);
+  padding: 2px 7px;
+  color: var(--white);
+  font-size: 0.76rem;
+  font-style: normal;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.draft-war-badge b {
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+}
+
+.draft-war-badge.positive {
+  border-color: rgba(114, 184, 124, 0.45);
+  background: rgba(114, 184, 124, 0.16);
+}
+
+.draft-war-badge.negative {
+  border-color: rgba(235, 82, 82, 0.62);
+  background: rgba(204, 51, 51, 0.22);
+  color: #ffd6d6;
+}
+
+.draft-war-badge.neutral {
   color: var(--muted);
 }
 
@@ -1927,6 +1971,75 @@ tbody tr.selected-row {
   .player-suggestions {
     max-height: 140px;
     overflow: auto;
+  }
+}
+
+@media print {
+  body.printing-draft-report {
+    background: #fff;
+    color: #111;
+  }
+
+  body.printing-draft-report .topbar,
+  body.printing-draft-report .brand-strip,
+  body.printing-draft-report .setup-grid,
+  body.printing-draft-report .view-tabs,
+  body.printing-draft-report .draft-control-bar,
+  body.printing-draft-report .draft-cap-bar,
+  body.printing-draft-report .adp-summary-grid,
+  body.printing-draft-report .draft-simulation-note,
+  body.printing-draft-report .draft-optimizer-grid,
+  body.printing-draft-report .draft-report-actions,
+  body.printing-draft-report .view-panel:not(#draftOptimizerView) {
+    display: none !important;
+  }
+
+  body.printing-draft-report .app-shell,
+  body.printing-draft-report #draftOptimizerView,
+  body.printing-draft-report .draft-optimizer-panel,
+  body.printing-draft-report .draft-report-panel {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    color: #111 !important;
+  }
+
+  body.printing-draft-report .draft-report-panel h3,
+  body.printing-draft-report .draft-report-hero h4,
+  body.printing-draft-report .draft-strategy-card h5 {
+    color: #111 !important;
+  }
+
+  body.printing-draft-report .draft-report-panel p,
+  body.printing-draft-report .draft-report-takeaways p,
+  body.printing-draft-report .draft-strategy-card p,
+  body.printing-draft-report .draft-roster-player strong,
+  body.printing-draft-report table {
+    color: #111 !important;
+  }
+
+  body.printing-draft-report .draft-report-hero,
+  body.printing-draft-report .draft-report-takeaways article,
+  body.printing-draft-report .draft-strategy-card,
+  body.printing-draft-report .draft-roster-board section,
+  body.printing-draft-report .table-wrap {
+    break-inside: avoid;
+    border-color: #bbb !important;
+    background: #fff !important;
+  }
+
+  body.printing-draft-report .draft-strategy-card-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  body.printing-draft-report .draft-war-badge {
+    border-color: #999 !important;
+    background: #f4f4f4 !important;
+    color: #111 !important;
   }
 }
 
