@@ -1258,45 +1258,45 @@ summary::marker {
   text-align: right;
 }
 
-.draft-roster-player.negative-war-row {
-  background: linear-gradient(90deg, rgba(204, 51, 51, 0.16), rgba(204, 51, 51, 0));
-}
-
 .draft-roster-player.empty strong,
 .draft-roster-player.empty em {
   color: var(--muted);
 }
 
-.draft-war-badge {
+.draft-war-swing {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   border: 1px solid rgba(240, 240, 240, 0.18);
-  padding: 2px 7px;
+  margin: 0 2px;
+  padding: 2px 8px;
   color: var(--white);
-  font-size: 0.76rem;
+  font-size: 0.78rem;
+  font-weight: 900;
   font-style: normal;
   line-height: 1.25;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
-.draft-war-badge b {
+.draft-war-swing b {
   font-size: 0.62rem;
   letter-spacing: 0.05em;
 }
 
-.draft-war-badge.positive {
+.draft-war-swing.positive {
   border-color: rgba(114, 184, 124, 0.45);
   background: rgba(114, 184, 124, 0.16);
+  color: #caffd0;
 }
 
-.draft-war-badge.negative {
+.draft-war-swing.negative {
   border-color: rgba(235, 82, 82, 0.62);
   background: rgba(204, 51, 51, 0.22);
   color: #ffd6d6;
 }
 
-.draft-war-badge.neutral {
+.draft-war-swing.neutral {
   color: var(--muted);
 }
 
@@ -2036,7 +2036,7 @@ tbody tr.selected-row {
     grid-template-columns: 1fr 1fr;
   }
 
-  body.printing-draft-report .draft-war-badge {
+  body.printing-draft-report .draft-war-swing {
     border-color: #999 !important;
     background: #f4f4f4 !important;
     color: #111 !important;

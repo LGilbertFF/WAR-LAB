@@ -121,12 +121,12 @@ function signedFmt(value, digits = 2) {
   return parsed.toFixed(digits);
 }
 
-function draftWarBadgeHtml(value, digits = 2, suffix = "WAR") {
+function draftWarSwingHtml(value, digits = 2) {
   const parsed = number(value);
-  if (parsed === null) return `<span class="draft-war-badge neutral">-</span>`;
-  const tone = parsed < 0 ? "negative" : parsed > 0 ? "positive" : "neutral";
-  const label = parsed < 0 ? "NEG" : parsed > 0 ? "POS" : "EVEN";
-  return `<span class="draft-war-badge ${tone}"><b>${label}</b>${signedFmt(parsed, digits)}${suffix ? ` ${suffix}` : ""}</span>`;
+  if (parsed === null) return `<span class="draft-war-swing neutral">-</span>`;
+  const tone = parsed < 0 ? "positive" : parsed > 0 ? "negative" : "neutral";
+  const label = parsed > 0 ? "cost" : parsed < 0 ? "gain" : "even";
+  return `<span class="draft-war-swing ${tone}"><b>${label}</b>${signedFmt(parsed, digits)} WAR</span>`;
 }
 
 function escapeHtml(value) {
@@ -5678,7 +5678,7 @@ function draftRosterSections(roster) {
 function draftRosterBoardHtml(roster) {
   const sections = draftRosterSections(roster);
   const rowHtml = (row) => row.player
-    ? `<div class="draft-roster-player ${number(row.value, 0) < 0 ? "negative-war-row" : ""}"><span>${escapeHtml(row.slot)}</span><strong>${escapeHtml(row.player.Player)}</strong><em>${escapeHtml(row.player.Pos)} - R${fmt(row.player.draftRound, 0)} ${draftWarBadgeHtml(row.value)}</em></div>`
+    ? `<div class="draft-roster-player"><span>${escapeHtml(row.slot)}</span><strong>${escapeHtml(row.player.Player)}</strong><em>${escapeHtml(row.player.Pos)} - R${fmt(row.player.draftRound, 0)} - ${fmt(row.value)} WAR</em></div>`
     : `<div class="draft-roster-player empty"><span>${escapeHtml(row.slot)}</span><strong>Open</strong><em>-</em></div>`;
   const bench = sections.bench.map(rowHtml).join("");
   return `
@@ -5714,9 +5714,9 @@ function draftStrategyComparisonHtml(rows, opts) {
               </div>
               <strong>${row.rank === 1 ? "Best" : `${fmt(row.opportunityCost)} WAR`}</strong>
             </div>
-            <p>${draftWarBadgeHtml(row.averageWar)} average roster value, ${draftWarBadgeHtml(row.starterWar)} from starters. Most common build: ${escapeHtml(row.commonBuild)}.</p>
+            <p><b>${fmt(row.averageWar)}</b> avg WAR, <b>${fmt(row.starterWar)}</b> starter WAR. Most common build: ${escapeHtml(row.commonBuild)}.</p>
             <p>Most associated targets: ${escapeHtml(row.commonTargets)}.</p>
-            ${row.rank === 1 ? "" : `<p>Key swaps: ${escapeHtml(draftStrategySwapText(best.bestRosterRows || [], row.bestRosterRows || [], opts))}</p>`}
+            ${row.rank === 1 ? "" : `<p>Key swaps: ${draftStrategySwapHtml(best.bestRosterRows || [], row.bestRosterRows || [], opts)}</p>`}
             ${draftRosterBoardHtml(row.bestRosterRows || [])}
           </article>
         `).join("")}
@@ -5729,7 +5729,7 @@ function draftPlayerLabel(player) {
   return player ? `${player.Player} (${player.Pos})` : "open roster spot";
 }
 
-function draftStrategySwapText(bestRoster, strategyRoster, opts) {
+function draftStrategySwapRows(bestRoster, strategyRoster, opts) {
   const swaps = [];
   const maxRows = Math.max(bestRoster.length, strategyRoster.length);
   for (let index = 0; index < maxRows; index += 1) {
@@ -5742,7 +5742,21 @@ function draftStrategySwapText(bestRoster, strategyRoster, opts) {
       diff: Math.abs(diff)
     });
   }
-  return swaps.sort((a, b) => b.diff - a.diff).slice(0, 3).map((swap) => swap.text).join("; ") || "The best roster construction is very similar to the optimal path.";
+  return swaps.sort((a, b) => b.diff - a.diff).slice(0, 3);
+}
+
+function draftStrategySwapText(bestRoster, strategyRoster, opts) {
+  return draftStrategySwapRows(bestRoster, strategyRoster, opts).map((swap) => swap.text).join("; ") || "The best roster construction is very similar to the optimal path.";
+}
+
+function draftStrategySwapHtml(bestRoster, strategyRoster, opts) {
+  const rows = draftStrategySwapRows(bestRoster, strategyRoster, opts);
+  if (!rows.length) return "The best roster construction is very similar to the optimal path.";
+  return rows.map((swap) => {
+    const match = swap.text.match(/^(.*)\((-?\d+(?:\.\d+)?) WAR swing\)$/);
+    if (!match) return escapeHtml(swap.text);
+    return `${escapeHtml(match[1].trim())} ${draftWarSwingHtml(Number(match[2]))}`;
+  }).join("; ");
 }
 
 function draftPickInsight(roster, type) {
@@ -5983,11 +5997,11 @@ function renderDraftReportNarrative(rows, opts) {
     ? costly.map((row) => `${row.label} costs about ${fmt(row.opportunityCost)} WAR`).join("; ")
     : "The other strategy paths stay reasonably close in this room.";
   const primaryCost = rows[1]
-    ? `${rows[1].label}: ${draftStrategySwapText(best.bestRosterRows || [], rows[1].bestRosterRows || [], opts)}`
+    ? `${escapeHtml(rows[1].label)}: ${draftStrategySwapHtml(best.bestRosterRows || [], rows[1].bestRosterRows || [], opts)}`
     : "No alternate strategy was available for comparison.";
   const selectedStrategy = rows.find((row) => row.earlyTarget === opts.earlyTarget && row.strategy === opts.strategy);
   const selectedText = selectedStrategy && selectedStrategy !== best
-    ? `${selectedStrategy.label}: ${draftStrategySwapText(best.bestRosterRows || [], selectedStrategy.bestRosterRows || [], opts)}`
+    ? `${escapeHtml(selectedStrategy.label)}: ${draftStrategySwapHtml(best.bestRosterRows || [], selectedStrategy.bestRosterRows || [], opts)}`
     : "Your selected strategy aligns with the top simulated path for these settings.";
   target.innerHTML = `
     <article class="draft-report-hero">
@@ -6014,11 +6028,11 @@ function renderDraftReportNarrative(rows, opts) {
     <div class="draft-report-takeaways draft-report-takeaways-wide">
       <article>
         <span>Key player swaps</span>
-        <p>${escapeHtml(primaryCost)}</p>
+        <p>${primaryCost}</p>
       </article>
       <article>
         <span>Selected strategy comparison</span>
-        <p>${escapeHtml(selectedText)}</p>
+        <p>${selectedText}</p>
       </article>
     </div>
     <div class="draft-report-takeaways">
@@ -6058,9 +6072,9 @@ function renderDraftStrategyReport(opts) {
     body.innerHTML = state.draftReportRows.map((row) => `
       <tr class="${row.rank === 1 ? "draft-report-best" : ""}">
         <td><strong>${escapeHtml(row.label)}</strong></td>
-        <td>${draftWarBadgeHtml(row.averageWar)}</td>
-        <td>${draftWarBadgeHtml(row.starterWar)}</td>
-        <td>${draftWarBadgeHtml(row.p75)} to ${draftWarBadgeHtml(row.maxWar)}</td>
+        <td>${fmt(row.averageWar)}</td>
+        <td>${fmt(row.starterWar)}</td>
+        <td>${fmt(row.p75)}-${fmt(row.maxWar)}</td>
         <td class="${row.opportunityCost > 0.4 ? "value-neg" : ""}">${row.rank === 1 ? "Best" : fmt(row.opportunityCost)}</td>
         <td>${escapeHtml(row.commonBuild)}</td>
         <td>${escapeHtml(row.opening)}</td>
@@ -6148,8 +6162,8 @@ function renderDraftOptimizer() {
   const targets = draftTargets(opts.rosterSpots);
   const totalWar = draftRosterTotalWar(roster, opts);
   const starterWar = optimizedStarterWar(roster);
-  if (el("draftTotalWar")) el("draftTotalWar").innerHTML = draftWarBadgeHtml(totalWar);
-  if (el("draftStarterWar")) el("draftStarterWar").innerHTML = draftWarBadgeHtml(starterWar);
+  if (el("draftTotalWar")) el("draftTotalWar").textContent = fmt(totalWar);
+  if (el("draftStarterWar")) el("draftStarterWar").textContent = fmt(starterWar);
   if (el("draftRosterBuild")) el("draftRosterBuild").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}`).join(" / ");
   if (el("draftPositionStrategy")) el("draftPositionStrategy").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}/${targets[pos] || 0}`).join(" / ");
   const earlyTargetText = (el("draftEarlyTarget")?.selectedOptions?.[0]?.textContent || "Best WAR path").trim();
@@ -6170,7 +6184,7 @@ function renderDraftOptimizer() {
         <td>${escapeHtml(player.draftPositionStrategy || "-")}</td>
         <td>${escapeHtml(player.Team || "-")}</td>
         <td>${fmt(player.ADP, 1)}</td>
-        <td>${draftWarBadgeHtml(player.draftMetricValue)}</td>
+        <td>${fmt(player.draftMetricValue)}</td>
         <td>${draftAvailabilityLabel(player.draftAvailability)}</td>
         <td>${escapeHtml(player.draftAlternate || "-")}</td>
         <td>${fmt(player.draftNeedScore)}</td>
