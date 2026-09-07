@@ -6804,7 +6804,8 @@ function exportDraftReportPdf() {
     `slot ${opts.slot}`,
     `${opts.rounds} rounds`,
     `${opts.rosterSpots} roster spots`,
-    `${opts.window}-player candidate window`,
+    `${opts.window}-player recommendation window`,
+    "opponent pool rolls 6/24/36/48",
     `${opts.uncertainty} uncertainty`,
     `${opts.metric} optimized`
   ].join(" | ");
