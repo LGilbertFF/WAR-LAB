@@ -5175,14 +5175,23 @@ function draftRoundMarketScale(opts, pickNo) {
 
 function draftMarketPoolSize(opts, pickNo) {
   if (opts.uncertainty === "none") return 1;
-  const round = Math.ceil(pickNo / opts.teams);
-  const earlySizes = {
-    low: [2, 6, 10],
-    medium: [3, 9, 16],
-    high: [4, 13, 24]
-  };
-  if (round <= 3) return earlySizes[opts.uncertainty]?.[round - 1] ?? Math.max(10, Math.round(draftUncertaintyScale(opts) * 2.4));
-  return Math.max(10, Math.round(draftUncertaintyScale(opts) * 2.4));
+  const maxPicks = Math.max(1, opts.teams * opts.rounds);
+  const milestones = [
+    { pick: 1, size: 2 },
+    { pick: opts.teams, size: 6 },
+    { pick: Math.min(maxPicks, opts.teams * 5), size: 24 },
+    { pick: Math.min(maxPicks, opts.teams * 8), size: 36 },
+    { pick: maxPicks, size: 48 }
+  ].filter((point, index, rows) => index === 0 || point.pick > rows[index - 1].pick);
+  for (let index = 1; index < milestones.length; index += 1) {
+    const previous = milestones[index - 1];
+    const next = milestones[index];
+    if (pickNo <= next.pick) {
+      const progress = (pickNo - previous.pick) / Math.max(1, next.pick - previous.pick);
+      return Math.max(1, Math.round(previous.size + ((next.size - previous.size) * progress)));
+    }
+  }
+  return 48;
 }
 
 function draftMarketSelectionTemperature(opts, pickNo) {
@@ -5190,6 +5199,34 @@ function draftMarketSelectionTemperature(opts, pickNo) {
   if (round === 1) return { low: 0.35, medium: 0.5, high: 0.8 }[opts.uncertainty] ?? 0.5;
   if (round === 2) return { low: 0.8, medium: 1.15, high: 1.8 }[opts.uncertainty] ?? 1.15;
   return Math.max(1.15, draftRoundMarketScale(opts, pickNo) / 7);
+}
+
+function draftOpponentMarketPool(playerPool, available, counts, opts, pickNo) {
+  const poolSize = draftMarketPoolSize(opts, pickNo);
+  const pool = [];
+  const seen = new Set();
+  for (const player of playerPool) {
+    if (!available.has(player.id) || !draftPositionAllowed(player, counts, opts)) continue;
+    pool.push(player);
+    seen.add(player.id);
+    if (pool.length >= poolSize) break;
+  }
+  if (Math.ceil(pickNo / opts.teams) >= 6) {
+    for (const pos of ["QB", "RB", "WR", "TE"]) {
+      if (pool.some((player) => player.Pos === pos)) continue;
+      const fallback = playerPool.find((player) => (
+        player.Pos === pos &&
+        available.has(player.id) &&
+        !seen.has(player.id) &&
+        draftPositionAllowed(player, counts, opts)
+      ));
+      if (fallback) {
+        pool.push(fallback);
+        seen.add(fallback.id);
+      }
+    }
+  }
+  return pool;
 }
 
 function draftSeedValue(opts) {
@@ -5553,13 +5590,7 @@ function runDraftOptimization(optsOverride = null) {
     const profile = agentProfiles.get(slot) || { earlyTarget: "none", strategy: "balanced", adpWeight: 0.85, pointsWeight: 0.5, warWeight: 0.2, needWeight: 0.3, reachAversion: 0.06 };
     const opponentRoster = opponentRosters.get(slot) || [];
     const counts = draftPositionCounts(opponentRoster);
-    const poolSize = draftMarketPoolSize(opts, pickNo);
-    const pool = [];
-    for (const player of playerPool) {
-      if (!available.has(player.id) || !draftPositionAllowed(player, counts, opts)) continue;
-      pool.push(player);
-      if (pool.length >= poolSize) break;
-    }
+    const pool = draftOpponentMarketPool(playerPool, available, counts, opts, pickNo);
     if (!pool.length || opts.uncertainty === "none") return pool[0];
     const scored = pool
       .map((player) => ({ player, score: draftAgentPickScore(player, opponentRoster, pickNo, profile, opts, rng) }))
@@ -5711,13 +5742,7 @@ function interactiveMarketPick(ctx) {
   const profile = ctx.agentProfiles.get(slot) || { earlyTarget: "none", strategy: "balanced", adpWeight: 0.85, pointsWeight: 0.5, warWeight: 0.2, needWeight: 0.3, reachAversion: 0.06 };
   const roster = ctx.rosters.get(slot) || [];
   const counts = draftPositionCounts(roster);
-  const poolSize = draftMarketPoolSize(opts, ctx.pickNo);
-  const pool = [];
-  for (const player of ctx.playerPool) {
-    if (!ctx.available.has(player.id) || !draftPositionAllowed(player, counts, opts)) continue;
-    pool.push(player);
-    if (pool.length >= poolSize) break;
-  }
+  const pool = draftOpponentMarketPool(ctx.playerPool, ctx.available, counts, opts, ctx.pickNo);
   if (!pool.length) return null;
   if (opts.uncertainty === "none") return pool[0];
   const scored = pool
@@ -5861,7 +5886,7 @@ function renderInteractivePlayerBoard(ctx, targetId) {
   const recIds = new Set(recs.map((row) => row.player.id));
   const posRows = topAvailableByPosition(ctx, recIds);
   const exclude = new Set([...recIds, ...posRows.map((row) => row.player.id)]);
-  const rest = ctx.playerPool.filter((player) => ctx.available.has(player.id) && !exclude.has(player.id)).slice(0, 220);
+  const rest = ctx.playerPool.filter((player) => ctx.available.has(player.id) && !exclude.has(player.id));
   target.innerHTML = `
     <section class="draft-board-section">
       <h4>Recommended top 5</h4>
@@ -6895,7 +6920,7 @@ function renderDraftOptimizer() {
   if (el("draftPositionStrategy")) el("draftPositionStrategy").textContent = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${counts[pos] || 0}/${targets[pos] || 0}`).join(" / ");
   const earlyTargetText = (el("draftEarlyTarget")?.selectedOptions?.[0]?.textContent || "Best WAR path").trim();
   const capText = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${opts.caps[pos]}`).join(" / ");
-  if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player window, ${opts.uncertainty} market uncertainty, ${earlyTargetText}, caps ${capText}. Availability and opponent picks blend ADP with ADP rank. Alternates show the next-best pick if the target player is taken. Negative WAR only counts against the total when the player is in the optimized starting lineup.`;
+  if (el("draftSimulationNote")) el("draftSimulationNote").textContent = `${opts.teams} teams, slot ${opts.slot}, ${opts.window}-player recommendation window, ${opts.uncertainty} market uncertainty, ${earlyTargetText}, caps ${capText}. Opponent availability rolls from a tight round-one ADP pool to 24 by round 5, 36 by round 8, and 48 late; your manual draft board still lets you choose any available player. Alternates show the next-best pick if the target player is taken. Negative WAR only counts against the total when the player is in the optimized starting lineup.`;
   if (el("draftOptimizerSubtitle")) {
     el("draftOptimizerSubtitle").textContent = mode === "mock"
       ? "Draft against ADP-heavy agent teams, then compare your roster against the optimized WAR path from the same slot."
