@@ -5161,6 +5161,37 @@ function draftUncertaintyScale(opts) {
   return { none: 0, low: 6, medium: 13, high: 24 }[opts.uncertainty] ?? 13;
 }
 
+function draftRoundMarketScale(opts, pickNo) {
+  if (opts.uncertainty === "none") return 0;
+  const round = Math.ceil(pickNo / opts.teams);
+  const earlyScales = {
+    low: [1.25, 2.75, 4.5],
+    medium: [1.75, 4.5, 8],
+    high: [2.5, 6.5, 12]
+  };
+  if (round <= 3) return earlyScales[opts.uncertainty]?.[round - 1] ?? draftUncertaintyScale(opts);
+  return draftUncertaintyScale(opts);
+}
+
+function draftMarketPoolSize(opts, pickNo) {
+  if (opts.uncertainty === "none") return 1;
+  const round = Math.ceil(pickNo / opts.teams);
+  const earlySizes = {
+    low: [2, 6, 10],
+    medium: [3, 9, 16],
+    high: [4, 13, 24]
+  };
+  if (round <= 3) return earlySizes[opts.uncertainty]?.[round - 1] ?? Math.max(10, Math.round(draftUncertaintyScale(opts) * 2.4));
+  return Math.max(10, Math.round(draftUncertaintyScale(opts) * 2.4));
+}
+
+function draftMarketSelectionTemperature(opts, pickNo) {
+  const round = Math.ceil(pickNo / opts.teams);
+  if (round === 1) return { low: 0.35, medium: 0.5, high: 0.8 }[opts.uncertainty] ?? 0.5;
+  if (round === 2) return { low: 0.8, medium: 1.15, high: 1.8 }[opts.uncertainty] ?? 1.15;
+  return Math.max(1.15, draftRoundMarketScale(opts, pickNo) / 7);
+}
+
 function draftSeedValue(opts) {
   const capText = ["QB", "RB", "WR", "TE"].map((pos) => `${pos}${opts.caps?.[pos] ?? ""}`).join("|");
   const text = `${settings().year}|${opts.teams}|${opts.slot}|${opts.rounds}|${opts.rosterSpots}|${opts.window}|${opts.uncertainty}|${opts.earlyTarget}|${opts.strategy}|${opts.metric}|${opts.simulations}|${opts.seedOffset || 0}|${capText}`;
@@ -5205,8 +5236,8 @@ function draftMarketCost(player, fallback = 9999) {
 function draftAvailability(player, pickNo, opts) {
   const marketCost = draftMarketCost(player, null);
   if (marketCost === null) return opts.uncertainty === "none" ? 1 : 0.72;
-  const scale = Math.max(4, draftUncertaintyScale(opts));
   if (opts.uncertainty === "none") return marketCost >= pickNo ? 1 : 0;
+  const scale = Math.max(1, draftRoundMarketScale(opts, pickNo));
   return 1 / (1 + Math.exp((pickNo - marketCost) / scale));
 }
 
@@ -5322,14 +5353,17 @@ function draftAgentPickScore(player, roster, pickNo, profile, opts, rng) {
   const depthNeed = Math.max(0, (targets[player.Pos] || 0) - (counts[player.Pos] || 0));
   const early = draftEarlyTargetAdjustment(player.Pos, counts, round, { ...opts, earlyTarget: profile.earlyTarget });
   const marketValue = pickNo - marketCost;
-  const reachPenalty = Math.max(0, marketCost - pickNo) * profile.reachAversion;
-  const noise = (rng() - 0.5) * draftUncertaintyScale(opts) * 0.18;
+  const earlyChalkWeight = round === 1 ? 1.85 : round === 2 ? 1.25 : 1;
+  const reachPenalty = Math.max(0, marketCost - pickNo) * profile.reachAversion * earlyChalkWeight;
+  const fallBonus = round <= 2 ? Math.max(0, pickNo - marketCost) * 0.11 : 0;
+  const noise = (rng() - 0.5) * draftRoundMarketScale(opts, pickNo) * (round <= 2 ? 0.08 : 0.18);
   return (
-    (marketValue * profile.adpWeight * 0.08) +
+    (marketValue * profile.adpWeight * (round <= 2 ? 0.13 : 0.08)) +
     (points * profile.pointsWeight * 0.006) +
     (war * profile.warWeight) +
     ((starterNeed * 0.75 + depthNeed * 0.24 + early.score * 0.35) * profile.needWeight) -
     reachPenalty +
+    fallBonus +
     noise
   );
 }
@@ -5519,8 +5553,7 @@ function runDraftOptimization(optsOverride = null) {
     const profile = agentProfiles.get(slot) || { earlyTarget: "none", strategy: "balanced", adpWeight: 0.85, pointsWeight: 0.5, warWeight: 0.2, needWeight: 0.3, reachAversion: 0.06 };
     const opponentRoster = opponentRosters.get(slot) || [];
     const counts = draftPositionCounts(opponentRoster);
-    const scale = draftUncertaintyScale(opts);
-    const poolSize = Math.max(10, Math.round(scale * 2.4));
+    const poolSize = draftMarketPoolSize(opts, pickNo);
     const pool = [];
     for (const player of playerPool) {
       if (!available.has(player.id) || !draftPositionAllowed(player, counts, opts)) continue;
@@ -5531,7 +5564,8 @@ function runDraftOptimization(optsOverride = null) {
     const scored = pool
       .map((player) => ({ player, score: draftAgentPickScore(player, opponentRoster, pickNo, profile, opts, rng) }))
       .sort((a, b) => b.score - a.score);
-    const weights = scored.map((_, index) => Math.exp(-index / Math.max(1.5, scale / 7)));
+    const temperature = draftMarketSelectionTemperature(opts, pickNo);
+    const weights = scored.map((_, index) => Math.exp(-index / temperature));
     const total = weights.reduce((sum, value) => sum + value, 0);
     let roll = rng() * total;
     for (let index = 0; index < scored.length; index += 1) {
@@ -5677,8 +5711,7 @@ function interactiveMarketPick(ctx) {
   const profile = ctx.agentProfiles.get(slot) || { earlyTarget: "none", strategy: "balanced", adpWeight: 0.85, pointsWeight: 0.5, warWeight: 0.2, needWeight: 0.3, reachAversion: 0.06 };
   const roster = ctx.rosters.get(slot) || [];
   const counts = draftPositionCounts(roster);
-  const scale = draftUncertaintyScale(opts);
-  const poolSize = Math.max(10, Math.round(scale * 2.4));
+  const poolSize = draftMarketPoolSize(opts, ctx.pickNo);
   const pool = [];
   for (const player of ctx.playerPool) {
     if (!ctx.available.has(player.id) || !draftPositionAllowed(player, counts, opts)) continue;
@@ -5690,7 +5723,8 @@ function interactiveMarketPick(ctx) {
   const scored = pool
     .map((player) => ({ player, score: draftAgentPickScore(player, roster, ctx.pickNo, profile, opts, ctx.rng) }))
     .sort((a, b) => b.score - a.score);
-  const weights = scored.map((_, index) => Math.exp(-index / Math.max(1.5, scale / 7)));
+  const temperature = draftMarketSelectionTemperature(opts, ctx.pickNo);
+  const weights = scored.map((_, index) => Math.exp(-index / temperature));
   const total = weights.reduce((sum, value) => sum + value, 0);
   let roll = ctx.rng() * total;
   for (let index = 0; index < scored.length; index += 1) {
