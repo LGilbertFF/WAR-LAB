@@ -11,6 +11,7 @@ const TRUSTED_WAR_CURVE_PATH = "data/historical_WAR_PPR2WR.csv";
 const FALLBACK_PROJECTIONS_PATH = "data/WARProjections2024_PPR2WR.csv";
 const HISTORICAL_WEEKLY_PATH = "data/fantasypros_weekly_2015_2025.csv";
 const HISTORICAL_PLAYED_WEEK_VERSION = 2;
+const IN_SEASON_WEEKLY_PREFIX = "data/FPTS WAR Weekly";
 
 const state = {
   rawProjections: [],
@@ -37,15 +38,19 @@ const state = {
   historicalModelKey: "",
   historicalScoredRows: [],
   historicalScoredRowsKey: "",
+  inSeasonRows: [],
+  inSeasonLoadedKey: "",
+  inSeasonSource: "",
+  inSeasonError: "",
   playerHeadshots: null,
   manifest: null,
   warManifest: null,
   results: [],
   selectedId: null,
   selectedHistoryYear: null,
-  activeView: "projectionsView",
-  sortKey: "Overall Rank",
-  sortDir: "asc",
+  activeView: "inSeasonView",
+  sortKey: "WAR",
+  sortDir: "desc",
   renderTimer: null,
   projectionSource: CURRENT_PROJECTIONS_PATH,
   adpSource: CURRENT_ADP_PATH,
@@ -967,8 +972,13 @@ function sortedResults(rows) {
   return [...rows].sort((a, b) => {
     const av = a[state.sortKey];
     const bv = b[state.sortKey];
+    const aMissing = av === null || av === undefined || av === "";
+    const bMissing = bv === null || bv === undefined || bv === "";
+    if (aMissing && bMissing) return 0;
+    if (aMissing) return 1;
+    if (bMissing) return -1;
     if (typeof av === "string" || typeof bv === "string") return String(av ?? "").localeCompare(String(bv ?? "")) * dir;
-    return ((av ?? Number.POSITIVE_INFINITY) - (bv ?? Number.POSITIVE_INFINITY)) * dir;
+    return (av - bv) * dir;
   });
 }
 
@@ -3362,6 +3372,176 @@ function chartContextCopy() {
     teamSource,
     historyStart: start
   };
+}
+
+function inSeasonWeekLast() {
+  return Math.max(1, Math.min(18, number(el("inSeasonWeekLast")?.value, 1)));
+}
+
+function inSeasonRankCutoff() {
+  return Math.max(1, Math.min(250, number(el("inSeasonRankCutoff")?.value, 70)));
+}
+
+function inSeasonFileLabel() {
+  const cfg = settings();
+  if (cfg.slots.SUPERFLEX > 0 || cfg.slots.QB > 1) return "SuperFlex";
+  if (cfg.scoring.tePremium > 0) return "TE Premium";
+  if (cfg.slots.WR >= 3 && cfg.scoring.rec >= 1) return "3WR PPR";
+  if (cfg.scoring.rec <= 0) return "2WR Standard";
+  if (cfg.scoring.rec < 1) return "2WR Half";
+  return "2WR PPR";
+}
+
+function inSeasonDataKey() {
+  const cfg = settings();
+  return `${cfg.year}|${inSeasonFileLabel()}`;
+}
+
+function inSeasonDataPath() {
+  return `${IN_SEASON_WEEKLY_PREFIX} ${settings().year} ${inSeasonFileLabel()}.csv`;
+}
+
+async function ensureInSeasonData() {
+  const key = inSeasonDataKey();
+  if (state.inSeasonLoadedKey === key) return;
+  state.inSeasonLoadedKey = key;
+  state.inSeasonRows = [];
+  state.inSeasonError = "";
+  state.inSeasonSource = inSeasonDataPath();
+  try {
+    const rows = await loadCsv(state.inSeasonSource);
+    state.inSeasonRows = rows.map(normalizeInSeasonRow).filter(Boolean);
+  } catch (error) {
+    state.inSeasonRows = [];
+    state.inSeasonError = `Could not load ${state.inSeasonSource}`;
+  }
+  scheduleRender(0);
+}
+
+function normalizeInSeasonRow(row) {
+  const player = firstValue(row, ["Player", "player", "Name", "name"], "");
+  const pos = String(firstValue(row, ["Pos", "position", "POS"], "") || "").toUpperCase();
+  if (!player || !["QB", "RB", "WR", "TE"].includes(pos)) return null;
+  const team = firstValue(row, ["Team", "team", "Tm"], "");
+  const superflexWar = firstValue(row, ["SuperFlex WAR", "Superflex WAR", "Superflex War"], null);
+  const superflexWarG = firstValue(row, ["SuperFlex WAR/G", "Superflex WAR/G", "Superflex War/G"], null);
+  return {
+    id: `${playerKey(player)}-${pos}-${team}`,
+    Player: player,
+    Team: team,
+    Pos: pos,
+    games: number(firstValue(row, ["games", "G", "Games"], null), null),
+    year: number(firstValue(row, ["year", "Year"], settings().year), settings().year),
+    rank: number(firstValue(row, ["rank", "Rank"], null), null),
+    WAR: number(firstValue(row, ["WAR"], null), null),
+    "WAR/G": number(firstValue(row, ["WAR/G"], null), null),
+    "Flex WAR": number(firstValue(row, ["Flex WAR"], null), null),
+    "Flex WAR/G": number(firstValue(row, ["Flex WAR/G"], null), null),
+    "SuperFlex WAR": number(superflexWar, null),
+    "SuperFlex WAR/G": number(superflexWarG, null)
+  };
+}
+
+function inSeasonVisibleRows() {
+  const activePositions = new Set([...document.querySelectorAll("input[name='posFilter']:checked")].map((input) => input.value));
+  const query = el("searchInput")?.value.trim().toLowerCase() || "";
+  return state.inSeasonRows.filter((row) => {
+    if (!activePositions.has(row.Pos)) return false;
+    if (!query) return true;
+    return `${row.Player} ${row.Team}`.toLowerCase().includes(query);
+  });
+}
+
+function inSeasonMetricRows(rows, metric) {
+  const cutoff = inSeasonRankCutoff();
+  return ["QB", "RB", "WR", "TE"].map((pos) => {
+    const points = rows
+      .filter((row) => row.Pos === pos && number(row[metric], null) !== null)
+      .sort((a, b) => number(b[metric], 0) - number(a[metric], 0))
+      .slice(0, cutoff)
+      .map((row, index) => ({ ...row, PosRank: index + 1 }));
+    return { pos, points };
+  });
+}
+
+function renderInSeasonChart(chartId, metric, title) {
+  const chart = el(chartId);
+  if (!chart) return;
+  const rows = inSeasonVisibleRows();
+  const grouped = inSeasonMetricRows(rows, metric);
+  const traces = grouped.map(({ pos, points }) => ({
+    type: "scatter",
+    mode: "lines+markers",
+    name: pos,
+    x: points.map((row) => row.PosRank),
+    y: points.map((row) => row[metric]),
+    text: points.map((row) => `${row.Player} (${row.Team || "-"})`),
+    hovertemplate: `<b>%{text}</b><br>Pos rank: %{x}<br>${metric}: %{y:.2f}<extra></extra>`,
+    line: { color: posColors[pos], width: 2, dash: posDashes[pos] },
+    marker: { color: posColors[pos], symbol: posSymbols[pos], size: 6, line: { color: "#111111", width: 1 } }
+  }));
+  const annotation = state.inSeasonError || (!rows.length ? "No in-season weekly WAR rows matched these settings." : null);
+  Plotly.react(chart, traces, {
+    title: { text: title, font: { size: 18 }, x: 0.02, xanchor: "left" },
+    margin: { l: 56, r: 18, t: 58, b: 64 },
+    xaxis: { title: "Positional rank", gridcolor: "rgba(240,240,240,0.18)", color: "#f0f0f0" },
+    yaxis: { title: metric, gridcolor: "rgba(240,240,240,0.18)", color: "#f0f0f0", rangemode: "tozero" },
+    legend: { orientation: "h", y: -0.18, x: 0 },
+    font: { family: "Mulish, sans-serif", color: "#f0f0f0" },
+    plot_bgcolor: "#111111",
+    paper_bgcolor: "#111111",
+    annotations: annotation ? [{ text: annotation, showarrow: false, font: { color: "#f0f0f0" } }] : []
+  }, { responsive: true });
+}
+
+function renderInSeasonView() {
+  ensureInSeasonData();
+  const context = chartContextCopy();
+  const weekLast = inSeasonWeekLast();
+  const label = inSeasonFileLabel();
+  const title = `${context.year} In-Season Weekly WAR Through Week ${weekLast}`;
+  const subtitle = `${label} weekly WAR - ${context.roster} - ${context.scoring} - active scoring through Week ${weekLast}`;
+  if (el("inSeasonChartTitle")) el("inSeasonChartTitle").textContent = title;
+  if (el("inSeasonChartSubtitle")) el("inSeasonChartSubtitle").textContent = subtitle;
+  if (el("inSeasonTableTitle")) el("inSeasonTableTitle").textContent = `${context.year} Weekly WAR Table Through Week ${weekLast}`;
+  if (el("inSeasonTableSubtitle")) el("inSeasonTableSubtitle").textContent = `${subtitle}${state.inSeasonSource ? ` - Source: ${state.inSeasonSource.replace("data/", "")}` : ""}`;
+  if (el("inSeasonTotalTitle")) el("inSeasonTotalTitle").textContent = "Total WAR by Positional Rank";
+  if (el("inSeasonPerGameTitle")) el("inSeasonPerGameTitle").textContent = "WAR/G by Positional Rank";
+  renderInSeasonChart("inSeasonWarChart", "WAR", `${context.year} Total WAR by Positional Rank`);
+  renderInSeasonChart("inSeasonWarPerGameChart", "WAR/G", `${context.year} WAR/G by Positional Rank`);
+  const rows = inSeasonVisibleRows();
+  updateInSeasonSummary(rows);
+  renderInSeasonTable(rows);
+}
+
+function updateInSeasonSummary(rows) {
+  const topWar = [...rows].filter((row) => row.WAR !== null).sort((a, b) => b.WAR - a.WAR)[0];
+  const topWarG = [...rows].filter((row) => row["WAR/G"] !== null).sort((a, b) => b["WAR/G"] - a["WAR/G"])[0];
+  el("playerCount").textContent = rows.length;
+  el("topWar").textContent = topWar ? `${topWar.Player} ${fmt(topWar.WAR)}` : "-";
+  el("topValue").textContent = topWarG ? `${topWarG.Player} ${fmt(topWarG["WAR/G"])}/G` : "-";
+  el("replacementSummary").textContent = state.inSeasonError || `${inSeasonFileLabel()} · through Week ${inSeasonWeekLast()}`;
+}
+
+function renderInSeasonTable(rows) {
+  const limited = sortedResults(rows).slice(0, 500);
+  const body = el("playersBody");
+  if (!body) return;
+  body.innerHTML = limited.map((player) => `
+    <tr>
+      <td>${fmt(player.rank, 0)}</td>
+      <td><div class="adp-player-cell">${headshotImg(player)}<strong>${escapeHtml(player.Player)}</strong></div></td>
+      <td><span class="pos-pill pos-${player.Pos}">${player.Pos}</span></td>
+      <td>${escapeHtml(player.Team || "-")}</td>
+      <td>${fmt(player.games, 0)}</td>
+      <td>${fmt(player.WAR)}</td>
+      <td>${fmt(player["WAR/G"])}</td>
+      <td>${fmt(player["Flex WAR"])}</td>
+      <td>${fmt(player["Flex WAR/G"])}</td>
+      <td>${fmt(player["SuperFlex WAR"])}</td>
+      <td>${fmt(player["SuperFlex WAR/G"])}</td>
+    </tr>
+  `).join("") || `<tr><td colspan="11">${escapeHtml(state.inSeasonError || "No in-season rows available.")}</td></tr>`;
 }
 
 function renderProjectionChart(rows) {
@@ -7081,6 +7261,10 @@ function render() {
     renderHistoricalExplorer();
     return;
   }
+  if (state.activeView === "inSeasonView") {
+    renderInSeasonView();
+    return;
+  }
   calculateWar(state.rawProjections);
   const rows = visibleResults();
   updateSummary(rows);
@@ -7359,6 +7543,11 @@ function exportHistoricalSeasonWar() {
 }
 
 function exportResults() {
+  if (state.activeView === "inSeasonView") {
+    const cols = ["rank", "Player", "Pos", "Team", "games", "WAR", "WAR/G", "Flex WAR", "Flex WAR/G", "SuperFlex WAR", "SuperFlex WAR/G"];
+    downloadCsv(`in-season-weekly-war-${settings().year}-through-week-${inSeasonWeekLast()}.csv`, cols, sortedResults(inSeasonVisibleRows()));
+    return;
+  }
   if (!state.results.length) return;
   const cols = ["Year", "Overall Rank", "Player", "Team", "Pos", "Pos Rank", "WAR", "Historical WAR", "Delta vs Historical", "ADP", "ADP Discount", "Value", "Tier", "AVG", "FPTS", "Flex WAR", "SuperFlex WAR"];
   const csv = [
@@ -7379,13 +7568,16 @@ function bindEvents() {
     input.addEventListener("input", () => scheduleRender());
     input.addEventListener("change", () => scheduleRender(0));
   });
-  ["teamsInput", "qbSlots", "rbSlots", "wrSlots", "teSlots", "flexSlots", "superflexSlots", "receptions", "tePremium", "receivingYds", "receivingTd", "rushingYds", "rushingTd", "passingYds", "passingTd", "interception", "fumbleLost"].forEach((id) => {
+  ["teamsInput", "weeksInput", "qbSlots", "rbSlots", "wrSlots", "teSlots", "flexSlots", "superflexSlots", "receptions", "tePremium", "receivingYds", "receivingTd", "rushingYds", "rushingTd", "passingYds", "passingTd", "interception", "fumbleLost"].forEach((id) => {
     el(id)?.addEventListener("change", () => {
       if (state.activeView === "adpView") {
         syncAdpFromWarSettings();
-        scheduleRender(0);
       }
+      scheduleRender(0);
     });
+  });
+  ["inSeasonWeekLast", "inSeasonRankCutoff"].forEach((id) => {
+    el(id)?.addEventListener("change", () => scheduleRender(0));
   });
   el("adpLeagueFormat")?.addEventListener("change", () => {
     applyAdpFormatDefaults();

@@ -7,7 +7,7 @@
     <link rel="icon" href="assets/favicon.svg?v=browser-fire-20260904a" type="image/svg+xml">
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=rolling-sim-availability-20260907a">
+    <link rel="stylesheet" href="styles.css?v=in-season-war-20260918a">
   </head>
   <body>
     <main class="app-shell">
@@ -21,10 +21,10 @@
         <div class="topbar-actions">
           <img src="assets/brand/logos/Submark-Red.svg" alt="" class="brand-flame" aria-hidden="true">
           <label>
-            Projection year
+            Season year
             <input id="projectionYear" type="number" min="2015" max="2035" value="2026">
           </label>
-          <button id="exportResults" type="button">Export projections</button>
+          <button id="exportResults" type="button">Export current table</button>
         </div>
       </header>
 
@@ -100,63 +100,54 @@
       <section class="summary-grid" aria-label="Projection summary">
         <article><span>Players</span><strong id="playerCount">-</strong></article>
         <article><span>Top WAR</span><strong id="topWar">-</strong></article>
-        <article><span>Top weighted ADP value</span><strong id="topValue">-</strong></article>
-        <article><span>Replacement FPTS/G baselines</span><strong id="replacementSummary">-</strong></article>
+        <article><span>Top WAR/G</span><strong id="topValue">-</strong></article>
+        <article><span>In-season data</span><strong id="replacementSummary">-</strong></article>
       </section>
 
       <section class="brand-strip" aria-label="Data status">
         <span>FANTASYPOINTS.COM</span>
         <span>FPTS</span>
-        <span>2026 WAR PROJECTIONS</span>
+        <span>2026 IN-SEASON WAR</span>
         <span>HISTORICAL TEAM SCORING</span>
       </section>
 
       <nav class="view-tabs" aria-label="WAR Lab views">
-        <button class="active" type="button" data-view="projectionsView">Projections</button>
+        <button class="active" type="button" data-view="inSeasonView">In-Season WAR</button>
         <button type="button" data-view="draftOptimizerView">Draft Optimizer</button>
         <button type="button" data-view="dynastyView">Dynasty WAR (Beta)</button>
         <button type="button" data-view="historicalView">Historical Looks</button>
         <button type="button" data-view="adpView" hidden>ADP Lab</button>
       </nav>
 
-      <section id="projectionsView" class="view-panel active">
-        <div class="workspace">
-          <div class="chart-panel">
-            <div class="panel-header">
-              <div>
-                <h2 id="projectionChartTitle">Projection WAR vs ADP</h2>
-                <p id="projectionChartSubtitle">Projected WAR, uncertainty, tiers, and historical positional-rank context.</p>
-              </div>
-              <select id="chartMetric">
-                <option value="WAR">WAR</option>
-                <option value="Value">Weighted ADP value</option>
-                <option value="Historical WAR">Historical rank WAR</option>
-                <option value="Delta vs Historical">Delta vs historical</option>
-              </select>
-              <label class="inline-toggle">
-                <input id="showRankCurveOverlay" type="checkbox">
-                Rank curve
+      <section id="inSeasonView" class="view-panel active">
+        <section class="historical-panel in-season-panel">
+          <div class="panel-header">
+            <div>
+              <h2 id="inSeasonChartTitle">In-Season Weekly WAR</h2>
+              <p id="inSeasonChartSubtitle">Weekly WAR through the selected week using the active league and scoring settings.</p>
+            </div>
+            <div class="historical-rank-actions">
+              <label>
+                Through week
+                <input id="inSeasonWeekLast" type="number" min="1" max="18" value="1">
+              </label>
+              <label>
+                Rank cutoff
+                <input id="inSeasonRankCutoff" type="number" min="1" max="250" value="70">
               </label>
             </div>
-            <div id="projectionChart"></div>
           </div>
-
-          <aside class="side-panel">
-            <section class="rank-card" id="rankCurveCard">
-              <div class="panel-header compact">
-                <h2>Rank Curve</h2>
-                <select id="rankCurvePosition">
-                  <option value="ALL">All</option>
-                  <option value="QB">QB</option>
-                  <option value="RB">RB</option>
-                  <option value="WR">WR</option>
-                  <option value="TE">TE</option>
-                </select>
-              </div>
-              <div id="rankCurveChart"></div>
-            </section>
-          </aside>
-        </div>
+          <div class="in-season-chart-grid">
+            <div>
+              <h3 id="inSeasonTotalTitle">Total WAR by Positional Rank</h3>
+              <div id="inSeasonWarChart"></div>
+            </div>
+            <div>
+              <h3 id="inSeasonPerGameTitle">WAR/G by Positional Rank</h3>
+              <div id="inSeasonWarPerGameChart"></div>
+            </div>
+          </div>
+        </section>
       </section>
 
       <section id="draftOptimizerView" class="view-panel">
@@ -783,11 +774,11 @@
         </section>
       </section>
 
-      <section class="table-panel view-panel active" data-view-section="projectionsView">
+      <section class="table-panel view-panel active" data-view-section="inSeasonView">
         <div class="panel-header">
           <div>
-            <h2>Generated WAR Projections</h2>
-            <p>Sortable output built from the active projections, ADP, scoring, roster settings, historical scoring, and tier rules.</p>
+            <h2 id="inSeasonTableTitle">In-Season Weekly WAR Values</h2>
+            <p id="inSeasonTableSubtitle">Sortable output built from weekly scoring through the selected week and the active league/scoring settings.</p>
           </div>
           <fieldset class="position-filter">
             <legend>Positions</legend>
@@ -801,18 +792,17 @@
           <table>
             <thead>
               <tr>
-                <th data-sort="Overall Rank">Rank</th>
+                <th data-sort="rank">Rank</th>
                 <th data-sort="Player">Player</th>
                 <th data-sort="Pos">Pos</th>
                 <th data-sort="Team">Team</th>
+                <th data-sort="games">Games</th>
                 <th data-sort="WAR">WAR</th>
-                <th data-sort="Flex WAR">Flex</th>
-                <th data-sort="SuperFlex WAR">SF</th>
-                <th data-sort="Historical WAR">Hist WAR</th>
-                <th data-sort="Delta vs Historical">Delta</th>
-                <th data-sort="ADP">ADP</th>
-                <th data-sort="Value">Value</th>
-                <th data-sort="Tier">Tier</th>
+                <th data-sort="WAR/G">WAR/G</th>
+                <th data-sort="Flex WAR">Flex WAR</th>
+                <th data-sort="Flex WAR/G">Flex/G</th>
+                <th data-sort="SuperFlex WAR">SF WAR</th>
+                <th data-sort="SuperFlex WAR/G">SF/G</th>
               </tr>
             </thead>
             <tbody id="playersBody"></tbody>
@@ -824,8 +814,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "rolling-sim-availability-20260907a";
+      window.WAR_LAB_BUILD = "in-season-war-20260918a";
     </script>
-    <script src="app.js?v=rolling-sim-availability-20260907a"></script>
+    <script src="app.js?v=in-season-war-20260918a"></script>
   </body>
 </html>
