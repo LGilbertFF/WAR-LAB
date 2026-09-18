@@ -11,7 +11,7 @@ const TRUSTED_WAR_CURVE_PATH = "data/historical_WAR_PPR2WR.csv";
 const FALLBACK_PROJECTIONS_PATH = "data/WARProjections2024_PPR2WR.csv";
 const HISTORICAL_WEEKLY_PATH = "data/fantasypros_weekly_2015_2025.csv";
 const HISTORICAL_PLAYED_WEEK_VERSION = 2;
-const IN_SEASON_WEEKLY_PREFIX = "data/FPTS WAR Weekly";
+const CURRENT_WEEKLY_STATS_PATH = "data/war/current_weekly_stats.json.gz";
 
 const state = {
   rawProjections: [],
@@ -39,6 +39,7 @@ const state = {
   historicalScoredRows: [],
   historicalScoredRowsKey: "",
   inSeasonRows: [],
+  inSeasonRawRows: [],
   inSeasonLoadedKey: "",
   inSeasonSource: "",
   inSeasonError: "",
@@ -3382,64 +3383,185 @@ function inSeasonRankCutoff() {
   return Math.max(1, Math.min(250, number(el("inSeasonRankCutoff")?.value, 70)));
 }
 
-function inSeasonFileLabel() {
-  const cfg = settings();
-  if (cfg.slots.SUPERFLEX > 0 || cfg.slots.QB > 1) return "SuperFlex";
-  if (cfg.scoring.tePremium > 0) return "TE Premium";
-  if (cfg.slots.WR >= 3 && cfg.scoring.rec >= 1) return "3WR PPR";
-  if (cfg.scoring.rec <= 0) return "2WR Standard";
-  if (cfg.scoring.rec < 1) return "2WR Half";
-  return "2WR PPR";
-}
-
 function inSeasonDataKey() {
   const cfg = settings();
-  return `${cfg.year}|${inSeasonFileLabel()}`;
+  return JSON.stringify({
+    rows: state.inSeasonRawRows.length,
+    year: cfg.year,
+    weekLast: inSeasonWeekLast(),
+    teams: cfg.teams,
+    slots: cfg.slots,
+    scoring: cfg.scoring
+  });
 }
 
-function inSeasonDataPath() {
-  return `${IN_SEASON_WEEKLY_PREFIX} ${settings().year} ${inSeasonFileLabel()}.csv`;
+function inSeasonWeeklyStatsPath() {
+  return state.warManifest?.current_weekly_stats?.path || CURRENT_WEEKLY_STATS_PATH;
 }
 
 async function ensureInSeasonData() {
+  if (!state.inSeasonRawRows.length && !state.inSeasonError) {
+    state.inSeasonSource = inSeasonWeeklyStatsPath();
+    try {
+      state.inSeasonRawRows = await loadJsonMaybeGzip(state.inSeasonSource);
+    } catch (error) {
+      state.inSeasonRawRows = [];
+      state.inSeasonError = `Could not load current weekly stats cache`;
+      scheduleRender(0);
+      return;
+    }
+  }
   const key = inSeasonDataKey();
   if (state.inSeasonLoadedKey === key) return;
   state.inSeasonLoadedKey = key;
-  state.inSeasonRows = [];
   state.inSeasonError = "";
-  state.inSeasonSource = inSeasonDataPath();
-  try {
-    const rows = await loadCsv(state.inSeasonSource);
-    state.inSeasonRows = rows.map(normalizeInSeasonRow).filter(Boolean);
-  } catch (error) {
-    state.inSeasonRows = [];
-    state.inSeasonError = `Could not load ${state.inSeasonSource}`;
-  }
+  state.inSeasonRows = calculateInSeasonWarRows();
   scheduleRender(0);
 }
 
-function normalizeInSeasonRow(row) {
+function normalizeInSeasonStatRow(row) {
+  const cfg = settings();
   const player = firstValue(row, ["Player", "player", "Name", "name"], "");
   const pos = String(firstValue(row, ["Pos", "position", "POS"], "") || "").toUpperCase();
   if (!player || !["QB", "RB", "WR", "TE"].includes(pos)) return null;
   const team = firstValue(row, ["Team", "team", "Tm"], "");
-  const superflexWar = firstValue(row, ["SuperFlex WAR", "Superflex WAR", "Superflex War"], null);
-  const superflexWarG = firstValue(row, ["SuperFlex WAR/G", "Superflex WAR/G", "Superflex War/G"], null);
+  const year = number(firstValue(row, ["Year", "year"], null), null);
+  const week = number(firstValue(row, ["Week", "week"], null), null);
+  if (year !== cfg.year || week === null || week < 1 || week > inSeasonWeekLast()) return null;
+  const points = calculateFantasyPoints(row, pos, cfg.scoring);
+  const played = historicalWeekPlayed(row, points);
+  if (!played || points === null) return null;
   return {
-    id: `${playerKey(player)}-${pos}-${team}`,
+    id: `${playerKey(player)}-${pos}`,
     Player: player,
     Team: team,
     Pos: pos,
-    games: number(firstValue(row, ["games", "G", "Games"], null), null),
-    year: number(firstValue(row, ["year", "Year"], settings().year), settings().year),
-    rank: number(firstValue(row, ["rank", "Rank"], null), null),
-    WAR: number(firstValue(row, ["WAR"], null), null),
-    "WAR/G": number(firstValue(row, ["WAR/G"], null), null),
-    "Flex WAR": number(firstValue(row, ["Flex WAR"], null), null),
-    "Flex WAR/G": number(firstValue(row, ["Flex WAR/G"], null), null),
-    "SuperFlex WAR": number(superflexWar, null),
-    "SuperFlex WAR/G": number(superflexWarG, null)
+    Year: year,
+    Week: week,
+    FPTS: points
   };
+}
+
+function calculateInSeasonWarRows() {
+  const cfg = settings();
+  const rows = state.inSeasonRawRows.map(normalizeInSeasonStatRow).filter(Boolean);
+  if (!rows.length) {
+    if (state.inSeasonRawRows.length) state.inSeasonError = `No weekly stat rows found for ${cfg.year} through Week ${inSeasonWeekLast()}`;
+    return [];
+  }
+  const byWeek = new Map();
+  const byPlayer = new Map();
+  for (const row of rows) {
+    if (!byWeek.has(row.Week)) byWeek.set(row.Week, []);
+    byWeek.get(row.Week).push(row);
+    const key = `${row.Player}|${row.Team}|${row.Pos}`;
+    if (!byPlayer.has(key)) byPlayer.set(key, { Player: row.Player, Team: row.Team, Pos: row.Pos, weeks: [] });
+    byPlayer.get(key).weeks.push(row);
+  }
+
+  const weeklyTop = { QB: [], RB: [], WR: [], TE: [], FLEX: [], SUPERFLEX: [] };
+  const weeklyReplace = { QB: [], RB: [], WR: [], TE: [], FLEX: [], SUPERFLEX: [] };
+
+  for (const weekRows of byWeek.values()) {
+    const starterIds = new Set();
+    for (const pos of ["QB", "RB", "WR", "TE"]) {
+      const count = cfg.slots[pos] * cfg.teams;
+      const ranked = weekRows.filter((row) => row.Pos === pos).sort((a, b) => b.FPTS - a.FPTS);
+      const top = ranked.slice(0, count);
+      const replacement = ranked.slice(count, count * 2);
+      top.forEach((row) => starterIds.add(row.id));
+      weeklyTop[pos].push(...top.map((row) => row.FPTS));
+      weeklyReplace[pos].push(...replacement.map((row) => row.FPTS));
+    }
+
+    const flexCount = cfg.slots.FLEX * cfg.teams;
+    const flexRanked = weekRows.filter((row) => ["RB", "WR", "TE"].includes(row.Pos) && !starterIds.has(row.id)).sort((a, b) => b.FPTS - a.FPTS);
+    const flexTop = flexRanked.slice(0, flexCount);
+    const flexReplacement = flexRanked.slice(flexCount, flexCount * 2);
+    flexTop.forEach((row) => starterIds.add(row.id));
+    weeklyTop.FLEX.push(...flexTop.map((row) => row.FPTS));
+    weeklyReplace.FLEX.push(...flexReplacement.map((row) => row.FPTS));
+
+    const superflexCount = cfg.slots.SUPERFLEX * cfg.teams;
+    const superflexRanked = weekRows.filter((row) => !starterIds.has(row.id)).sort((a, b) => b.FPTS - a.FPTS);
+    weeklyTop.SUPERFLEX.push(...superflexRanked.slice(0, superflexCount).map((row) => row.FPTS));
+    weeklyReplace.SUPERFLEX.push(...superflexRanked.slice(superflexCount, superflexCount * 2).map((row) => row.FPTS));
+  }
+
+  const model = {};
+  for (const pos of ["QB", "RB", "WR", "TE", "FLEX", "SUPERFLEX"]) {
+    model[pos] = {
+      avg: average(weeklyTop[pos]),
+      std: std(weeklyTop[pos]),
+      replacement: average(weeklyReplace[pos]),
+      count: weeklyTop[pos].length
+    };
+  }
+  const teamAvg =
+    model.QB.avg * cfg.slots.QB +
+    model.RB.avg * cfg.slots.RB +
+    model.WR.avg * cfg.slots.WR +
+    model.TE.avg * cfg.slots.TE +
+    model.FLEX.avg * cfg.slots.FLEX +
+    model.SUPERFLEX.avg * cfg.slots.SUPERFLEX;
+  const teamStd = Math.max(Math.sqrt(
+    model.QB.std ** 2 * cfg.slots.QB +
+    model.RB.std ** 2 * cfg.slots.RB +
+    model.WR.std ** 2 * cfg.slots.WR +
+    model.TE.std ** 2 * cfg.slots.TE +
+    model.FLEX.std ** 2 * cfg.slots.FLEX +
+    model.SUPERFLEX.std ** 2 * cfg.slots.SUPERFLEX
+  ), 1);
+
+  const playerRows = [...byPlayer.values()].map((player) => {
+    const base = model[player.Pos];
+    let war = 0;
+    let flexWar = 0;
+    let superflexWar = 0;
+    const weeks = player.weeks.sort((a, b) => a.Week - b.Week).map((week) => {
+      const weeklyWar = normalCdf(teamAvg - base.avg + week.FPTS, teamAvg, teamStd) -
+        normalCdf(teamAvg - base.avg + base.replacement, teamAvg, teamStd);
+      const weeklyFlexWar = ["RB", "WR", "TE"].includes(player.Pos)
+        ? normalCdf(teamAvg - model.FLEX.avg + week.FPTS, teamAvg, teamStd) -
+          normalCdf(teamAvg - model.FLEX.avg + model.FLEX.replacement, teamAvg, teamStd)
+        : null;
+      const weeklySuperflexWar = model.SUPERFLEX.count
+        ? normalCdf(teamAvg - model.SUPERFLEX.avg + week.FPTS, teamAvg, teamStd) -
+          normalCdf(teamAvg - model.SUPERFLEX.avg + model.SUPERFLEX.replacement, teamAvg, teamStd)
+        : null;
+      war += weeklyWar;
+      if (weeklyFlexWar !== null) flexWar += weeklyFlexWar;
+      if (weeklySuperflexWar !== null) superflexWar += weeklySuperflexWar;
+      return { Week: week.Week, FPTS: week.FPTS, WAR: weeklyWar, "Flex WAR": weeklyFlexWar, "SuperFlex WAR": weeklySuperflexWar };
+    });
+    const games = weeks.length;
+    const fpts = weeks.reduce((sum, week) => sum + week.FPTS, 0);
+    return {
+      id: `${playerKey(player.Player)}-${player.Pos}-${player.Team}`,
+      Player: player.Player,
+      Team: player.Team,
+      Pos: player.Pos,
+      games,
+      year: cfg.year,
+      FPTS: fpts,
+      AVG: games ? fpts / games : 0,
+      WAR: war,
+      "WAR/G": games ? war / games : null,
+      "Flex WAR": ["RB", "WR", "TE"].includes(player.Pos) ? flexWar : null,
+      "Flex WAR/G": ["RB", "WR", "TE"].includes(player.Pos) && games ? flexWar / games : null,
+      "SuperFlex WAR": model.SUPERFLEX.count ? superflexWar : null,
+      "SuperFlex WAR/G": model.SUPERFLEX.count && games ? superflexWar / games : null,
+      Weeks: weeks
+    };
+  });
+
+  for (const pos of ["QB", "RB", "WR", "TE"]) {
+    playerRows.filter((row) => row.Pos === pos).sort((a, b) => b.WAR - a.WAR).forEach((row, index) => {
+      row.rank = index + 1;
+      row["Pos Rank"] = `${index + 1}${pos}`;
+    });
+  }
+  return playerRows.sort((a, b) => b.WAR - a.WAR);
 }
 
 function inSeasonVisibleRows() {
@@ -3498,13 +3620,12 @@ function renderInSeasonView() {
   ensureInSeasonData();
   const context = chartContextCopy();
   const weekLast = inSeasonWeekLast();
-  const label = inSeasonFileLabel();
   const title = `${context.year} In-Season Weekly WAR Through Week ${weekLast}`;
-  const subtitle = `${label} weekly WAR - ${context.roster} - ${context.scoring} - active scoring through Week ${weekLast}`;
+  const subtitle = `Raw weekly stats recalculated to WAR - ${context.roster} - ${context.scoring} - active scoring through Week ${weekLast}`;
   if (el("inSeasonChartTitle")) el("inSeasonChartTitle").textContent = title;
   if (el("inSeasonChartSubtitle")) el("inSeasonChartSubtitle").textContent = subtitle;
   if (el("inSeasonTableTitle")) el("inSeasonTableTitle").textContent = `${context.year} Weekly WAR Table Through Week ${weekLast}`;
-  if (el("inSeasonTableSubtitle")) el("inSeasonTableSubtitle").textContent = `${subtitle}${state.inSeasonSource ? ` - Source: ${state.inSeasonSource.replace("data/", "")}` : ""}`;
+  if (el("inSeasonTableSubtitle")) el("inSeasonTableSubtitle").textContent = `${subtitle}${state.inSeasonSource ? ` - Raw source: ${state.inSeasonSource.replace("data/", "")}` : ""}`;
   if (el("inSeasonTotalTitle")) el("inSeasonTotalTitle").textContent = "Total WAR by Positional Rank";
   if (el("inSeasonPerGameTitle")) el("inSeasonPerGameTitle").textContent = "WAR/G by Positional Rank";
   renderInSeasonChart("inSeasonWarChart", "WAR", `${context.year} Total WAR by Positional Rank`);
@@ -3520,7 +3641,7 @@ function updateInSeasonSummary(rows) {
   el("playerCount").textContent = rows.length;
   el("topWar").textContent = topWar ? `${topWar.Player} ${fmt(topWar.WAR)}` : "-";
   el("topValue").textContent = topWarG ? `${topWarG.Player} ${fmt(topWarG["WAR/G"])}/G` : "-";
-  el("replacementSummary").textContent = state.inSeasonError || `${inSeasonFileLabel()} · through Week ${inSeasonWeekLast()}`;
+  el("replacementSummary").textContent = state.inSeasonError || `Raw weekly stats · through Week ${inSeasonWeekLast()}`;
 }
 
 function renderInSeasonTable(rows) {
@@ -7341,6 +7462,8 @@ async function initData() {
   } catch {
     state.playerHeadshots = null;
   }
+  const cachedWeekLast = Math.max(1, Math.min(18, number(state.manifest?.current_weekly_week_last, 1)));
+  if (el("inSeasonWeekLast")) el("inSeasonWeekLast").value = cachedWeekLast;
   try {
     const currentProjectionPath = state.warManifest?.current_projections?.path || CURRENT_PROJECTIONS_PATH;
     const currentAdpPath = state.warManifest?.current_adp?.path || CURRENT_ADP_PATH;

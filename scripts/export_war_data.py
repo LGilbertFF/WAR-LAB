@@ -39,6 +39,7 @@ def export_current(manifest: dict) -> None:
     for key, source_name, output_name in [
         ("current_projections", "current_projections.csv", "current_projections.json.gz"),
         ("current_adp", "current_adp.csv", "current_adp.json.gz"),
+        ("current_weekly_stats", "current_weekly_stats.csv", "current_weekly_stats.json.gz"),
     ]:
         source = DATA_DIR / source_name
         df = read_csv_if_exists(source)

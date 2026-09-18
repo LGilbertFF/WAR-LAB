@@ -1,0 +1,49 @@
+name: Update Current Weekly WAR Stats
+
+on:
+  workflow_dispatch:
+    inputs:
+      season_year:
+        description: "NFL season year"
+        required: true
+        default: "2026"
+      week_last:
+        description: "Most recent completed week. Leave blank to auto-estimate."
+        required: false
+        default: ""
+  schedule:
+    - cron: "22 11 * * 2"
+
+permissions:
+  contents: write
+
+jobs:
+  update-current-weekly-war:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install scraper dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Scrape current weekly stats
+        shell: bash
+        run: |
+          args=(--current-weekly --season-year "${{ github.event.inputs.season_year || '2026' }}")
+          if [ -n "${{ github.event.inputs.week_last }}" ]; then
+            args+=(--week-last "${{ github.event.inputs.week_last }}")
+          fi
+          python scripts/fantasypros_scraper.py "${args[@]}"
+
+      - name: Export browser-ready weekly stats
+        run: python scripts/export_war_data.py --current
+
+      - name: Commit updated weekly stats
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update current weekly WAR stats"
+          file_pattern: data/current_weekly_stats.csv data/war/current_weekly_stats.json.gz data/war/manifest.json data/scrape_manifest.json

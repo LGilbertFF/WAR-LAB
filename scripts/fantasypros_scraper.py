@@ -12,7 +12,7 @@ import csv
 import json
 import re
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -41,6 +41,16 @@ HEADERS = {
     ),
     "Accept-Language": "en-US,en;q=0.9",
 }
+
+
+def infer_completed_week(season_year: int, today: date | None = None) -> int:
+    today = today or datetime.now(timezone.utc).date()
+    first_rollover = date(season_year, 9, 15)
+    while first_rollover.weekday() != 1:
+        first_rollover += timedelta(days=1)
+    if today < first_rollover:
+        return 1
+    return max(1, min(18, ((today - first_rollover).days // 7) + 1))
 
 
 def fetch(url: str, *, delay: float = 0.35) -> str:
@@ -340,6 +350,40 @@ def scrape_historical_weekly(
     return result
 
 
+def scrape_current_weekly(
+    season_year: int,
+    week_last: int,
+    output: Path,
+    positions: Iterable[str] = POSITIONS,
+) -> pd.DataFrame:
+    existing = pd.read_csv(output) if output.exists() else pd.DataFrame()
+    frames = [existing] if not existing.empty else []
+    done: set[tuple[int, int, str]] = set()
+    if not existing.empty and {"Year", "Week", "Pos"}.issubset(existing.columns):
+        for _, row in existing[["Year", "Week", "Pos"]].drop_duplicates().iterrows():
+            year = pd.to_numeric(row["Year"], errors="coerce")
+            week = pd.to_numeric(row["Week"], errors="coerce")
+            if pd.notna(year) and pd.notna(week):
+                done.add((int(year), int(week), str(row["Pos"]).lower()))
+
+    week_last = max(1, min(18, int(week_last)))
+    for week in range(1, week_last + 1):
+        for position in positions:
+            if (season_year, week, position) in done:
+                continue
+            url = f"https://www.fantasypros.com/nfl/stats/{position}.php?year={season_year}&week={week}&range=week"
+            frames.append(normalize_weekly(position, season_year, week, table_to_df(fetch(url))))
+            result = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+            result = result.drop_duplicates(subset=["Year", "Week", "Pos", "Player"], keep="last")
+            result.to_csv(output, index=False, quoting=csv.QUOTE_MINIMAL)
+            print(f"scraped current {position.upper()} {season_year} week {week}")
+    result = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+    if not result.empty:
+        result = result.drop_duplicates(subset=["Year", "Week", "Pos", "Player"], keep="last")
+        result.to_csv(output, index=False, quoting=csv.QUOTE_MINIMAL)
+    return result
+
+
 def write_manifest(**values: object) -> None:
     manifest_path = DATA_DIR / "scrape_manifest.json"
     existing: dict[str, object] = {}
@@ -359,12 +403,14 @@ def write_manifest(**values: object) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--current", action="store_true", help="Scrape current projections and ADP")
+    parser.add_argument("--current-weekly", action="store_true", help="Scrape current-season weekly stat rows through --week-last")
     parser.add_argument("--historical", action="store_true", help="Scrape historical weekly stat rows")
     parser.add_argument("--historical-adp", action="store_true", help="Scrape historical FantasyPros ADP rows")
     parser.add_argument("--season-year", type=int, default=datetime.now().year)
     parser.add_argument("--start-year", type=int, default=2015)
     parser.add_argument("--end-year", type=int, default=datetime.now().year - 1)
     parser.add_argument("--adp-scoring", choices=sorted(ADP_URLS), default="ppr")
+    parser.add_argument("--week-last", type=int, help="Most recent completed NFL week for current weekly stats. Defaults to an automatic season calendar estimate.")
     parser.add_argument(
         "--skip-current-adp",
         action="store_true",
@@ -418,6 +464,15 @@ def main() -> None:
                     outputs["adp_scoring"] = args.adp_scoring
                 else:
                     raise
+
+    if args.current_weekly:
+        output = DATA_DIR / "current_weekly_stats.csv"
+        week_last = args.week_last if args.week_last is not None else infer_completed_week(args.season_year)
+        current_weekly = scrape_current_weekly(args.season_year, week_last, output, args.positions)
+        outputs["current_weekly_stats"] = f"data/{output.name}"
+        outputs["current_weekly_stats_rows"] = int(len(current_weekly))
+        outputs["current_weekly_week_last"] = int(week_last)
+        outputs["season_year"] = args.season_year
 
     if args.historical:
         output = DATA_DIR / f"fantasypros_weekly_{args.start_year}_{args.end_year}.csv"
