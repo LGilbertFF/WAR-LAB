@@ -3567,7 +3567,7 @@ function calculateInSeasonWarRows() {
   for (const pos of ["QB", "RB", "WR", "TE"]) {
     playerRows.filter((row) => row.Pos === pos).sort((a, b) => b.WAR - a.WAR).forEach((row, index) => {
       row["Position Rank"] = index + 1;
-      row["Pos Rank"] = `${index + 1}${pos}`;
+      row["Pos Rank"] = `${pos} ${index + 1}`;
     });
   }
   return playerRows.sort((a, b) => b.WAR - a.WAR).map((row, index) => ({
