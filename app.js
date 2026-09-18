@@ -12,6 +12,7 @@ const FALLBACK_PROJECTIONS_PATH = "data/WARProjections2024_PPR2WR.csv";
 const HISTORICAL_WEEKLY_PATH = "data/fantasypros_weekly_2015_2025.csv";
 const HISTORICAL_PLAYED_WEEK_VERSION = 2;
 const CURRENT_WEEKLY_STATS_PATH = "data/war/current_weekly_stats.json.gz";
+const CURRENT_WEEKLY_STATS_CSV_PATH = "data/current_weekly_stats.csv";
 
 const state = {
   rawProjections: [],
@@ -393,7 +394,10 @@ function calculateFantasyPoints(row, pos, scoring) {
   const recYds = number(firstValue(row, ["ReceivingYDS", "Receiving YDS", "Rec YDS", "YDS", "Receiving Yards"], null), 0);
   const recTd = number(firstValue(row, ["ReceivingTD", "Receiving TD", "Rec TD", "TD", "ReceivingTDS"], null), 0);
   const rushYds = number(firstValue(row, ["RushingYDS", "Rushing YDS", "Rush YDS", "YDS_2", "Rushing Yards"], null), 0);
-  const rushTd = number(firstValue(row, ["RushingTD", "Rushing TD", "Rush TD", "TD_2", "RushingTDS"], null), 0);
+  const rushTdAliases = pos === "QB"
+    ? ["RushingTD", "Rushing TD", "Rush TD", "TD_1", "TD_2", "RushingTDS"]
+    : ["RushingTD", "Rushing TD", "Rush TD", "TD_2", "RushingTDS"];
+  const rushTd = number(firstValue(row, rushTdAliases, null), 0);
   const passYds = number(firstValue(row, ["PassingYDS", "Passing YDS", "Pass YDS", "YDS", "Passing Yards"], null), 0);
   const passTd = number(firstValue(row, ["PassingTD", "Passing TD", "Pass TD", "PassingTDS"], null), 0);
   const ints = number(firstValue(row, ["INT", "INTS", "Interceptions"], null), 0);
@@ -3405,10 +3409,15 @@ async function ensureInSeasonData() {
     try {
       state.inSeasonRawRows = await loadJsonMaybeGzip(state.inSeasonSource);
     } catch (error) {
-      state.inSeasonRawRows = [];
-      state.inSeasonError = `Could not load current weekly stats cache`;
-      scheduleRender(0);
-      return;
+      try {
+        state.inSeasonSource = state.manifest?.current_weekly_stats || CURRENT_WEEKLY_STATS_CSV_PATH;
+        state.inSeasonRawRows = await loadCsv(state.inSeasonSource);
+      } catch (fallbackError) {
+        state.inSeasonRawRows = [];
+        state.inSeasonError = `Could not load current weekly stats cache`;
+        scheduleRender(0);
+        return;
+      }
     }
   }
   const key = inSeasonDataKey();
