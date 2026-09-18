@@ -84,7 +84,7 @@
     ]
   },
   "version": 1,
-  "updated_at": "2026-09-18T22:35:14.624181+00:00",
+  "updated_at": "2026-09-18T23:28:38.293458+00:00",
   "historical_adp": {
     "path": "data/war/historical_adp.json.gz",
     "source": "data/historical_adp.csv",
@@ -97,5 +97,11 @@
       "ppr",
       "standard"
     ]
+  },
+  "current_weekly_stats": {
+    "path": "data/war/current_weekly_stats.json.gz",
+    "source": "data/current_weekly_stats.csv",
+    "rows": 828,
+    "bytes": 17919
   }
 }
