@@ -3566,11 +3566,14 @@ function calculateInSeasonWarRows() {
 
   for (const pos of ["QB", "RB", "WR", "TE"]) {
     playerRows.filter((row) => row.Pos === pos).sort((a, b) => b.WAR - a.WAR).forEach((row, index) => {
-      row.rank = index + 1;
+      row["Position Rank"] = index + 1;
       row["Pos Rank"] = `${index + 1}${pos}`;
     });
   }
-  return playerRows.sort((a, b) => b.WAR - a.WAR);
+  return playerRows.sort((a, b) => b.WAR - a.WAR).map((row, index) => ({
+    ...row,
+    "Overall Rank": index + 1
+  }));
 }
 
 function inSeasonVisibleRows() {
@@ -3659,7 +3662,8 @@ function renderInSeasonTable(rows) {
   if (!body) return;
   body.innerHTML = limited.map((player) => `
     <tr>
-      <td>${fmt(player.rank, 0)}</td>
+      <td>${fmt(player["Overall Rank"], 0)}</td>
+      <td>${escapeHtml(player["Pos Rank"] || "-")}</td>
       <td><div class="adp-player-cell">${headshotImg(player)}<strong>${escapeHtml(player.Player)}</strong></div></td>
       <td><span class="pos-pill pos-${player.Pos}">${player.Pos}</span></td>
       <td>${escapeHtml(player.Team || "-")}</td>
@@ -3671,7 +3675,7 @@ function renderInSeasonTable(rows) {
       <td>${fmt(player["SuperFlex WAR"])}</td>
       <td>${fmt(player["SuperFlex WAR/G"])}</td>
     </tr>
-  `).join("") || `<tr><td colspan="11">${escapeHtml(state.inSeasonError || "No in-season rows available.")}</td></tr>`;
+  `).join("") || `<tr><td colspan="12">${escapeHtml(state.inSeasonError || "No in-season rows available.")}</td></tr>`;
 }
 
 function renderProjectionChart(rows) {
@@ -7676,7 +7680,7 @@ function exportHistoricalSeasonWar() {
 
 function exportResults() {
   if (state.activeView === "inSeasonView") {
-    const cols = ["rank", "Player", "Pos", "Team", "games", "WAR", "WAR/G", "Flex WAR", "Flex WAR/G", "SuperFlex WAR", "SuperFlex WAR/G"];
+    const cols = ["Overall Rank", "Pos Rank", "Player", "Pos", "Team", "games", "WAR", "WAR/G", "Flex WAR", "Flex WAR/G", "SuperFlex WAR", "SuperFlex WAR/G"];
     downloadCsv(`in-season-weekly-war-${settings().year}-through-week-${inSeasonWeekLast()}.csv`, cols, sortedResults(inSeasonVisibleRows()));
     return;
   }
