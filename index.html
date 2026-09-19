@@ -7,7 +7,7 @@
     <link rel="icon" href="assets/favicon.svg?v=browser-fire-20260904a" type="image/svg+xml">
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=in-season-war-overlay-20260919a">
+    <link rel="stylesheet" href="styles.css?v=ros-war-projection-20260919a">
   </head>
   <body>
     <main class="app-shell">
@@ -140,6 +140,13 @@
                 <select id="inSeasonHistoricalOverlay">
                   <option value="yes" selected>Show</option>
                   <option value="no">Hide</option>
+                </select>
+              </label>
+              <label>
+                Season outlook
+                <select id="inSeasonOutlook">
+                  <option value="played" selected>Played to date</option>
+                  <option value="projected">Projected season</option>
                 </select>
               </label>
               <label>
@@ -819,6 +826,11 @@
                 <th data-sort="Flex WAR/G">Flex/G</th>
                 <th data-sort="SuperFlex WAR">SF WAR</th>
                 <th data-sort="SuperFlex WAR/G">SF/G</th>
+                <th data-sort="ROS Overall Rank">ROS Rank</th>
+                <th id="inSeasonRosRateHead" data-sort="ROS Historical WAR/G">ROS Hist WAR/G</th>
+                <th id="inSeasonRemainingWarHead" data-sort="Projected Remaining WAR">Remaining WAR</th>
+                <th id="inSeasonProjectedWarHead" data-sort="Projected Season WAR">Projected WAR</th>
+                <th id="inSeasonProjectedWarPerGameHead" data-sort="Projected Season WAR/G">Projected WAR/G</th>
               </tr>
             </thead>
             <tbody id="playersBody"></tbody>
@@ -830,8 +842,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "in-season-war-overlay-20260919a";
+      window.WAR_LAB_BUILD = "ros-war-projection-20260919a";
     </script>
-    <script src="app.js?v=in-season-war-overlay-20260919a"></script>
+    <script src="app.js?v=ros-war-projection-20260919a"></script>
   </body>
 </html>

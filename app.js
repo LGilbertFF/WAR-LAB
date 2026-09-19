@@ -13,6 +13,7 @@ const HISTORICAL_WEEKLY_PATH = "data/fantasypros_weekly_2015_2025.csv";
 const HISTORICAL_PLAYED_WEEK_VERSION = 2;
 const CURRENT_WEEKLY_STATS_PATH = "data/war/current_weekly_stats.json.gz";
 const CURRENT_WEEKLY_STATS_CSV_PATH = "data/current_weekly_stats.csv";
+const CURRENT_ROS_RANKINGS_CSV_PATH = "data/current_ros_rankings.csv";
 
 const state = {
   rawProjections: [],
@@ -44,6 +45,11 @@ const state = {
   inSeasonLoadedKey: "",
   inSeasonSource: "",
   inSeasonError: "",
+  rosRankings: [],
+  rosRankingsSource: "",
+  rosRankingsError: "",
+  rosWarCurveKey: "",
+  rosWarCurve: null,
   playerHeadshots: null,
   manifest: null,
   warManifest: null,
@@ -3413,6 +3419,10 @@ function showInSeasonHistoricalOverlay() {
   return (el("inSeasonHistoricalOverlay")?.value || "yes") === "yes";
 }
 
+function inSeasonOutlook() {
+  return (el("inSeasonOutlook")?.value || "played") === "projected" ? "projected" : "played";
+}
+
 function inSeasonDataKey() {
   const cfg = settings();
   return JSON.stringify({
@@ -3602,10 +3612,10 @@ function calculateInSeasonWarRows() {
   }));
 }
 
-function inSeasonVisibleRows() {
+function inSeasonVisibleRows(sourceRows = state.inSeasonRows) {
   const activePositions = new Set([...document.querySelectorAll("input[name='posFilter']:checked")].map((input) => input.value));
   const query = el("searchInput")?.value.trim().toLowerCase() || "";
-  return state.inSeasonRows.filter((row) => {
+  return sourceRows.filter((row) => {
     if (!activePositions.has(row.Pos)) return false;
     if (!query) return true;
     return `${row.Player} ${row.Team}`.toLowerCase().includes(query);
@@ -3624,9 +3634,9 @@ function inSeasonMetricRows(rows, metric) {
   });
 }
 
-function historicalInSeasonMetricRows(metric, perGame = false) {
+function historicalInSeasonMetricRows(metric, perGame = false, gameCount = inSeasonWeekLast()) {
   const cutoff = inSeasonRankCutoff();
-  const weekCount = inSeasonWeekLast();
+  const weekCount = Math.max(1, number(gameCount, inSeasonWeekLast()));
   const playerRows = state.historicalModel?.playerRows || [];
   const rankedBySeason = new Map();
 
@@ -3665,10 +3675,134 @@ function historicalInSeasonMetricRows(metric, perGame = false) {
   });
 }
 
-function renderInSeasonChart(chartId, metric, title, historicalMetric, perGame = false) {
+function normalizeRosRanking(row, index) {
+  const player = firstValue(row, ["Player", "player", "Name", "NAME"], "");
+  const rawPos = String(firstValue(row, ["Pos", "POS", "Position"], "") || "").toUpperCase();
+  const pos = (rawPos.match(/QB|RB|WR|TE/) || [""])[0];
+  if (!player || !pos) return null;
+  const embeddedRank = number((rawPos.match(/\d+/) || [null])[0], null);
+  return {
+    Year: number(firstValue(row, ["Year", "year"], settings().year), settings().year),
+    Rank: number(firstValue(row, ["Rank", "rank", "RK", "Overall Rank"], index + 1), index + 1),
+    Player: player,
+    Team: firstValue(row, ["Team", "team", "Tm"], ""),
+    Pos: pos,
+    PosRank: number(firstValue(row, ["PosRank", "Pos Rank", "Position Rank", "POS RK"], embeddedRank), embeddedRank)
+  };
+}
+
+function normalizedRosRankings() {
+  const rows = state.rosRankings.map(normalizeRosRanking).filter(Boolean)
+    .filter((row) => row.Year === settings().year)
+    .sort((a, b) => a.Rank - b.Rank);
+  const counters = { QB: 0, RB: 0, WR: 0, TE: 0 };
+  return rows.map((row) => {
+    counters[row.Pos] += 1;
+    return { ...row, PosRank: row.PosRank || counters[row.Pos] };
+  });
+}
+
+function historicalRosWarCurve(basis) {
+  const key = `${state.historicalModelKey}|${basis}|${state.historicalModel?.playerRows?.length || 0}`;
+  if (state.rosWarCurveKey === key && state.rosWarCurve) return state.rosWarCurve;
+  const seasonGroups = new Map();
+  for (const row of state.historicalModel?.playerRows || []) {
+    const games = number(row.Games, 0);
+    const value = number(row[basis], null);
+    const avg = number(row.AVG, null);
+    if (!games || value === null || avg === null) continue;
+    const groupKey = `${row.Year}-${row.Pos}`;
+    if (!seasonGroups.has(groupKey)) seasonGroups.set(groupKey, []);
+    seasonGroups.get(groupKey).push({ ...row, RosWarRate: value / games });
+  }
+  const rankRates = new Map();
+  for (const rows of seasonGroups.values()) {
+    rows.sort((a, b) => b.AVG - a.AVG).forEach((row, index) => {
+      const rankKey = `${row.Pos}-${index + 1}`;
+      if (!rankRates.has(rankKey)) rankRates.set(rankKey, []);
+      rankRates.get(rankKey).push(row.RosWarRate);
+    });
+  }
+  const curve = new Map();
+  for (const [rankKey, values] of rankRates.entries()) curve.set(rankKey, average(values));
+  state.rosWarCurveKey = key;
+  state.rosWarCurve = curve;
+  return curve;
+}
+
+function historicalRosWarRate(pos, rank, basis) {
+  const curve = historicalRosWarCurve(basis);
+  const exact = number(curve.get(`${pos}-${rank}`), null);
+  if (exact !== null) return exact;
+  const nearby = [-2, -1, 1, 2]
+    .map((offset) => number(curve.get(`${pos}-${Math.max(1, rank + offset)}`), null))
+    .filter((value) => value !== null);
+  return nearby.length ? average(nearby) : null;
+}
+
+function projectedInSeasonRows(basis) {
+  const currentByPlayer = new Map(state.inSeasonRows.map((row) => [`${playerKey(row.Player)}-${row.Pos}`, row]));
+  const rankings = normalizedRosRankings();
+  const remainingGames = Math.max(0, settings().weeks - inSeasonWeekLast());
+  const eligible = (pos) => basis === "WAR" || (basis === "Flex WAR" && ["RB", "WR", "TE"].includes(pos)) || (basis === "SuperFlex WAR" && settings().slots.SUPERFLEX > 0);
+  const projected = rankings.map((ranking) => {
+    const key = `${playerKey(ranking.Player)}-${ranking.Pos}`;
+    const current = currentByPlayer.get(key) || {
+      id: `${playerKey(ranking.Player)}-${ranking.Pos}-${ranking.Team}`,
+      Player: ranking.Player,
+      Team: ranking.Team,
+      Pos: ranking.Pos,
+      games: 0,
+      FPTS: 0,
+      AVG: 0,
+      WAR: 0,
+      "WAR/G": null,
+      "Flex WAR": ranking.Pos === "QB" ? null : 0,
+      "Flex WAR/G": null,
+      "SuperFlex WAR": settings().slots.SUPERFLEX ? 0 : null,
+      "SuperFlex WAR/G": null,
+      Weeks: []
+    };
+    currentByPlayer.delete(key);
+    const rate = eligible(ranking.Pos) ? historicalRosWarRate(ranking.Pos, ranking.PosRank, basis) : null;
+    const playedValue = eligible(ranking.Pos) ? number(current[basis], 0) : null;
+    const remaining = rate === null ? null : rate * remainingGames;
+    const total = playedValue === null || remaining === null ? null : playedValue + remaining;
+    const projectedGames = number(current.games, 0) + remainingGames;
+    return {
+      ...current,
+      Team: current.Team || ranking.Team,
+      "ROS Overall Rank": ranking.Rank,
+      "ROS Rank": `${ranking.Pos} ${ranking.PosRank}`,
+      "ROS Pos Rank": ranking.PosRank,
+      "ROS Historical WAR/G": rate,
+      "Projected Remaining WAR": remaining,
+      "Projected Season WAR": total,
+      "Projected Season WAR/G": total === null || !projectedGames ? null : total / projectedGames,
+      "Projected Games": projectedGames
+    };
+  });
+  for (const current of currentByPlayer.values()) {
+    projected.push({
+      ...current,
+      "ROS Overall Rank": null,
+      "ROS Rank": null,
+      "ROS Pos Rank": null,
+      "ROS Historical WAR/G": null,
+      "Projected Remaining WAR": null,
+      "Projected Season WAR": null,
+      "Projected Season WAR/G": null,
+      "Projected Games": current.games
+    });
+  }
+  return projected.sort((a, b) => number(b["Projected Season WAR"], -Infinity) - number(a["Projected Season WAR"], -Infinity))
+    .map((row, index) => ({ ...row, "Projected Overall Rank": row["Projected Season WAR"] === null ? null : index + 1 }));
+}
+
+function renderInSeasonChart(chartId, sourceRows, metric, title, historicalMetric, perGame = false, historicalGames = inSeasonWeekLast()) {
   const chart = el(chartId);
   if (!chart) return;
-  const rows = inSeasonVisibleRows();
+  const rows = inSeasonVisibleRows(sourceRows);
   const grouped = inSeasonMetricRows(rows, metric);
   const overlay = showInSeasonHistoricalOverlay();
   const traces = grouped.map(({ pos, points }) => ({
@@ -3684,7 +3818,7 @@ function renderInSeasonChart(chartId, metric, title, historicalMetric, perGame =
     marker: { color: posColors[pos], symbol: posSymbols[pos], size: 6, line: { color: "#111111", width: 1 } }
   }));
   if (overlay) {
-    historicalInSeasonMetricRows(historicalMetric, perGame).forEach(({ pos, points }) => {
+    historicalInSeasonMetricRows(historicalMetric, perGame, historicalGames).forEach(({ pos, points }) => {
       if (!points.length) return;
       traces.push({
         type: "scatter",
@@ -3719,30 +3853,45 @@ function renderInSeasonView() {
   const context = chartContextCopy();
   const weekLast = inSeasonWeekLast();
   const basis = inSeasonWarBasis();
-  const perGameMetric = `${basis}/G`;
-  const title = `${context.year} In-Season Weekly ${basis} Through Week ${weekLast}`;
+  const projected = inSeasonOutlook() === "projected";
+  const projectionRows = projectedInSeasonRows(basis);
+  const plotRows = projected ? projectionRows : state.inSeasonRows;
+  const totalMetric = projected ? "Projected Season WAR" : basis;
+  const perGameMetric = projected ? "Projected Season WAR/G" : `${basis}/G`;
+  const displayBasis = basis === "Flex WAR" ? "FLEX WAR" : basis === "SuperFlex WAR" ? "SUPERFLEX WAR" : "WAR";
+  const title = projected ? `${context.year} Projected Season ${displayBasis}` : `${context.year} In-Season Weekly ${displayBasis} Through Week ${weekLast}`;
   const overlayText = showInSeasonHistoricalOverlay() ? ` - historical trend uses each season's first ${weekLast} played game${weekLast === 1 ? "" : "s"}` : "";
-  const subtitle = `Raw weekly stats recalculated to ${basis} - ${context.roster} - ${context.scoring} - active scoring through Week ${weekLast}${overlayText}`;
+  const rosText = projected
+    ? state.rosRankings.length
+      ? ` - played ${displayBasis} plus historical WAR/G at ROS positional rank for ${Math.max(0, settings().weeks - weekLast)} remaining weeks`
+      : ` - ROS rankings unavailable${state.rosRankingsError ? `: ${state.rosRankingsError}` : ""}`
+    : "";
+  const subtitle = `Raw weekly stats recalculated to ${displayBasis} - ${context.roster} - ${context.scoring} - active scoring through Week ${weekLast}${rosText}${overlayText}`;
   if (el("inSeasonChartTitle")) el("inSeasonChartTitle").textContent = title;
   if (el("inSeasonChartSubtitle")) el("inSeasonChartSubtitle").textContent = subtitle;
-  if (el("inSeasonTableTitle")) el("inSeasonTableTitle").textContent = `${context.year} Weekly WAR Table Through Week ${weekLast}`;
+  if (el("inSeasonTableTitle")) el("inSeasonTableTitle").textContent = `${context.year} Weekly and Projected WAR Table Through Week ${weekLast}`;
   if (el("inSeasonTableSubtitle")) el("inSeasonTableSubtitle").textContent = `${subtitle}${state.inSeasonSource ? ` - Raw source: ${state.inSeasonSource.replace("data/", "")}` : ""}`;
-  if (el("inSeasonTotalTitle")) el("inSeasonTotalTitle").textContent = `Total ${basis} by Positional Rank`;
-  if (el("inSeasonPerGameTitle")) el("inSeasonPerGameTitle").textContent = `${perGameMetric} by Positional Rank`;
-  renderInSeasonChart("inSeasonWarChart", basis, `${context.year} Total ${basis} by Positional Rank`, basis, false);
-  renderInSeasonChart("inSeasonWarPerGameChart", perGameMetric, `${context.year} ${perGameMetric} by Positional Rank`, basis, true);
-  const rows = inSeasonVisibleRows();
-  updateInSeasonSummary(rows);
+  if (el("inSeasonTotalTitle")) el("inSeasonTotalTitle").textContent = `${projected ? "Projected Season" : "Total"} ${displayBasis} by Positional Rank`;
+  if (el("inSeasonPerGameTitle")) el("inSeasonPerGameTitle").textContent = `${projected ? `Projected ${displayBasis}/G` : `${displayBasis}/G`} by Positional Rank`;
+  if (el("inSeasonRosRateHead")) el("inSeasonRosRateHead").textContent = `ROS Hist ${displayBasis}/G`;
+  if (el("inSeasonRemainingWarHead")) el("inSeasonRemainingWarHead").textContent = `Remaining ${displayBasis}`;
+  if (el("inSeasonProjectedWarHead")) el("inSeasonProjectedWarHead").textContent = `Projected ${displayBasis}`;
+  if (el("inSeasonProjectedWarPerGameHead")) el("inSeasonProjectedWarPerGameHead").textContent = `Projected ${displayBasis}/G`;
+  const historicalGames = projected ? settings().weeks : weekLast;
+  renderInSeasonChart("inSeasonWarChart", plotRows, totalMetric, `${context.year} ${projected ? "Projected Season" : "Total"} ${displayBasis} by Positional Rank`, basis, false, historicalGames);
+  renderInSeasonChart("inSeasonWarPerGameChart", plotRows, perGameMetric, `${context.year} ${projected ? "Projected" : "Current"} ${displayBasis}/G by Positional Rank`, basis, true, historicalGames);
+  const rows = inSeasonVisibleRows(projectionRows);
+  updateInSeasonSummary(inSeasonVisibleRows(plotRows), totalMetric, perGameMetric);
   renderInSeasonTable(rows);
 }
 
-function updateInSeasonSummary(rows) {
-  const topWar = [...rows].filter((row) => row.WAR !== null).sort((a, b) => b.WAR - a.WAR)[0];
-  const topWarG = [...rows].filter((row) => row["WAR/G"] !== null).sort((a, b) => b["WAR/G"] - a["WAR/G"])[0];
+function updateInSeasonSummary(rows, totalMetric = "WAR", perGameMetric = "WAR/G") {
+  const topWar = [...rows].filter((row) => row[totalMetric] !== null).sort((a, b) => b[totalMetric] - a[totalMetric])[0];
+  const topWarG = [...rows].filter((row) => row[perGameMetric] !== null).sort((a, b) => b[perGameMetric] - a[perGameMetric])[0];
   el("playerCount").textContent = rows.length;
-  el("topWar").textContent = topWar ? `${topWar.Player} ${fmt(topWar.WAR)}` : "-";
-  el("topValue").textContent = topWarG ? `${topWarG.Player} ${fmt(topWarG["WAR/G"])}/G` : "-";
-  el("replacementSummary").textContent = state.inSeasonError || `Raw weekly stats · through Week ${inSeasonWeekLast()}`;
+  el("topWar").textContent = topWar ? `${topWar.Player} ${fmt(topWar[totalMetric])}` : "-";
+  el("topValue").textContent = topWarG ? `${topWarG.Player} ${fmt(topWarG[perGameMetric])}/G` : "-";
+  el("replacementSummary").textContent = state.inSeasonError || `${state.rosRankings.length ? `${state.rosRankings.length} ROS ranks` : "ROS ranks unavailable"} · through Week ${inSeasonWeekLast()}`;
 }
 
 function renderInSeasonTable(rows) {
@@ -3763,8 +3912,13 @@ function renderInSeasonTable(rows) {
       <td>${fmt(player["Flex WAR/G"])}</td>
       <td>${fmt(player["SuperFlex WAR"])}</td>
       <td>${fmt(player["SuperFlex WAR/G"])}</td>
+      <td>${player["ROS Rank"] ? escapeHtml(player["ROS Rank"]) : "-"}</td>
+      <td>${fmt(player["ROS Historical WAR/G"])}</td>
+      <td>${fmt(player["Projected Remaining WAR"])}</td>
+      <td>${fmt(player["Projected Season WAR"])}</td>
+      <td>${fmt(player["Projected Season WAR/G"])}</td>
     </tr>
-  `).join("") || `<tr><td colspan="12">${escapeHtml(state.inSeasonError || "No in-season rows available.")}</td></tr>`;
+  `).join("") || `<tr><td colspan="17">${escapeHtml(state.inSeasonError || "No in-season rows available.")}</td></tr>`;
 }
 
 function renderProjectionChart(rows) {
@@ -7581,6 +7735,16 @@ async function initData() {
     state.adpSource = "Unavailable";
     setDataStatus(state.projectionSource, state.adpSource, state.manifest);
   }
+  try {
+    const rosPath = state.warManifest?.current_ros_rankings?.path || CURRENT_ROS_RANKINGS_CSV_PATH;
+    state.rosRankings = rosPath.endsWith(".json.gz") ? await loadJsonMaybeGzip(rosPath) : await loadCsv(rosPath);
+    state.rosRankingsSource = rosPath;
+    state.rosRankingsError = "";
+  } catch (error) {
+    state.rosRankings = [];
+    state.rosRankingsSource = "";
+    state.rosRankingsError = "run the authenticated ROS rankings sync";
+  }
   render();
   loadHistoricalData();
   loadDynastyInputs();
@@ -7769,8 +7933,9 @@ function exportHistoricalSeasonWar() {
 
 function exportResults() {
   if (state.activeView === "inSeasonView") {
-    const cols = ["Overall Rank", "Pos Rank", "Player", "Pos", "Team", "games", "WAR", "WAR/G", "Flex WAR", "Flex WAR/G", "SuperFlex WAR", "SuperFlex WAR/G"];
-    downloadCsv(`in-season-weekly-war-${settings().year}-through-week-${inSeasonWeekLast()}.csv`, cols, sortedResults(inSeasonVisibleRows()));
+    const basis = inSeasonWarBasis();
+    const cols = ["Overall Rank", "Pos Rank", "Player", "Pos", "Team", "games", "WAR", "WAR/G", "Flex WAR", "Flex WAR/G", "SuperFlex WAR", "SuperFlex WAR/G", "ROS Overall Rank", "ROS Rank", "ROS Historical WAR/G", "Projected Remaining WAR", "Projected Season WAR", "Projected Season WAR/G"];
+    downloadCsv(`in-season-and-ros-war-${settings().year}-through-week-${inSeasonWeekLast()}.csv`, cols, sortedResults(inSeasonVisibleRows(projectedInSeasonRows(basis))));
     return;
   }
   if (!state.results.length) return;
@@ -7801,7 +7966,7 @@ function bindEvents() {
       scheduleRender(0);
     });
   });
-  ["inSeasonWeekLast", "inSeasonRankCutoff", "inSeasonWarBasis", "inSeasonHistoricalOverlay"].forEach((id) => {
+  ["inSeasonWeekLast", "inSeasonRankCutoff", "inSeasonWarBasis", "inSeasonHistoricalOverlay", "inSeasonOutlook"].forEach((id) => {
     el(id)?.addEventListener("change", () => scheduleRender(0));
   });
   el("adpLeagueFormat")?.addEventListener("change", () => {
