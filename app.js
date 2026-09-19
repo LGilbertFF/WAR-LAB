@@ -3404,6 +3404,15 @@ function inSeasonRankCutoff() {
   return Math.max(1, Math.min(250, number(el("inSeasonRankCutoff")?.value, 70)));
 }
 
+function inSeasonWarBasis() {
+  const basis = el("inSeasonWarBasis")?.value || "WAR";
+  return ["WAR", "Flex WAR", "SuperFlex WAR"].includes(basis) ? basis : "WAR";
+}
+
+function showInSeasonHistoricalOverlay() {
+  return (el("inSeasonHistoricalOverlay")?.value || "yes") === "yes";
+}
+
 function inSeasonDataKey() {
   const cfg = settings();
   return JSON.stringify({
@@ -3615,15 +3624,58 @@ function inSeasonMetricRows(rows, metric) {
   });
 }
 
-function renderInSeasonChart(chartId, metric, title) {
+function historicalInSeasonMetricRows(metric, perGame = false) {
+  const cutoff = inSeasonRankCutoff();
+  const weekCount = inSeasonWeekLast();
+  const playerRows = state.historicalModel?.playerRows || [];
+  const rankedBySeason = new Map();
+
+  for (const row of playerRows) {
+    if (!["QB", "RB", "WR", "TE"].includes(row.Pos)) continue;
+    const values = (row.Weeks || [])
+      .slice()
+      .sort((a, b) => number(a.Week, 0) - number(b.Week, 0))
+      .slice(0, weekCount)
+      .map((week) => number(week[metric], null))
+      .filter((value) => value !== null);
+    if (!values.length) continue;
+    const value = perGame ? average(values) : values.reduce((sum, item) => sum + item, 0);
+    const key = `${row.Year}-${row.Pos}`;
+    if (!rankedBySeason.has(key)) rankedBySeason.set(key, []);
+    rankedBySeason.get(key).push(value);
+  }
+
+  const byPositionRank = new Map();
+  for (const [key, values] of rankedBySeason.entries()) {
+    const pos = key.split("-").pop();
+    values.sort((a, b) => b - a).slice(0, cutoff).forEach((value, index) => {
+      const rankKey = `${pos}-${index + 1}`;
+      if (!byPositionRank.has(rankKey)) byPositionRank.set(rankKey, []);
+      byPositionRank.get(rankKey).push(value);
+    });
+  }
+
+  return ["QB", "RB", "WR", "TE"].map((pos) => {
+    const points = Array.from({ length: cutoff }, (_, index) => {
+      const rank = index + 1;
+      const values = byPositionRank.get(`${pos}-${rank}`) || [];
+      return values.length ? { PosRank: rank, Value: average(values), Seasons: values.length } : null;
+    }).filter(Boolean);
+    return { pos, points };
+  });
+}
+
+function renderInSeasonChart(chartId, metric, title, historicalMetric, perGame = false) {
   const chart = el(chartId);
   if (!chart) return;
   const rows = inSeasonVisibleRows();
   const grouped = inSeasonMetricRows(rows, metric);
+  const overlay = showInSeasonHistoricalOverlay();
   const traces = grouped.map(({ pos, points }) => ({
     type: "scatter",
     mode: "lines+markers",
-    name: pos,
+    name: overlay ? `${pos} current` : pos,
+    legendgroup: pos,
     x: points.map((row) => row.PosRank),
     y: points.map((row) => row[metric]),
     text: points.map((row) => `${row.Player} (${row.Team || "-"})`),
@@ -3631,6 +3683,23 @@ function renderInSeasonChart(chartId, metric, title) {
     line: { color: posColors[pos], width: 2, dash: posDashes[pos] },
     marker: { color: posColors[pos], symbol: posSymbols[pos], size: 6, line: { color: "#111111", width: 1 } }
   }));
+  if (overlay) {
+    historicalInSeasonMetricRows(historicalMetric, perGame).forEach(({ pos, points }) => {
+      if (!points.length) return;
+      traces.push({
+        type: "scatter",
+        mode: "lines",
+        name: `${pos} historical`,
+        legendgroup: pos,
+        x: points.map((row) => row.PosRank),
+        y: points.map((row) => row.Value),
+        customdata: points.map((row) => row.Seasons),
+        hovertemplate: `<b>${pos} historical trend</b><br>Pos rank: %{x}<br>${metric}: %{y:.2f}<br>Seasons: %{customdata}<extra></extra>`,
+        line: { color: posColors[pos], width: 3, dash: "dash" },
+        opacity: 0.7
+      });
+    });
+  }
   const annotation = state.inSeasonError || (!rows.length ? "No in-season weekly WAR rows matched these settings." : null);
   Plotly.react(chart, traces, {
     title: { text: title, font: { size: 18 }, x: 0.02, xanchor: "left" },
@@ -3649,16 +3718,19 @@ function renderInSeasonView() {
   ensureInSeasonData();
   const context = chartContextCopy();
   const weekLast = inSeasonWeekLast();
-  const title = `${context.year} In-Season Weekly WAR Through Week ${weekLast}`;
-  const subtitle = `Raw weekly stats recalculated to WAR - ${context.roster} - ${context.scoring} - active scoring through Week ${weekLast}`;
+  const basis = inSeasonWarBasis();
+  const perGameMetric = `${basis}/G`;
+  const title = `${context.year} In-Season Weekly ${basis} Through Week ${weekLast}`;
+  const overlayText = showInSeasonHistoricalOverlay() ? ` - historical trend uses each season's first ${weekLast} played game${weekLast === 1 ? "" : "s"}` : "";
+  const subtitle = `Raw weekly stats recalculated to ${basis} - ${context.roster} - ${context.scoring} - active scoring through Week ${weekLast}${overlayText}`;
   if (el("inSeasonChartTitle")) el("inSeasonChartTitle").textContent = title;
   if (el("inSeasonChartSubtitle")) el("inSeasonChartSubtitle").textContent = subtitle;
   if (el("inSeasonTableTitle")) el("inSeasonTableTitle").textContent = `${context.year} Weekly WAR Table Through Week ${weekLast}`;
   if (el("inSeasonTableSubtitle")) el("inSeasonTableSubtitle").textContent = `${subtitle}${state.inSeasonSource ? ` - Raw source: ${state.inSeasonSource.replace("data/", "")}` : ""}`;
-  if (el("inSeasonTotalTitle")) el("inSeasonTotalTitle").textContent = "Total WAR by Positional Rank";
-  if (el("inSeasonPerGameTitle")) el("inSeasonPerGameTitle").textContent = "WAR/G by Positional Rank";
-  renderInSeasonChart("inSeasonWarChart", "WAR", `${context.year} Total WAR by Positional Rank`);
-  renderInSeasonChart("inSeasonWarPerGameChart", "WAR/G", `${context.year} WAR/G by Positional Rank`);
+  if (el("inSeasonTotalTitle")) el("inSeasonTotalTitle").textContent = `Total ${basis} by Positional Rank`;
+  if (el("inSeasonPerGameTitle")) el("inSeasonPerGameTitle").textContent = `${perGameMetric} by Positional Rank`;
+  renderInSeasonChart("inSeasonWarChart", basis, `${context.year} Total ${basis} by Positional Rank`, basis, false);
+  renderInSeasonChart("inSeasonWarPerGameChart", perGameMetric, `${context.year} ${perGameMetric} by Positional Rank`, basis, true);
   const rows = inSeasonVisibleRows();
   updateInSeasonSummary(rows);
   renderInSeasonTable(rows);
@@ -7729,7 +7801,7 @@ function bindEvents() {
       scheduleRender(0);
     });
   });
-  ["inSeasonWeekLast", "inSeasonRankCutoff"].forEach((id) => {
+  ["inSeasonWeekLast", "inSeasonRankCutoff", "inSeasonWarBasis", "inSeasonHistoricalOverlay"].forEach((id) => {
     el(id)?.addEventListener("change", () => scheduleRender(0));
   });
   el("adpLeagueFormat")?.addEventListener("change", () => {

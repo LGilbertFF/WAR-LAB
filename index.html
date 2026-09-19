@@ -7,7 +7,7 @@
     <link rel="icon" href="assets/favicon.svg?v=browser-fire-20260904a" type="image/svg+xml">
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=weekly-position-td-fix-20260919b">
+    <link rel="stylesheet" href="styles.css?v=in-season-war-overlay-20260919a">
   </head>
   <body>
     <main class="app-shell">
@@ -127,6 +127,21 @@
               <p id="inSeasonChartSubtitle">Weekly WAR through the selected week using the active league and scoring settings.</p>
             </div>
             <div class="historical-rank-actions">
+              <label>
+                WAR basis
+                <select id="inSeasonWarBasis">
+                  <option value="WAR">WAR</option>
+                  <option value="Flex WAR">FLEX WAR</option>
+                  <option value="SuperFlex WAR">SUPERFLEX WAR</option>
+                </select>
+              </label>
+              <label>
+                Historical trend
+                <select id="inSeasonHistoricalOverlay">
+                  <option value="yes" selected>Show</option>
+                  <option value="no">Hide</option>
+                </select>
+              </label>
               <label>
                 Through week
                 <input id="inSeasonWeekLast" type="number" min="1" max="18" value="1">
@@ -815,8 +830,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "weekly-position-td-fix-20260919b";
+      window.WAR_LAB_BUILD = "in-season-war-overlay-20260919a";
     </script>
-    <script src="app.js?v=weekly-position-td-fix-20260919b"></script>
+    <script src="app.js?v=in-season-war-overlay-20260919a"></script>
   </body>
 </html>
