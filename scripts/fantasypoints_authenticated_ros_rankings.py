@@ -10,10 +10,14 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
 import csv
 import json
+import os
 import re
+import shutil
 import sys
+import time
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from pathlib import Path
@@ -127,14 +131,35 @@ async def scrape_rankings(args: argparse.Namespace) -> pd.DataFrame:
         ) from exc
 
     args.profile_dir.mkdir(parents=True, exist_ok=True)
+    download_dir = ROOT / ".local" / "fantasypoints-ros-downloads"
+    download_dir.mkdir(parents=True, exist_ok=True)
+    storage_state_b64 = os.getenv("FANTASYPOINTS_STORAGE_STATE_B64", "").strip()
     async with async_playwright() as playwright:
-        context = await playwright.chromium.launch_persistent_context(
-            str(args.profile_dir),
-            headless=False,
-            viewport={"width": 1500, "height": 1000},
-            executable_path=str(args.browser_executable) if args.browser_executable else None,
-            accept_downloads=True,
-        )
+        if storage_state_b64:
+            storage_state_path = download_dir / "storage-state.json"
+            try:
+                storage_state_path.write_bytes(base64.b64decode(storage_state_b64))
+                json.loads(storage_state_path.read_text(encoding="utf-8"))
+            except (ValueError, json.JSONDecodeError) as exc:
+                raise SystemExit("FANTASYPOINTS_STORAGE_STATE_B64 is not valid base64 browser state JSON.") from exc
+            browser = await playwright.chromium.launch(
+                headless=True,
+                downloads_path=str(download_dir),
+            )
+            context = await browser.new_context(
+                storage_state=str(storage_state_path),
+                viewport={"width": 1500, "height": 1000},
+                accept_downloads=True,
+            )
+        else:
+            context = await playwright.chromium.launch_persistent_context(
+                str(args.profile_dir),
+                headless=False,
+                viewport={"width": 1500, "height": 1000},
+                executable_path=str(args.browser_executable) if args.browser_executable else None,
+                accept_downloads=True,
+                downloads_path=str(download_dir),
+            )
         page = context.pages[0] if context.pages else await context.new_page()
         await page.goto(args.url, wait_until="domcontentloaded", timeout=60_000)
         await page.wait_for_timeout(3_000)
@@ -150,15 +175,37 @@ async def scrape_rankings(args: argparse.Namespace) -> pd.DataFrame:
             for selector in selectors:
                 button = page.locator(selector).first
                 if await button.count() and await button.is_visible():
+                    download_started = time.time()
                     async with page.expect_download(timeout=90_000) as download_info:
                         await button.click()
                     download = await download_info.value
                     temp_path = ROOT / ".local" / "fantasypoints-ros-rankings.csv"
                     temp_path.parent.mkdir(parents=True, exist_ok=True)
-                    await download.save_as(temp_path)
+                    suggested_name = download.suggested_filename or "fantasypoints-ros-rankings.csv"
+                    persistent_path = download_dir / suggested_name
+                    try:
+                        await download.save_as(temp_path)
+                    except Exception as exc:
+                        # Fantasy Points can close or replace the page after export.
+                        # Chrome still completes the file in the persistent directory.
+                        candidates = sorted(
+                            (path for path in download_dir.glob("*.csv") if path.stat().st_mtime >= download_started - 2),
+                            key=lambda path: path.stat().st_mtime,
+                            reverse=True,
+                        )
+                        source = persistent_path if persistent_path.exists() else (candidates[0] if candidates else None)
+                        if source is None:
+                            raise RuntimeError(
+                                "The browser closed during the CSV download and no completed CSV was found. "
+                                "Leave the opened browser window running until the script finishes."
+                            ) from exc
+                        shutil.copy2(source, temp_path)
                     result = normalize_rankings(read_export(temp_path), args.season_year)
                     if len(result) >= args.min_rows:
-                        await context.close()
+                        try:
+                            await context.close()
+                        except Exception:
+                            pass
                         return result
                     print(
                         f"The CSV contained only {len(result):,} usable rows. "

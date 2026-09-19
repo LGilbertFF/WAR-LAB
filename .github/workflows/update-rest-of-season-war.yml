@@ -1,0 +1,55 @@
+name: Update Rest of Season WAR
+
+on:
+  schedule:
+    - cron: "30 10 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-rest-of-season-war
+  cancel-in-progress: false
+
+jobs:
+  update-ros-war:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONUNBUFFERED: "1"
+      FANTASYPOINTS_STORAGE_STATE_B64: ${{ secrets.FANTASYPOINTS_STORAGE_STATE_B64 }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: Install scraper dependencies
+        run: |
+          pip install -r scripts/requirements.txt
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Verify authenticated browser state exists
+        run: |
+          if [ -z "$FANTASYPOINTS_STORAGE_STATE_B64" ]; then
+            echo "Missing repository secret FANTASYPOINTS_STORAGE_STATE_B64"
+            exit 1
+          fi
+
+      - name: Scrape rest-of-season rankings and export WAR data
+        run: |
+          python scripts/fantasypoints_authenticated_ros_rankings.py \
+            --season-year 2026 \
+            --login-wait-seconds 60
+
+      - name: Commit updated rest-of-season data
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Update rest-of-season WAR rankings
+          file_pattern: data/current_ros_rankings.csv data/war/current_ros_rankings.json.gz data/war/manifest.json data/scrape_manifest.json
