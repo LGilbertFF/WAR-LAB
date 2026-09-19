@@ -98,6 +98,7 @@ def normalize_rankings(frame: pd.DataFrame, season_year: int) -> pd.DataFrame:
         return pd.DataFrame()
 
     team_col = source_column(frame, ["Team", "Tm", "TEAM"])
+    bye_col = source_column(frame, ["Bye", "Bye Week", "BYE"])
     rank_col = source_column(frame, ["Rank", "RK", "#", "Overall Rank", "Overall"])
     player_team = frame[player_col].apply(split_player_team)
     raw_pos_source = frame[pos_col] if pos_col is not None else frame[pos_rank_col]
@@ -108,6 +109,7 @@ def normalize_rankings(frame: pd.DataFrame, season_year: int) -> pd.DataFrame:
         "Player": player_team.apply(lambda item: item[0]),
         "Team": player_team.apply(lambda item: item[1]),
         "Pos": raw_pos.str.extract(r"(QB|RB|WR|TE)", expand=False),
+        "Bye": frame[bye_col].apply(normalize_number) if bye_col is not None else None,
     })
     if team_col is not None:
         supplied_team = frame[team_col].fillna("").astype(str).str.strip()
@@ -126,7 +128,8 @@ def normalize_rankings(frame: pd.DataFrame, season_year: int) -> pd.DataFrame:
     out["PosRank"] = pd.to_numeric(out["PosRank"], errors="coerce").fillna(derived)
     out["Rank"] = out["Rank"].round().astype(int)
     out["PosRank"] = out["PosRank"].round().astype(int)
-    return out[["Year", "Rank", "Player", "Team", "Pos", "PosRank"]].reset_index(drop=True)
+    out["Bye"] = pd.to_numeric(out["Bye"], errors="coerce").astype("Int64")
+    return out[["Year", "Rank", "Player", "Team", "Pos", "PosRank", "Bye"]].reset_index(drop=True)
 
 
 async def scrape_rankings(args: argparse.Namespace) -> pd.DataFrame:

@@ -3692,7 +3692,8 @@ function normalizeRosRanking(row, index) {
     Player: player,
     Team: firstValue(row, ["Team", "team", "Tm"], ""),
     Pos: pos,
-    PosRank: number(firstValue(row, ["PosRank", "Pos Rank", "Position Rank", "POS RK"], embeddedRank), embeddedRank)
+    PosRank: number(firstValue(row, ["PosRank", "Pos Rank", "Position Rank", "POS RK"], embeddedRank), embeddedRank),
+    Bye: number(firstValue(row, ["Bye", "BYE", "Bye Week"], null), null)
   };
 }
 
@@ -3785,6 +3786,7 @@ function projectedInSeasonRows(basis) {
       "ROS Overall Rank": ranking.Rank,
       "ROS Rank": `${ranking.Pos} ${ranking.PosRank}`,
       "ROS Pos Rank": ranking.PosRank,
+      Bye: ranking.Bye,
       "ROS Historical WAR/G": rate,
       "Projected Remaining WAR": remaining,
       "Projected Season WAR": total,
@@ -3988,29 +3990,44 @@ function renderInSeasonTable(rows) {
 }
 
 function renderInSeasonPlayerDetail(player) {
-  const weekHeaders = player.Weeks.map((week) => `<th>${week.Week}</th>`).join("");
-  const metricRow = (label, key, digits = 2) => `<tr><th>${label}</th>${player.Weeks.map((week) => `<td>${fmt(week[key], digits)}</td>`).join("")}</tr>`;
+  const weekMap = new Map((player.Weeks || []).map((week) => [number(week.Week, null), week]));
+  const byeWeek = number(player.Bye, null);
+  const weekNumbers = Array.from({ length: settings().weeks }, (_, index) => index + 1);
+  const weekHeaders = weekNumbers.map((week) => `<th>${week}</th>`).join("");
+  const metricRow = (label, key, digits = 2) => `<tr><th>${label}</th>${weekNumbers.map((week) => {
+    const value = number(weekMap.get(week)?.[key], null);
+    if (value !== null) return `<td>${fmt(value, digits)}</td>`;
+    if (week === byeWeek) return `<td class="bye-week">BYE</td>`;
+    return "<td>-</td>";
+  }).join("")}</tr>`;
+  const projectedGames = number(player["Projected Games"], number(player.games, 0));
   return `
     <tr class="player-detail-row">
       <td colspan="18">
-        <div class="in-season-player-detail">
+        <div class="in-season-player-detail inline-player-detail">
           <div class="adp-card-layout">
             ${headshotImg(player, "adp-headshot")}
             <div>
-              <p class="eyebrow">In-season player detail</p>
+              <p class="eyebrow">Selected player</p>
               <h2>${escapeHtml(player.Player)}</h2>
-              <p class="muted">${escapeHtml(player.Team || "-")} - <span class="pos-pill pos-${player.Pos}">${player.Pos}</span> - ADP ${fmt(player.ADP, 1)} - ${fmt(player.games, 0)} played / ${fmt(player["Projected Games"], 0)} projected games</p>
+              <p class="muted">${escapeHtml(player.Team || "-")} - <span class="pos-pill pos-${player.Pos}">${player.Pos}</span> - ${escapeHtml(player["Pos Rank"] || "-")} - ADP ${fmt(player.ADP, 1)}</p>
             </div>
           </div>
           <div class="player-stats">
-            <div><span>ADP</span><strong>${fmt(player.ADP, 1)}</strong></div>
-            <div><span>Played FPTS</span><strong>${fmt(player.FPTS, 1)}</strong></div>
-            <div><span>FPTS/G</span><strong>${fmt(player.AVG, 2)}</strong></div>
             <div><span>Played WAR</span><strong>${fmt(player.WAR)}</strong></div>
             <div><span>Projected WAR</span><strong>${fmt(player["Projected Season WAR"])}</strong></div>
+            <div><span>Played FPTS</span><strong>${fmt(player.FPTS, 1)}</strong></div>
+            <div><span>FPTS/G</span><strong>${fmt(player.AVG, 2)}</strong></div>
+            <div><span>Played Games</span><strong>${fmt(player.games, 0)}</strong></div>
+            <div><span>Projected Games</span><strong>${fmt(projectedGames, 0)}</strong></div>
+            <div><span>Remaining WAR</span><strong>${fmt(player["Projected Remaining WAR"])}</strong></div>
             <div><span>Projected WAR/G</span><strong>${fmt(player["Projected Season WAR/G"])}</strong></div>
             <div><span>FLEX WAR</span><strong>${fmt(player["Flex WAR"])}</strong></div>
             <div><span>SUPERFLEX WAR</span><strong>${fmt(player["SuperFlex WAR"])}</strong></div>
+          </div>
+          <div class="in-season-weekly-header">
+            <h3>${settings().year} Weekly Performance</h3>
+            <span>${fmt(player.FPTS, 1)} FPTS - ${fmt(player.AVG, 2)} / game - ${fmt(player.WAR)} played WAR${byeWeek ? ` - Week ${byeWeek} bye` : ""}</span>
           </div>
           <div class="history-weeks">
             <table>
