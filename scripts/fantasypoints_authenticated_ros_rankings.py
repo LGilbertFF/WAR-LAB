@@ -173,6 +173,24 @@ async def scrape_rankings(args: argparse.Namespace) -> pd.DataFrame:
         await page.goto(args.url, wait_until="domcontentloaded", timeout=60_000)
         await page.wait_for_timeout(3_000)
 
+        if args.capture_auth_only:
+            print("Complete Fantasy Points login in the browser window. This helper will save the session automatically.")
+            elapsed = 0
+            while elapsed <= args.login_wait_seconds:
+                if page.is_closed():
+                    raise SystemExit("The browser was closed before the authenticated session could be saved.")
+                sign_in = page.locator("a[href*='/accounts/signin'], a.cta-sign-in-btn").first
+                sign_in_visible = await sign_in.count() and await sign_in.is_visible()
+                if not sign_in_visible and elapsed >= 4:
+                    await save_storage_state_secret(context)
+                    await context.close()
+                    print("Authenticated Fantasy Points session saved. You may close this window.")
+                    return pd.DataFrame()
+                await page.wait_for_timeout(2_000)
+                elapsed += 2
+            await context.close()
+            raise SystemExit("Login was not detected before the setup timeout expired.")
+
         elapsed = 0
         best = pd.DataFrame()
         selectors = [
@@ -181,6 +199,22 @@ async def scrape_rankings(args: argparse.Namespace) -> pd.DataFrame:
             "button[aria-label='Download CSV']",
         ]
         while elapsed <= args.login_wait_seconds:
+            frames = []
+            frames.extend(await rendered_tables(page))
+            frames.extend(await rendered_grids(page))
+            frames.extend(await embedded_json_frames(page))
+            normalized = [normalize_rankings(frame, args.season_year) for frame in frames]
+            normalized = [frame for frame in normalized if not frame.empty]
+            if normalized:
+                combined = pd.concat(normalized, ignore_index=True).drop_duplicates(["Player", "Pos"])
+                if len(combined) > len(best):
+                    best = combined
+                if len(best) >= args.min_rows:
+                    if not storage_state_b64:
+                        await save_storage_state_secret(context)
+                    await context.close()
+                    return best.sort_values("Rank", kind="stable")
+
             for selector in selectors:
                 button = page.locator(selector).first
                 if await button.count() and await button.is_visible():
@@ -227,21 +261,6 @@ async def scrape_rankings(args: argparse.Namespace) -> pd.DataFrame:
                     elapsed += 10
                     continue
 
-            frames = []
-            frames.extend(await rendered_tables(page))
-            frames.extend(await rendered_grids(page))
-            frames.extend(await embedded_json_frames(page))
-            normalized = [normalize_rankings(frame, args.season_year) for frame in frames]
-            normalized = [frame for frame in normalized if not frame.empty]
-            if normalized:
-                combined = pd.concat(normalized, ignore_index=True).drop_duplicates(["Player", "Pos"])
-                if len(combined) > len(best):
-                    best = combined
-                if len(best) >= args.min_rows:
-                    if not storage_state_b64:
-                        await save_storage_state_secret(context)
-                    await context.close()
-                    return best.sort_values("Rank", kind="stable")
             if elapsed == 0:
                 print("Complete Fantasy Points login in the browser window if prompted.")
             await page.wait_for_timeout(5_000)
@@ -277,6 +296,8 @@ def update_manifests(args: argparse.Namespace, rows: int) -> None:
 
 async def async_main(args: argparse.Namespace) -> None:
     rows = await scrape_rankings(args)
+    if args.capture_auth_only:
+        return
     if len(rows) < args.min_rows:
         raise SystemExit(f"Only found {len(rows):,} ROS ranking rows; expected at least {args.min_rows:,}.")
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -294,6 +315,7 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--profile-dir", type=Path, default=default_profile_dir())
     parser.add_argument("--login-wait-seconds", type=int, default=600)
     parser.add_argument("--min-rows", type=int, default=150)
+    parser.add_argument("--capture-auth-only", action="store_true")
     return parser.parse_args(argv)
 
 
