@@ -47,6 +47,15 @@ def default_profile_dir() -> Path:
     return LEGACY_PROFILE_DIR if LEGACY_PROFILE_DIR.exists() else PROFILE_DIR
 
 
+async def save_storage_state_secret(context: object) -> None:
+    state_path = ROOT / ".local" / "fantasypoints-storage-state.json"
+    secret_path = ROOT / ".local" / "FANTASYPOINTS_STORAGE_STATE_B64.txt"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    await context.storage_state(path=str(state_path))
+    secret_path.write_text(base64.b64encode(state_path.read_bytes()).decode("ascii"), encoding="utf-8")
+    print(f"GitHub secret value written to {secret_path}")
+
+
 def unique_columns(columns: Iterable[object]) -> list[str]:
     seen: dict[str, int] = {}
     output = []
@@ -202,6 +211,8 @@ async def scrape_rankings(args: argparse.Namespace) -> pd.DataFrame:
                         shutil.copy2(source, temp_path)
                     result = normalize_rankings(read_export(temp_path), args.season_year)
                     if len(result) >= args.min_rows:
+                        if not storage_state_b64:
+                            await save_storage_state_secret(context)
                         try:
                             await context.close()
                         except Exception:
@@ -227,6 +238,8 @@ async def scrape_rankings(args: argparse.Namespace) -> pd.DataFrame:
                 if len(combined) > len(best):
                     best = combined
                 if len(best) >= args.min_rows:
+                    if not storage_state_b64:
+                        await save_storage_state_secret(context)
                     await context.close()
                     return best.sort_values("Rank", kind="stable")
             if elapsed == 0:
