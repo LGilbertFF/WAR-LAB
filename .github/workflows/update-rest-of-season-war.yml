@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: update-rest-of-season-war
@@ -16,6 +18,9 @@ jobs:
   update-ros-war:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     env:
       PYTHONUNBUFFERED: "1"
       FANTASYPOINTS_STORAGE_STATE_B64: ${{ secrets.FANTASYPOINTS_STORAGE_STATE_B64 }}
@@ -48,8 +53,53 @@ jobs:
             --season-year 2026 \
             --login-wait-seconds 60
 
+      - name: Validate generated rest-of-season data
+        run: |
+          python - <<'PY'
+          import gzip
+          import json
+          from pathlib import Path
+
+          import pandas as pd
+
+          csv_path = Path("data/current_ros_rankings.csv")
+          json_path = Path("data/war/current_ros_rankings.json.gz")
+          if not csv_path.exists() or not json_path.exists():
+              raise SystemExit("ROS scraper did not create both required output files")
+          rows = pd.read_csv(csv_path)
+          if len(rows) < 150:
+              raise SystemExit(f"ROS output has only {len(rows)} rows; refusing to publish")
+          with gzip.open(json_path, "rt", encoding="utf-8") as handle:
+              browser_rows = json.load(handle)
+          if len(browser_rows) != len(rows):
+              raise SystemExit(f"CSV/JSON row mismatch: {len(rows)} vs {len(browser_rows)}")
+          print(f"Validated {len(rows)} ROS rankings")
+          PY
+
       - name: Commit updated rest-of-season data
-        uses: stefanzweifel/git-auto-commit-action@v5
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f \
+            data/current_ros_rankings.csv \
+            data/war/current_ros_rankings.json.gz \
+            data/war/manifest.json \
+            data/scrape_manifest.json
+          if git diff --cached --quiet; then
+            echo "ROS data is unchanged; nothing to commit"
+          else
+            git commit -m "Update rest-of-season WAR rankings"
+            git push origin HEAD:main
+          fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload refreshed site
+        uses: actions/upload-pages-artifact@v3
         with:
-          commit_message: Update rest-of-season WAR rankings
-          file_pattern: data/current_ros_rankings.csv data/war/current_ros_rankings.json.gz data/war/manifest.json data/scrape_manifest.json
+          path: .
+
+      - name: Deploy refreshed site
+        id: deployment
+        uses: actions/deploy-pages@v4
