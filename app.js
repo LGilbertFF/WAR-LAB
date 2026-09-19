@@ -3374,7 +3374,7 @@ function projectionChartCopy(metric) {
   };
   return {
     title: `${context.year} ${labels[metric] || metric} vs ADP by Position`,
-    subtitle: `${context.roster} - ${context.scoring} - ${context.weeks} weeks - ${context.teamSource} from ${context.historyStart}+ seasons`
+    subtitle: `${context.roster} - ${context.scoring} - ${context.teamSource} from ${context.historyStart}+ seasons`
   };
 }
 
@@ -3748,6 +3748,9 @@ function historicalRosWarRate(pos, rank, basis) {
 function projectedInSeasonRows(basis) {
   const currentByPlayer = new Map(state.inSeasonRows.map((row) => [`${playerKey(row.Player)}-${row.Pos}`, row]));
   const adpMap = normalizeAdp(state.adpRows);
+  const projectionTeams = new Map(state.results
+    .filter((row) => row.Team)
+    .map((row) => [playerKey(row.Player), row.Team]));
   const rankings = normalizedRosRankings();
   const remainingGames = Math.max(0, settings().weeks - inSeasonWeekLast());
   const eligible = (pos) => basis === "WAR" || (basis === "Flex WAR" && ["RB", "WR", "TE"].includes(pos)) || (basis === "SuperFlex WAR" && settings().slots.SUPERFLEX > 0);
@@ -3777,7 +3780,7 @@ function projectedInSeasonRows(basis) {
     const projectedGames = number(current.games, 0) + remainingGames;
     return {
       ...current,
-      Team: current.Team || ranking.Team,
+      Team: current.Team || ranking.Team || adpMap.get(playerKey(ranking.Player))?.Team || projectionTeams.get(playerKey(ranking.Player)) || "",
       ADP: adpMap.get(playerKey(ranking.Player))?.ADP ?? null,
       "ROS Overall Rank": ranking.Rank,
       "ROS Rank": `${ranking.Pos} ${ranking.PosRank}`,
@@ -3793,6 +3796,7 @@ function projectedInSeasonRows(basis) {
     const adp = adpMap.get(playerKey(current.Player))?.ADP ?? null;
     projected.push({
       ...current,
+      Team: current.Team || adpMap.get(playerKey(current.Player))?.Team || projectionTeams.get(playerKey(current.Player)) || "",
       ADP: adp,
       "ROS Overall Rank": null,
       "ROS Rank": null,
@@ -3816,7 +3820,7 @@ function inSeasonMetricValue(row, metric) {
 
 function inSeasonPlotContext() {
   const context = chartContextCopy();
-  return `${context.roster} - ${context.scoring} - ${context.weeks} weeks`;
+  return `${context.roster} - ${context.scoring}`;
 }
 
 function renderInSeasonAnalysisChart(rows) {
@@ -4198,7 +4202,7 @@ function renderHistoricalRankCurve() {
   const shownRows = rows.filter((row) => positions.includes(row.Pos) && row.Rank <= cutoff);
   const context = chartContextCopy();
   if (el("historicalRankCurveSubtitle")) {
-    el("historicalRankCurveSubtitle").textContent = `${start}-${end} average positional-rank WAR curve through rank ${cutoff} - ${context.roster} - ${context.scoring} - ${context.weeks} weeks`;
+    el("historicalRankCurveSubtitle").textContent = `${start}-${end} average positional-rank WAR curve through rank ${cutoff} - ${context.roster} - ${context.scoring}`;
   }
 
   if (!shownRows.length) {
@@ -4429,13 +4433,13 @@ function historicalExplorerTitle(mode, metric) {
       : "Top Latest-Season Players";
     return {
       title: `${timeline} Historical ${metric}: ${playerText}`,
-      subtitle: `${start}-${end} seasons - ${context.roster} - ${context.scoring} - ${context.weeks} weeks - ${context.teamSource}`
+      subtitle: `${start}-${end} seasons - ${context.roster} - ${context.scoring} - ${context.teamSource}`
     };
   }
   const rank = number(el("historicalRank")?.value, 1);
   return {
     title: `${start}-${end} Historical ${metric} for ${historicalPositionText()} Positional Rank ${rank}`,
-    subtitle: `${context.roster} - ${context.scoring} - ${context.weeks} weeks - ${context.teamSource} from ${context.historyStart}+ seasons`
+    subtitle: `${context.roster} - ${context.scoring} - ${context.teamSource} from ${context.historyStart}+ seasons`
   };
 }
 
@@ -5694,7 +5698,9 @@ function renderHistoryTable(player, historyRows) {
 
 function renderTable(rows) {
   const limited = sortedResults(rows).slice(0, 400);
-  el("playersBody").innerHTML = limited.map((player) => {
+  const body = el("projectionPlayersBody");
+  if (!body) return;
+  body.innerHTML = limited.map((player) => {
     const selected = player.id === state.selectedId;
     return `
       <tr data-id="${player.id}" class="${selected ? "selected-row" : ""}">
@@ -8163,7 +8169,7 @@ function bindEvents() {
       scheduleRender(0);
     });
   });
-  el("playersBody").addEventListener("click", (event) => {
+  el("playersBody")?.addEventListener("click", (event) => {
     const inSeasonRow = event.target.closest("tr[data-in-season-id]");
     if (inSeasonRow && state.activeView === "inSeasonView") {
       state.selectedInSeasonId = state.selectedInSeasonId === inSeasonRow.dataset.inSeasonId ? null : inSeasonRow.dataset.inSeasonId;
@@ -8179,6 +8185,17 @@ function bindEvents() {
     if (event.target.closest(".player-detail-row")) return;
     const row = event.target.closest("tr[data-id]");
     if (row) selectPlayer(row.dataset.id);
+  });
+  el("projectionPlayersBody")?.addEventListener("click", (event) => {
+    const yearRow = event.target.closest("[data-history-year]");
+    if (yearRow) {
+      state.selectedHistoryYear = number(yearRow.dataset.historyYear, null);
+      renderTable(visibleResults());
+      return;
+    }
+    if (event.target.closest(".player-detail-row")) return;
+    const row = event.target.closest("tr[data-id]");
+    if (row && state.activeView === "projectionsView") selectPlayer(row.dataset.id);
   });
   el("adpBody")?.addEventListener("click", (event) => {
     const row = event.target.closest("tr[data-adp-player]");
