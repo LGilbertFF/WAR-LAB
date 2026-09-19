@@ -391,12 +391,21 @@ function calculateFantasyPoints(row, pos, scoring) {
   if (!hasStats) return null;
 
   const rec = number(firstValue(row, ["REC", "Receptions", "ReceivingREC", "Receiving REC"], null), 0);
-  const recYds = number(firstValue(row, ["ReceivingYDS", "Receiving YDS", "Rec YDS", "YDS", "Receiving Yards"], null), 0);
-  const recTd = number(firstValue(row, ["ReceivingTD", "Receiving TD", "Rec TD", "TD", "ReceivingTDS"], null), 0);
-  const rushYds = number(firstValue(row, ["RushingYDS", "Rushing YDS", "Rush YDS", "YDS_2", "Rushing Yards"], null), 0);
-  const rushTdAliases = pos === "QB"
+  const recYdsAliases = pos === "QB"
+    ? ["ReceivingYDS", "Receiving YDS", "Rec YDS", "Receiving Yards"]
+    : ["ReceivingYDS", "Receiving YDS", "Rec YDS", "Receiving Yards", "YDS"];
+  const recTdAliases = pos === "RB"
+    ? ["ReceivingTD", "Receiving TD", "Rec TD", "TD_1", "TD_2", "ReceivingTDS"]
+    : ["ReceivingTD", "Receiving TD", "Rec TD", "TD", "ReceivingTDS"];
+  const rushYdsAliases = pos === "QB" || pos === "RB"
+    ? ["RushingYDS", "Rushing YDS", "Rush YDS", "Rushing Yards", "YDS"]
+    : ["RushingYDS", "Rushing YDS", "Rush YDS", "Rushing Yards", "YDS_2"];
+  const rushTdAliases = pos === "QB" || pos === "WR" || pos === "TE"
     ? ["RushingTD", "Rushing TD", "Rush TD", "TD_1", "TD_2", "RushingTDS"]
-    : ["RushingTD", "Rushing TD", "Rush TD", "TD_2", "RushingTDS"];
+    : ["RushingTD", "Rushing TD", "Rush TD", "TD", "RushingTDS"];
+  const recYds = number(firstValue(row, recYdsAliases, null), 0);
+  const recTd = number(firstValue(row, recTdAliases, null), 0);
+  const rushYds = number(firstValue(row, rushYdsAliases, null), 0);
   const rushTd = number(firstValue(row, rushTdAliases, null), 0);
   const passYds = number(firstValue(row, ["PassingYDS", "Passing YDS", "Pass YDS", "YDS", "Passing Yards"], null), 0);
   const passTd = number(firstValue(row, ["PassingTD", "Passing TD", "Pass TD", "PassingTDS"], null), 0);
