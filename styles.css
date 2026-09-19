@@ -503,9 +503,14 @@ summary::marker {
 }
 
 #inSeasonWarChart,
-#inSeasonWarPerGameChart {
+#inSeasonWarPerGameChart,
+#inSeasonAnalysisChart {
   width: 100%;
   height: 460px;
+}
+
+#inSeasonAnalysisChart {
+  height: 620px;
 }
 
 .in-season-chart-grid {
@@ -520,6 +525,18 @@ summary::marker {
   font-size: 0.9rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.in-season-analysis-panel {
+  grid-column: 1 / -1;
+}
+
+.in-season-player-detail {
+  padding: 14px 12px 18px;
+}
+
+.in-season-player-detail .history-weeks {
+  margin-top: 14px;
 }
 
 .historical-rank-panel {

@@ -7,7 +7,7 @@
     <link rel="icon" href="assets/favicon.svg?v=browser-fire-20260904a" type="image/svg+xml">
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=ros-war-projection-20260919a">
+    <link rel="stylesheet" href="styles.css?v=in-season-analysis-20260919a">
   </head>
   <body>
     <main class="app-shell">
@@ -157,6 +157,31 @@
                 Rank cutoff
                 <input id="inSeasonRankCutoff" type="number" min="1" max="250" value="70">
               </label>
+              <label>
+                Analysis X-axis
+                <select id="inSeasonXAxis">
+                  <option value="ADP">ADP</option>
+                  <option value="FPTS">FPTS</option>
+                  <option value="FPTS/G">FPTS/G</option>
+                  <option value="Positional Rank">Positional rank</option>
+                </select>
+              </label>
+              <label>
+                Analysis Y-axis
+                <select id="inSeasonYAxis">
+                  <option value="WAR">WAR</option>
+                  <option value="WAR/G">WAR/G</option>
+                  <option value="Flex WAR">FLEX WAR</option>
+                  <option value="Flex WAR/G">FLEX WAR/G</option>
+                  <option value="SuperFlex WAR">SUPERFLEX WAR</option>
+                  <option value="SuperFlex WAR/G">SUPERFLEX WAR/G</option>
+                  <option value="Projected Season WAR">Projected season WAR</option>
+                  <option value="Projected Season WAR/G">Projected season WAR/G</option>
+                  <option value="Projected Remaining WAR">Projected remaining WAR</option>
+                  <option value="FPTS">FPTS</option>
+                  <option value="FPTS/G">FPTS/G</option>
+                </select>
+              </label>
             </div>
           </div>
           <div class="in-season-chart-grid">
@@ -167,6 +192,10 @@
             <div>
               <h3 id="inSeasonPerGameTitle">WAR/G by Positional Rank</h3>
               <div id="inSeasonWarPerGameChart"></div>
+            </div>
+            <div class="in-season-analysis-panel">
+              <h3 id="inSeasonAnalysisTitle">ADP vs WAR</h3>
+              <div id="inSeasonAnalysisChart"></div>
             </div>
           </div>
         </section>
@@ -827,6 +856,7 @@
                 <th data-sort="SuperFlex WAR">SF WAR</th>
                 <th data-sort="SuperFlex WAR/G">SF/G</th>
                 <th data-sort="ROS Overall Rank">ROS Rank</th>
+                <th data-sort="Projected Games">Proj Games</th>
                 <th id="inSeasonRosRateHead" data-sort="ROS Historical WAR/G">ROS Hist WAR/G</th>
                 <th id="inSeasonRemainingWarHead" data-sort="Projected Remaining WAR">Remaining WAR</th>
                 <th id="inSeasonProjectedWarHead" data-sort="Projected Season WAR">Projected WAR</th>
@@ -842,8 +872,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "ros-war-projection-20260919a";
+      window.WAR_LAB_BUILD = "in-season-analysis-20260919a";
     </script>
-    <script src="app.js?v=ros-war-projection-20260919a"></script>
+    <script src="app.js?v=in-season-analysis-20260919a"></script>
   </body>
 </html>
