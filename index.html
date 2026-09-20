@@ -7,7 +7,7 @@
     <link rel="icon" href="assets/favicon.svg?v=browser-fire-20260904a" type="image/svg+xml">
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=in-season-analysis-20260919a">
+    <link rel="stylesheet" href="styles.css?v=ros-trade-calculator-20260919a">
   </head>
   <body>
     <main class="app-shell">
@@ -113,7 +113,8 @@
 
       <nav class="view-tabs" aria-label="WAR Lab views">
         <button class="active" type="button" data-view="inSeasonView">In-Season WAR</button>
-        <button type="button" data-view="projectionsView">Projections</button>
+        <button type="button" data-view="tradeCalculatorView">Trade Calculator</button>
+        <button type="button" data-view="projectionsView" hidden>Projections</button>
         <button type="button" data-view="draftOptimizerView">Draft Optimizer</button>
         <button type="button" data-view="dynastyView">Dynasty WAR (Beta)</button>
         <button type="button" data-view="historicalView">Historical Looks</button>
@@ -199,6 +200,34 @@
               <div id="inSeasonAnalysisChart"></div>
             </div>
           </div>
+        </section>
+      </section>
+
+      <section id="tradeCalculatorView" class="view-panel">
+        <section class="trade-calculator-panel">
+          <div class="panel-header trade-calculator-header">
+            <div>
+              <p class="eyebrow">In-season decision tool</p>
+              <h2>ROS WAR Trade Calculator</h2>
+              <p id="tradeCalculatorSubtitle">Compare projected rest-of-season value using the active league and scoring settings.</p>
+            </div>
+            <label>WAR basis<select id="tradeWarBasis"><option value="WAR">WAR</option><option value="Flex WAR">FLEX WAR</option><option value="SuperFlex WAR">SUPERFLEX WAR</option></select></label>
+          </div>
+          <div id="tradeCalculatorSummary" class="trade-summary"></div>
+          <div class="trade-sides">
+            <section class="trade-side" data-trade-side="a">
+              <div class="trade-side-header"><div><span>Side A</span><strong id="tradeSideATotal">0.00 ROS WAR</strong></div><button type="button" class="icon-button" data-clear-trade="a" title="Clear Side A" aria-label="Clear Side A">&times;</button></div>
+              <div class="trade-player-add"><input id="tradePlayerA" type="search" list="tradePlayerOptions" placeholder="Search player"><button type="button" data-add-trade="a">Add player</button></div>
+              <div id="tradeSideAPlayers" class="trade-player-list"></div>
+            </section>
+            <div class="trade-versus" aria-hidden="true">VS</div>
+            <section class="trade-side" data-trade-side="b">
+              <div class="trade-side-header"><div><span>Side B</span><strong id="tradeSideBTotal">0.00 ROS WAR</strong></div><button type="button" class="icon-button" data-clear-trade="b" title="Clear Side B" aria-label="Clear Side B">&times;</button></div>
+              <div class="trade-player-add"><input id="tradePlayerB" type="search" list="tradePlayerOptions" placeholder="Search player"><button type="button" data-add-trade="b">Add player</button></div>
+              <div id="tradeSideBPlayers" class="trade-player-list"></div>
+            </section>
+          </div>
+          <datalist id="tradePlayerOptions"></datalist>
         </section>
       </section>
 
@@ -916,8 +945,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "in-season-player-card-bye-20260919a";
+      window.WAR_LAB_BUILD = "ros-trade-calculator-20260919a";
     </script>
-    <script src="app.js?v=in-season-player-card-bye-20260919a"></script>
+    <script src="app.js?v=ros-trade-calculator-20260919a"></script>
   </body>
 </html>

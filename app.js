@@ -56,6 +56,8 @@ const state = {
   results: [],
   selectedId: null,
   selectedInSeasonId: null,
+  tradeSideA: [],
+  tradeSideB: [],
   selectedHistoryYear: null,
   activeView: "inSeasonView",
   sortKey: "WAR",
@@ -3948,6 +3950,85 @@ function renderInSeasonView() {
   renderInSeasonTable(rows);
 }
 
+function tradeBasis() {
+  const requested = el("tradeWarBasis")?.value || "WAR";
+  if (requested === "SuperFlex WAR" && settings().slots.SUPERFLEX <= 0) return "WAR";
+  return requested;
+}
+
+function tradePlayerLabel(player) {
+  return `${player.Player} | ${player.Pos} | ${player.Team || "FA"}`;
+}
+
+function tradePlayerKey(player) {
+  return `${playerKey(player.Player)}-${player.Pos}`;
+}
+
+function tradeSidePlayers(side, playerMap) {
+  const keys = side === "a" ? state.tradeSideA : state.tradeSideB;
+  return keys.map((key) => playerMap.get(key)).filter(Boolean);
+}
+
+function tradePlayerCard(player, side, basis) {
+  return `<article class="trade-player-card">
+    ${headshotImg(player)}
+    <div class="trade-player-identity"><strong>${escapeHtml(player.Player)}</strong><span>${escapeHtml(player.Team || "FA")} · <span class="pos-pill pos-${player.Pos}">${player.Pos}</span> · ${escapeHtml(player["ROS Rank"] || "Unranked")}</span></div>
+    <div class="trade-player-value"><strong>${fmt(player["Projected Remaining WAR"])}</strong><span>ROS ${escapeHtml(basis)}</span></div>
+    <div class="trade-player-meta"><span>${fmt(player["Projected Games"], 0)} projected games</span><span>${fmt(player["Projected Season WAR"])} full-season ${escapeHtml(basis)}</span></div>
+    <button type="button" class="icon-button" data-remove-trade="${side}" data-trade-player="${escapeHtml(tradePlayerKey(player))}" title="Remove ${escapeHtml(player.Player)}" aria-label="Remove ${escapeHtml(player.Player)}">&times;</button>
+  </article>`;
+}
+
+function renderTradeCalculator() {
+  ensureInSeasonData();
+  const basis = tradeBasis();
+  if (el("tradeWarBasis") && el("tradeWarBasis").value !== basis) el("tradeWarBasis").value = basis;
+  const rows = projectedInSeasonRows(basis).filter((row) => number(row["Projected Remaining WAR"], null) !== null);
+  const playerMap = new Map(rows.map((row) => [tradePlayerKey(row), row]));
+  state.tradeSideA = state.tradeSideA.filter((key) => playerMap.has(key));
+  state.tradeSideB = state.tradeSideB.filter((key) => playerMap.has(key));
+  const available = rows.slice().sort((a, b) => number(b["Projected Remaining WAR"], -Infinity) - number(a["Projected Remaining WAR"], -Infinity));
+  if (el("tradePlayerOptions")) el("tradePlayerOptions").innerHTML = available.map((player) => `<option value="${escapeHtml(tradePlayerLabel(player))}"></option>`).join("");
+  const sideA = tradeSidePlayers("a", playerMap);
+  const sideB = tradeSidePlayers("b", playerMap);
+  const total = (players) => players.reduce((sum, player) => sum + number(player["Projected Remaining WAR"], 0), 0);
+  const totalA = total(sideA);
+  const totalB = total(sideB);
+  const difference = totalA - totalB;
+  const context = chartContextCopy();
+  if (el("tradeCalculatorSubtitle")) el("tradeCalculatorSubtitle").textContent = `${context.year} rest-of-season ${basis} · ${context.roster} · ${context.scoring} · through Week ${inSeasonWeekLast()}`;
+  if (el("tradeSideATotal")) el("tradeSideATotal").textContent = `${fmt(totalA)} ROS ${basis}`;
+  if (el("tradeSideBTotal")) el("tradeSideBTotal").textContent = `${fmt(totalB)} ROS ${basis}`;
+  if (el("tradeSideAPlayers")) el("tradeSideAPlayers").innerHTML = sideA.map((player) => tradePlayerCard(player, "a", basis)).join("") || `<p class="trade-empty">Add players received by Side A.</p>`;
+  if (el("tradeSideBPlayers")) el("tradeSideBPlayers").innerHTML = sideB.map((player) => tradePlayerCard(player, "b", basis)).join("") || `<p class="trade-empty">Add players received by Side B.</p>`;
+  if (el("tradeCalculatorSummary")) {
+    const complete = sideA.length && sideB.length;
+    const winner = difference > 0 ? "Side A" : difference < 0 ? "Side B" : "Even trade";
+    const tone = !complete ? "neutral" : Math.abs(difference) < 0.15 ? "even" : difference > 0 ? "side-a" : "side-b";
+    el("tradeCalculatorSummary").className = `trade-summary ${tone}`;
+    el("tradeCalculatorSummary").innerHTML = complete
+      ? `<span>${Math.abs(difference) < 0.15 ? "Projected as" : "Value advantage"}</span><strong>${winner}</strong><em>${Math.abs(difference) < 0.15 ? `${fmt(Math.abs(difference))} ${basis} apart` : `+${fmt(Math.abs(difference))} ROS ${basis}`}</em>`
+      : `<span>Build both sides</span><strong>Compare ROS WAR</strong><em>Values update with league settings</em>`;
+  }
+}
+
+function addTradePlayer(side) {
+  const input = el(side === "a" ? "tradePlayerA" : "tradePlayerB");
+  if (!input) return;
+  const rows = projectedInSeasonRows(tradeBasis());
+  const query = playerKey(input.value.split("|")[0]);
+  const player = rows.find((row) => playerKey(row.Player) === query);
+  if (!player) return;
+  const key = tradePlayerKey(player);
+  const target = side === "a" ? state.tradeSideA : state.tradeSideB;
+  const other = side === "a" ? state.tradeSideB : state.tradeSideA;
+  if (!target.includes(key)) target.push(key);
+  const otherIndex = other.indexOf(key);
+  if (otherIndex >= 0) other.splice(otherIndex, 1);
+  input.value = "";
+  scheduleRender(0);
+}
+
 function updateInSeasonSummary(rows, totalMetric = "WAR", perGameMetric = "WAR/G") {
   const topWar = [...rows].filter((row) => row[totalMetric] !== null).sort((a, b) => b[totalMetric] - a[totalMetric])[0];
   const topWarG = [...rows].filter((row) => row[perGameMetric] !== null).sort((a, b) => b[perGameMetric] - a[perGameMetric])[0];
@@ -7769,6 +7850,10 @@ function render() {
     renderInSeasonView();
     return;
   }
+  if (state.activeView === "tradeCalculatorView") {
+    renderTradeCalculator();
+    return;
+  }
   calculateWar(state.rawProjections);
   const rows = visibleResults();
   updateSummary(rows);
@@ -8202,6 +8287,26 @@ function bindEvents() {
     if (event.target.closest(".player-detail-row")) return;
     const row = event.target.closest("tr[data-id]");
     if (row) selectPlayer(row.dataset.id);
+  });
+  el("tradeWarBasis")?.addEventListener("change", () => scheduleRender(0));
+  document.querySelectorAll("[data-add-trade]").forEach((button) => button.addEventListener("click", () => addTradePlayer(button.dataset.addTrade)));
+  ["a", "b"].forEach((side) => el(side === "a" ? "tradePlayerA" : "tradePlayerB")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") addTradePlayer(side);
+  }));
+  el("tradeCalculatorView")?.addEventListener("click", (event) => {
+    const clear = event.target.closest("[data-clear-trade]");
+    if (clear) {
+      if (clear.dataset.clearTrade === "a") state.tradeSideA = [];
+      else state.tradeSideB = [];
+      scheduleRender(0);
+      return;
+    }
+    const remove = event.target.closest("[data-remove-trade]");
+    if (!remove) return;
+    const target = remove.dataset.removeTrade === "a" ? state.tradeSideA : state.tradeSideB;
+    const index = target.indexOf(remove.dataset.tradePlayer);
+    if (index >= 0) target.splice(index, 1);
+    scheduleRender(0);
   });
   el("projectionPlayersBody")?.addEventListener("click", (event) => {
     const yearRow = event.target.closest("[data-history-year]");
