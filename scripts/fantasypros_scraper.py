@@ -184,15 +184,14 @@ def enrich_weekly_teams(df: pd.DataFrame) -> pd.DataFrame:
             if pos:
                 by_player_pos.setdefault((key, pos), team)
 
-    current_teams = result["Team"].fillna("").astype(str).str.strip()
-    missing = current_teams.eq("") | current_teams.str.lower().isin({"nan", "none"})
-    if missing.any():
-        def resolve_team(row: pd.Series) -> str:
-            key = player_name_key(row.get("Player", ""))
-            pos = str(row.get("Pos", "")).strip().upper()
-            return by_player_pos.get((key, pos), by_player.get(key, ""))
+    def resolve_team(row: pd.Series) -> str:
+        key = player_name_key(row.get("Player", ""))
+        pos = str(row.get("Pos", "")).strip().upper()
+        return by_player_pos.get((key, pos), by_player.get(key, ""))
 
-        result.loc[missing, "Team"] = result.loc[missing].apply(resolve_team, axis=1)
+    resolved = result.apply(resolve_team, axis=1)
+    has_resolved = resolved.astype(str).str.strip().ne("")
+    result.loc[has_resolved, "Team"] = resolved.loc[has_resolved]
     return result
 
 

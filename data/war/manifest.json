@@ -102,7 +102,7 @@
     "path": "data/war/current_weekly_stats.json.gz",
     "source": "data/current_weekly_stats.csv",
     "rows": 1663,
-    "bytes": 39726
+    "bytes": 39517
   },
   "current_ros_rankings": {
     "path": "data/war/current_ros_rankings.json.gz",
