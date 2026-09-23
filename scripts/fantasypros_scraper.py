@@ -125,6 +125,77 @@ def clean_adp_player_name(value: str) -> str:
     return re.sub(r"\s+[A-Z]\.\s+.+$", "", text).strip()
 
 
+def player_name_key(value: object) -> str:
+    """Build a stable cross-source player key without changing display names."""
+    text = str(value or "").lower().replace("’", "'")
+    text = re.sub(r"\b(jr|sr|ii|iii|iv|v)\b\.?", "", text)
+    return re.sub(r"[^a-z0-9]", "", text)
+
+
+def enrich_weekly_teams(df: pd.DataFrame) -> pd.DataFrame:
+    """Fill teams that the weekly stats table omits using current player feeds."""
+    if df.empty or "Player" not in df.columns:
+        return df
+    result = df.copy()
+    if "Team" not in result.columns:
+        result["Team"] = ""
+    result["Team"] = result["Team"].fillna("").astype(str)
+
+    by_player_pos: dict[tuple[str, str], str] = {}
+    by_player: dict[str, str] = {}
+    for source_name in ("current_ros_rankings.csv", "current_projections.csv", "current_adp.csv"):
+        source_path = DATA_DIR / source_name
+        if not source_path.exists():
+            continue
+        try:
+            source = pd.read_csv(source_path, dtype=str).fillna("")
+        except (OSError, pd.errors.ParserError):
+            continue
+        player_col = next((col for col in ("Player", "Name", "player") if col in source.columns), None)
+        team_col = next((col for col in ("Team", "Tm", "team") if col in source.columns), None)
+        pos_col = next((col for col in ("Pos", "POS", "Position", "position") if col in source.columns), None)
+        if not player_col or not team_col:
+            continue
+        for _, row in source.iterrows():
+            key = player_name_key(row[player_col])
+            team = str(row[team_col]).strip().upper()
+            pos = re.sub(r"\d+$", "", str(row[pos_col]).strip().upper()) if pos_col else ""
+            if not key or not team:
+                continue
+            by_player.setdefault(key, team)
+            if pos:
+                by_player_pos.setdefault((key, pos), team)
+
+    headshots_path = DATA_DIR / "player_headshots.json"
+    if headshots_path.exists():
+        try:
+            headshots = json.loads(headshots_path.read_text(encoding="utf-8")).get("by_key", {})
+        except (OSError, json.JSONDecodeError, AttributeError):
+            headshots = {}
+        for entry in headshots.values():
+            if not isinstance(entry, dict):
+                continue
+            key = player_name_key(entry.get("name", ""))
+            team = str(entry.get("team", "") or "").strip().upper()
+            pos = str(entry.get("position", "") or "").strip().upper()
+            if not key or not team:
+                continue
+            by_player.setdefault(key, team)
+            if pos:
+                by_player_pos.setdefault((key, pos), team)
+
+    current_teams = result["Team"].fillna("").astype(str).str.strip()
+    missing = current_teams.eq("") | current_teams.str.lower().isin({"nan", "none"})
+    if missing.any():
+        def resolve_team(row: pd.Series) -> str:
+            key = player_name_key(row.get("Player", ""))
+            pos = str(row.get("Pos", "")).strip().upper()
+            return by_player_pos.get((key, pos), by_player.get(key, ""))
+
+        result.loc[missing, "Team"] = result.loc[missing].apply(resolve_team, axis=1)
+    return result
+
+
 def add_query_params(url: str, **params: object) -> str:
     parts = urlsplit(url)
     query = dict(parse_qsl(parts.query, keep_blank_values=True))
@@ -375,11 +446,13 @@ def scrape_current_weekly(
             frames.append(normalize_weekly(position, season_year, week, table_to_df(fetch(url))))
             result = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
             result = result.drop_duplicates(subset=["Year", "Week", "Pos", "Player"], keep="last")
+            result = enrich_weekly_teams(result)
             result.to_csv(output, index=False, quoting=csv.QUOTE_MINIMAL)
             print(f"scraped current {position.upper()} {season_year} week {week}")
     result = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
     if not result.empty:
         result = result.drop_duplicates(subset=["Year", "Week", "Pos", "Player"], keep="last")
+        result = enrich_weekly_teams(result)
         result.to_csv(output, index=False, quoting=csv.QUOTE_MINIMAL)
     return result
 

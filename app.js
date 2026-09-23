@@ -3476,7 +3476,7 @@ function normalizeInSeasonStatRow(row) {
   const player = firstValue(row, ["Player", "player", "Name", "name"], "");
   const pos = String(firstValue(row, ["Pos", "position", "POS"], "") || "").toUpperCase();
   if (!player || !["QB", "RB", "WR", "TE"].includes(pos)) return null;
-  const team = firstValue(row, ["Team", "team", "Tm"], "");
+  const team = firstValue(row, ["Team", "team", "Tm"], "") || inSeasonPlayerTeam(player, pos);
   const year = number(firstValue(row, ["Year", "year"], null), null);
   const week = number(firstValue(row, ["Week", "week"], null), null);
   if (year !== cfg.year || week === null || week < 1 || week > inSeasonWeekLast()) return null;
@@ -3492,6 +3492,22 @@ function normalizeInSeasonStatRow(row) {
     Week: week,
     FPTS: points
   };
+}
+
+function inSeasonPlayerTeam(player, pos = "") {
+  const key = playerKey(player);
+  const position = String(pos || "").toUpperCase();
+  const sources = [state.rosRankingsRows, state.results, state.adpRows];
+  for (const rows of sources) {
+    const match = (rows || []).find((row) => {
+      const rowPlayer = firstValue(row, ["Player", "player", "Name", "name"], "");
+      const rowPos = String(firstValue(row, ["Pos", "POS", "position"], "") || "").toUpperCase().replace(/\d+$/, "");
+      return playerKey(rowPlayer) === key && (!position || !rowPos || rowPos === position);
+    });
+    const team = match ? firstValue(match, ["Team", "team", "Tm"], "") : "";
+    if (team) return team;
+  }
+  return "";
 }
 
 function calculateInSeasonWarRows() {
