@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-23T23:41:02.941464+00:00",
+  "updated_at": "2026-09-23T23:42:47.267153+00:00",
   "current_projections": "data/current_projections.csv",
   "current_adp": "data/current_adp.csv",
   "season_year": 2026,
@@ -21,5 +21,5 @@
   "current_weekly_week_last": 2,
   "current_ros_rankings": "data/current_ros_rankings.csv",
   "current_ros_rankings_source": "Fantasy Points rest-of-season rankings",
-  "current_ros_rankings_rows": 262
+  "current_ros_rankings_rows": 264
 }
