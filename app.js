@@ -3507,6 +3507,8 @@ function inSeasonPlayerTeam(player, pos = "") {
     const team = match ? firstValue(match, ["Team", "team", "Tm"], "") : "";
     if (team) return team;
   }
+  const headshotEntry = state.playerHeadshots?.by_key?.[`${key}|${position}`] || state.playerHeadshots?.by_key?.[key];
+  if (headshotEntry?.team) return headshotEntry.team;
   return "";
 }
 
@@ -3709,7 +3711,7 @@ function normalizeRosRanking(row, index) {
     Year: number(firstValue(row, ["Year", "year"], settings().year), settings().year),
     Rank: number(firstValue(row, ["Rank", "rank", "RK", "Overall Rank"], index + 1), index + 1),
     Player: player,
-    Team: firstValue(row, ["Team", "team", "Tm"], ""),
+    Team: inSeasonPlayerTeam(player, pos) || firstValue(row, ["Team", "team", "Tm"], ""),
     Pos: pos,
     PosRank: number(firstValue(row, ["PosRank", "Pos Rank", "Position Rank", "POS RK"], embeddedRank), embeddedRank),
     Bye: number(firstValue(row, ["Bye", "BYE", "Bye Week"], null), null)
@@ -3800,7 +3802,7 @@ function projectedInSeasonRows(basis) {
     const projectedGames = number(current.games, 0) + remainingGames;
     return {
       ...current,
-      Team: current.Team || ranking.Team || adpMap.get(playerKey(ranking.Player))?.Team || projectionTeams.get(playerKey(ranking.Player)) || "",
+      Team: inSeasonPlayerTeam(ranking.Player, ranking.Pos) || current.Team || ranking.Team || adpMap.get(playerKey(ranking.Player))?.Team || projectionTeams.get(playerKey(ranking.Player)) || "",
       ADP: adpMap.get(playerKey(ranking.Player))?.ADP ?? null,
       "ROS Overall Rank": ranking.Rank,
       "ROS Rank": `${ranking.Pos} ${ranking.PosRank}`,
@@ -3817,7 +3819,7 @@ function projectedInSeasonRows(basis) {
     const adp = adpMap.get(playerKey(current.Player))?.ADP ?? null;
     projected.push({
       ...current,
-      Team: current.Team || adpMap.get(playerKey(current.Player))?.Team || projectionTeams.get(playerKey(current.Player)) || "",
+      Team: inSeasonPlayerTeam(current.Player, current.Pos) || current.Team || adpMap.get(playerKey(current.Player))?.Team || projectionTeams.get(playerKey(current.Player)) || "",
       ADP: adp,
       "ROS Overall Rank": null,
       "ROS Rank": null,
