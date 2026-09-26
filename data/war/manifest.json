@@ -84,7 +84,7 @@
     ]
   },
   "version": 1,
-  "updated_at": "2026-09-26T01:35:40.232472+00:00",
+  "updated_at": "2026-09-26T07:44:52.540934+00:00",
   "historical_adp": {
     "path": "data/war/historical_adp.json.gz",
     "source": "data/historical_adp.csv",
