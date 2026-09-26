@@ -228,10 +228,11 @@ function weekLimit() {
 }
 
 function playerKey(name) {
-  return String(name || "")
+  const key = String(name || "")
     .toLowerCase()
     .replace(/\b(jr|sr|i|ii|iii|iv|v)\.?\b/g, "")
     .replace(/[^a-z]/g, "");
+  return key === "joshpalmer" ? "joshuapalmer" : key;
 }
 
 function truthyString(value) {
