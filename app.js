@@ -3448,14 +3448,17 @@ function inSeasonWeeklyStatsPath() {
 }
 
 async function ensureInSeasonData() {
+  let loadedWeeklyRows = false;
   if (!state.inSeasonRawRows.length && !state.inSeasonError) {
     state.inSeasonSource = inSeasonWeeklyStatsPath();
     try {
       state.inSeasonRawRows = await loadJsonMaybeGzip(state.inSeasonSource);
+      loadedWeeklyRows = true;
     } catch (error) {
       try {
         state.inSeasonSource = state.manifest?.current_weekly_stats || CURRENT_WEEKLY_STATS_CSV_PATH;
         state.inSeasonRawRows = await loadCsv(state.inSeasonSource);
+        loadedWeeklyRows = true;
       } catch (fallbackError) {
         state.inSeasonRawRows = [];
         state.inSeasonError = `Could not load current weekly stats cache`;
@@ -3463,6 +3466,13 @@ async function ensureInSeasonData() {
         return;
       }
     }
+  }
+  if (loadedWeeklyRows) {
+    const currentYear = settings().year;
+    const latestDataWeek = Math.max(0, ...state.inSeasonRawRows
+      .filter((row) => number(firstValue(row, ["Year", "year"], null), null) === currentYear)
+      .map((row) => number(firstValue(row, ["Week", "week"], null), 0)));
+    if (latestDataWeek > 0 && el("inSeasonWeekLast")) el("inSeasonWeekLast").value = latestDataWeek;
   }
   const key = inSeasonDataKey();
   if (state.inSeasonLoadedKey === key) return;

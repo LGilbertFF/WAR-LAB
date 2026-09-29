@@ -12,13 +12,30 @@ on:
         required: false
         default: ""
   schedule:
-    - cron: "22 11 * * 2"
+    # Run at 6:00 AM America/New_York across both EDT and EST.
+    - cron: "0 10,11 * * 2"
 
 permissions:
   contents: write
 
 jobs:
+  schedule-check:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.local-time.outputs.run }}
+    steps:
+      - id: local-time
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$(TZ=America/New_York date +%H)" = "06" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   update-current-weekly-war:
+    needs: schedule-check
+    if: needs.schedule-check.outputs.run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -2,7 +2,8 @@ name: Update Rest of Season WAR
 
 on:
   schedule:
-    - cron: "30 10 * * 2"
+    # Run at 6:00 PM America/New_York across both EDT and EST.
+    - cron: "0 22,23 * * 2"
   workflow_dispatch:
 
 permissions:
@@ -15,7 +16,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  schedule-check:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.local-time.outputs.run }}
+    steps:
+      - id: local-time
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$(TZ=America/New_York date +%H)" = "18" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   update-ros-war:
+    needs: schedule-check
+    if: needs.schedule-check.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
