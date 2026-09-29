@@ -84,7 +84,7 @@
     ]
   },
   "version": 1,
-  "updated_at": "2026-09-29T15:53:22.594541+00:00",
+  "updated_at": "2026-09-29T16:36:17.792106+00:00",
   "historical_adp": {
     "path": "data/war/historical_adp.json.gz",
     "source": "data/historical_adp.csv",
@@ -108,6 +108,6 @@
     "path": "data/war/current_ros_rankings.json.gz",
     "source": "data/current_ros_rankings.csv",
     "rows": 264,
-    "bytes": 4312
+    "bytes": 4311
   }
 }
