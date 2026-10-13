@@ -84,7 +84,7 @@
     ]
   },
   "version": 1,
-  "updated_at": "2026-10-13T16:00:56.088530+00:00",
+  "updated_at": "2026-10-13T17:00:28.255537+00:00",
   "historical_adp": {
     "path": "data/war/historical_adp.json.gz",
     "source": "data/historical_adp.csv",
@@ -101,8 +101,8 @@
   "current_weekly_stats": {
     "path": "data/war/current_weekly_stats.json.gz",
     "source": "data/current_weekly_stats.csv",
-    "rows": 3337,
-    "bytes": 79376
+    "rows": 4183,
+    "bytes": 99062
   },
   "current_ros_rankings": {
     "path": "data/war/current_ros_rankings.json.gz",
