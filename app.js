@@ -3903,33 +3903,28 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
   const visible = inSeasonVisibleRows(sourceRows)
     .map((row) => ({
       ...row,
-      AdpPick: Math.round(number(row["Preseason ADP Rank"], null) ?? number(row.ADP, null) ?? 0),
+      OriginalAdpPick: Math.round(number(row["Preseason ADP Rank"], null) ?? number(row.ADP, null) ?? 0),
       HeatWar: number(row[basis], null)
     }))
-    .filter((row) => row.AdpPick >= 1 && row.AdpPick <= maxPick)
-    .sort((a, b) => a.AdpPick - b.AdpPick || number(a.ADP, Infinity) - number(b.ADP, Infinity));
-  const occupied = new Map();
-  for (const row of visible) {
-    let pick = row.AdpPick;
-    while (occupied.has(pick) && pick <= maxPick) pick += 1;
-    if (pick <= maxPick) occupied.set(pick, row);
-  }
-  const values = [...occupied.values()].map((row) => row.HeatWar).filter(Number.isFinite);
+    .filter((row) => ["QB", "RB", "WR", "TE"].includes(row.Pos) && row.OriginalAdpPick >= 1)
+    .sort((a, b) => a.OriginalAdpPick - b.OriginalAdpPick || number(a.ADP, Infinity) - number(b.ADP, Infinity))
+    .slice(0, maxPick);
+  const values = visible.map((row) => row.HeatWar).filter(Number.isFinite);
   const maxMagnitude = Math.max(0.01, ...values.map(Math.abs));
   const headers = Array.from({ length: teams }, (_, index) => `<span>Pick ${index + 1}</span>`).join("");
   const cells = Array.from({ length: maxPick }, (_, index) => {
     const pick = index + 1;
     const round = Math.ceil(pick / teams);
     const slot = ((pick - 1) % teams) + 1;
-    const row = occupied.get(pick);
+    const row = visible[index];
     if (!row) return `<span class="in-season-adp-cell empty"><small>${round}.${slot}</small></span>`;
     const headshot = playerHeadshotUrl(row);
     const teamLogo = nflTeamLogoUrl(row.Team);
     const war = row.HeatWar;
     const warText = war === null ? "N/A" : `${war >= 0 ? "+" : ""}${fmt(war)}`;
     return `
-      <button class="in-season-adp-cell" type="button" data-in-season-board-id="${escapeHtml(row.id)}" style="--war-heat:${inSeasonWarHeatColor(war, maxMagnitude)}" title="${escapeHtml(row.Player)} · preseason ADP ${fmt(row.ADP, 1)} · ${basis} ${warText}">
-        <span class="in-season-adp-meta"><strong>${round}.${slot}</strong><small>#${pick} · ${escapeHtml(row.Pos)}</small></span>
+      <button class="in-season-adp-cell" type="button" data-in-season-board-id="${escapeHtml(row.id)}" style="--war-heat:${inSeasonWarHeatColor(war, maxMagnitude)}" title="${escapeHtml(row.Player)} · preseason overall ADP ${fmt(row.ADP, 1)} · ${basis} ${warText}">
+        <span class="in-season-adp-meta"><strong>${round}.${slot}</strong><small>#${pick} · ${escapeHtml(row.Pos)} · ADP ${row.OriginalAdpPick}</small></span>
         <span class="in-season-adp-portrait">
           ${headshot ? `<img class="in-season-adp-headshot" src="${escapeHtml(headshot)}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<span class="in-season-adp-initial">${escapeHtml(abbreviatedPlayerName(row.Player).slice(0, 1))}</span>`}
           ${teamLogo ? `<img class="in-season-adp-team" src="${escapeHtml(teamLogo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
