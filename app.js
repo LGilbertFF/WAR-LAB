@@ -6656,16 +6656,60 @@ function topAvailableByPosition(ctx, excludeIds = new Set()) {
   }).filter(Boolean);
 }
 
+function draftAdpCoordinates(adp, teams) {
+  if (adp === null || !Number.isFinite(adp)) return { label: "-", overall: null };
+  const overall = Math.max(1, Math.round(adp));
+  const round = Math.ceil(overall / Math.max(1, teams));
+  const pick = ((overall - 1) % Math.max(1, teams)) + 1;
+  return { label: `${round}.${pick}`, overall };
+}
+
+function draftAbbreviatedPlayerName(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return parts[0] || "Unknown";
+  return `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
+}
+
+function draftTeamLogoUrl(team) {
+  const aliases = { ARI: "ari", BAL: "bal", BLT: "bal", CLE: "cle", CLV: "cle", JAX: "jax", KC: "kc", LV: "lv", LVR: "lv", LAC: "lac", LAR: "lar", NE: "ne", NO: "no", SF: "sf", TB: "tb", WSH: "wsh", WAS: "wsh" };
+  const key = aliases[String(team || "").toUpperCase()] || String(team || "").toLowerCase();
+  return key ? `https://a.espncdn.com/i/teamlogos/nfl/500/${key}.png` : "";
+}
+
+function draftWarHeatStyle(player, opts) {
+  const metric = draftPrimaryWarMetric(player, opts);
+  const value = draftWarValue(player, metric);
+  const min = number(opts.heatMin, value);
+  const max = number(opts.heatMax, value);
+  const spread = Math.max(0.01, max - min);
+  const ratio = Math.max(0, Math.min(1, (value - min) / spread));
+  const hue = ratio < 0.5 ? 350 + (48 * ratio) : 38 + (180 * (ratio - 0.5));
+  const light = 24 + (ratio * 7);
+  return `--draft-heat:hsl(${hue.toFixed(0)} 55% ${light.toFixed(0)}%);--draft-heat-value:${ratio.toFixed(3)}`;
+}
+
 function draftPlayerCardHtml(player, opts, tag = "") {
-  const adp = draftMarketCost(player, null);
+  const adp = number(player?.ADP, null) ?? number(player?.["ADP Rank"], null);
+  const coordinates = draftAdpCoordinates(adp, opts.teams);
+  const primaryMetric = draftPrimaryWarMetric(player, opts);
+  const primaryWar = draftWarValue(player, primaryMetric);
+  const metricLabel = primaryMetric === "SuperFlex WAR" ? "SF WAR" : primaryMetric.toUpperCase();
+  const headshot = playerHeadshotUrl(player);
+  const teamLogo = draftTeamLogoUrl(player.Team);
+  const displayName = draftAbbreviatedPlayerName(player.Player);
   return `
-    <button class="draft-player-card" type="button" data-draft-player-id="${escapeHtml(player.id)}">
-      ${headshotImg(player)}
-      <span>
-        <strong>${escapeHtml(player.Player)}</strong>
-        <small>${escapeHtml(tag ? `${tag} - ` : "")}${escapeHtml(player.Pos)} ${escapeHtml(player.Team || "-")} - ADP ${adp === null ? "-" : fmt(adp, 1)}</small>
-        ${draftWarChipsHtml(player, opts)}
+    <button class="draft-player-card ${primaryWar < 0 ? "negative-war" : ""}" type="button" data-draft-player-id="${escapeHtml(player.id)}" style="${draftWarHeatStyle(player, opts)}" aria-label="Draft ${escapeHtml(player.Player)}, ${escapeHtml(player.Pos)}, ADP ${coordinates.label}, ${metricLabel} ${fmt(primaryWar)}">
+      <span class="draft-card-topline">
+        <strong>${escapeHtml(coordinates.label)}</strong>
+        <small>${coordinates.overall === null ? "ADP -" : `#${coordinates.overall}`} · ${escapeHtml(player.Pos)}</small>
       </span>
+      ${tag ? `<span class="draft-card-tag">${escapeHtml(tag)}</span>` : ""}
+      <span class="draft-card-portrait">
+        ${headshot ? `<img class="draft-player-headshot" src="${escapeHtml(headshot)}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<span class="draft-player-initial">${escapeHtml(displayName.slice(0, 1))}</span>`}
+        ${teamLogo ? `<img class="draft-team-logo" src="${escapeHtml(teamLogo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+      </span>
+      <span class="draft-card-name" title="${escapeHtml(player.Player)}">${escapeHtml(displayName)}</span>
+      <span class="draft-card-war"><small>${escapeHtml(metricLabel)}</small><strong>${primaryWar >= 0 ? "+" : ""}${fmt(primaryWar)}</strong></span>
     </button>
   `;
 }
@@ -6681,19 +6725,29 @@ function renderInteractivePlayerBoard(ctx, targetId) {
   const recIds = new Set(recs.map((row) => row.player.id));
   const posRows = topAvailableByPosition(ctx, recIds);
   const exclude = new Set([...recIds, ...posRows.map((row) => row.player.id)]);
-  const rest = ctx.playerPool.filter((player) => ctx.available.has(player.id) && !exclude.has(player.id));
+  const availablePlayers = [...ctx.available.values()];
+  const heatValues = availablePlayers.map((player) => draftWarValue(player, draftPrimaryWarMetric(player, ctx.opts))).filter(Number.isFinite);
+  const boardOpts = {
+    ...ctx.opts,
+    heatMin: heatValues.length ? Math.min(...heatValues) : 0,
+    heatMax: heatValues.length ? Math.max(...heatValues) : 1
+  };
+  const rest = ctx.playerPool
+    .filter((player) => ctx.available.has(player.id) && !exclude.has(player.id))
+    .sort((a, b) => (draftMarketCost(a, Infinity) - draftMarketCost(b, Infinity)) || a.Player.localeCompare(b.Player));
   target.innerHTML = `
+    <div class="draft-heat-legend" aria-label="WAR heat map legend"><span>Lower WAR</span><i></i><span>Higher WAR</span></div>
     <section class="draft-board-section">
       <h4>Recommended top 5</h4>
-      <div class="draft-board-grid">${recs.map((row, index) => draftPlayerCardHtml(row.player, ctx.opts, `#${index + 1} ${row.positionStrategy || "Best"}`)).join("") || "<p class=\"muted\">No recommendations available.</p>"}</div>
+      <div class="draft-board-grid">${recs.map((row, index) => draftPlayerCardHtml(row.player, boardOpts, `#${index + 1} ${row.positionStrategy || "Best"}`)).join("") || "<p class=\"muted\">No recommendations available.</p>"}</div>
     </section>
     <section class="draft-board-section">
       <h4>Top available by position</h4>
-      <div class="draft-board-grid">${posRows.map((row) => draftPlayerCardHtml(row.player, ctx.opts, row.positionStrategy)).join("") || "<p class=\"muted\">No positional options available.</p>"}</div>
+      <div class="draft-board-grid">${posRows.map((row) => draftPlayerCardHtml(row.player, boardOpts, row.positionStrategy)).join("") || "<p class=\"muted\">No positional options available.</p>"}</div>
     </section>
     <section class="draft-board-section">
       <h4>Scrollable ADP board</h4>
-      <div class="draft-board-grid draft-board-scroll">${rest.map((player) => draftPlayerCardHtml(player, ctx.opts)).join("")}</div>
+      <div class="draft-board-grid draft-board-scroll">${rest.map((player) => draftPlayerCardHtml(player, boardOpts)).join("")}</div>
     </section>
   `;
 }
