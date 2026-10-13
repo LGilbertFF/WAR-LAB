@@ -549,6 +549,18 @@ summary::marker {
   white-space: nowrap;
 }
 
+.in-season-adp-board-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.in-season-adp-board-actions button {
+  min-height: 32px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
 .in-season-adp-legend i {
   width: 150px;
   height: 8px;
@@ -694,6 +706,20 @@ summary::marker {
 
 .in-season-adp-war strong {
   font-size: 0.72rem;
+}
+
+.in-season-adp-export-canvas {
+  position: fixed;
+  top: 0;
+  left: -100000px;
+  z-index: -1;
+  padding: 30px;
+  background: #111;
+  color: #fff;
+}
+
+.in-season-adp-export-canvas .in-season-adp-board-head {
+  padding: 0 2px;
 }
 
 .in-season-chart-grid {

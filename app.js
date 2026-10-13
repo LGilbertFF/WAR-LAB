@@ -3893,6 +3893,56 @@ function inSeasonWarHeatColor(value, maxMagnitude) {
   return `hsl(${hue.toFixed(0)} 52% ${light.toFixed(0)}%)`;
 }
 
+async function exportInSeasonAdpBoard() {
+  const chart = el("inSeasonAnalysisChart");
+  const board = chart?.querySelector(".in-season-adp-board");
+  const header = chart?.querySelector(".in-season-adp-board-head");
+  if (!board || !header || typeof html2canvas !== "function") return;
+  const button = chart.querySelector("#downloadInSeasonAdpBoard");
+  const originalLabel = button?.textContent;
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Preparing PNG...";
+  }
+  const exportRoot = document.createElement("div");
+  exportRoot.className = "in-season-adp-export-canvas";
+  exportRoot.style.width = `${Math.max(1200, board.scrollWidth)}px`;
+  const headerClone = header.cloneNode(true);
+  headerClone.querySelector("button")?.remove();
+  exportRoot.append(headerClone, board.cloneNode(true));
+  document.body.appendChild(exportRoot);
+  try {
+    await document.fonts?.ready;
+    const canvas = await html2canvas(exportRoot, {
+      backgroundColor: "#111111",
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      scale: 1.5,
+      width: exportRoot.scrollWidth,
+      height: exportRoot.scrollHeight,
+      windowWidth: exportRoot.scrollWidth,
+      windowHeight: exportRoot.scrollHeight
+    });
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("Could not create the board image.");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `war-lab-in-season-adp-week-${inSeasonWeekLast()}.png`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  } catch (error) {
+    console.error("Could not export the in-season ADP board", error);
+    window.alert("The board image could not be created. Please reload the page and try again.");
+  } finally {
+    exportRoot.remove();
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+  }
+}
+
 function renderInSeasonAdpHeatBoard(chart, sourceRows) {
   Plotly.purge(chart);
   const cfg = settings();
@@ -3937,7 +3987,10 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
   chart.innerHTML = `
     <div class="in-season-adp-board-head">
       <div><strong>Preseason ADP through ${rounds} rounds</strong><span>${escapeHtml(basis)} through Week ${inSeasonWeekLast()} · ${escapeHtml(inSeasonPlotContext())}</span></div>
-      <div class="in-season-adp-legend"><span>Negative</span><i></i><span>Higher WAR</span></div>
+      <div class="in-season-adp-board-actions">
+        <div class="in-season-adp-legend"><span>Negative</span><i></i><span>Higher WAR</span></div>
+        <button id="downloadInSeasonAdpBoard" class="secondary compact" type="button">Download PNG</button>
+      </div>
     </div>
     <div class="in-season-adp-scroll">
       <div class="in-season-adp-board" style="--adp-team-count:${teams}">
@@ -8420,6 +8473,10 @@ function bindEvents() {
     if (row) selectPlayer(row.dataset.id);
   });
   el("inSeasonAnalysisChart")?.addEventListener("click", (event) => {
+    if (event.target.closest("#downloadInSeasonAdpBoard")) {
+      exportInSeasonAdpBoard();
+      return;
+    }
     const boardPlayer = event.target.closest("[data-in-season-board-id]");
     if (!boardPlayer || state.activeView !== "inSeasonView") return;
     state.selectedInSeasonId = boardPlayer.dataset.inSeasonBoardId;
