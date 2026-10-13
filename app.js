@@ -3949,17 +3949,17 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
   const teams = Math.max(1, cfg.teams);
   const rounds = inSeasonAdpRounds();
   const maxPick = teams * rounds;
-  const basis = inSeasonWarBasis();
+  const metric = inSeasonAxisMetric("inSeasonYAxis", "WAR");
   const visible = inSeasonVisibleRows(sourceRows)
     .map((row) => ({
       ...row,
       OriginalAdpPick: Math.round(number(row["Preseason ADP Rank"], null) ?? number(row.ADP, null) ?? 0),
-      HeatWar: number(row[basis], null)
+      HeatValue: inSeasonMetricValue(row, metric)
     }))
     .filter((row) => ["QB", "RB", "WR", "TE"].includes(row.Pos) && row.OriginalAdpPick >= 1)
     .sort((a, b) => a.OriginalAdpPick - b.OriginalAdpPick || number(a.ADP, Infinity) - number(b.ADP, Infinity))
     .slice(0, maxPick);
-  const values = visible.map((row) => row.HeatWar).filter(Number.isFinite);
+  const values = visible.map((row) => row.HeatValue).filter(Number.isFinite);
   const maxMagnitude = Math.max(0.01, ...values.map(Math.abs));
   const headers = Array.from({ length: teams }, (_, index) => `<span>Pick ${index + 1}</span>`).join("");
   const cells = Array.from({ length: maxPick }, (_, index) => {
@@ -3970,25 +3970,25 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
     if (!row) return `<span class="in-season-adp-cell empty"><small>${round}.${slot}</small></span>`;
     const headshot = playerHeadshotUrl(row);
     const teamLogo = nflTeamLogoUrl(row.Team);
-    const war = row.HeatWar;
-    const warText = war === null ? "N/A" : `${war >= 0 ? "+" : ""}${fmt(war)}`;
+    const value = row.HeatValue;
+    const valueText = value === null ? "N/A" : `${metric.includes("WAR") && value >= 0 ? "+" : ""}${fmt(value)}`;
     return `
-      <button class="in-season-adp-cell" type="button" data-in-season-board-id="${escapeHtml(row.id)}" style="--war-heat:${inSeasonWarHeatColor(war, maxMagnitude)}" title="${escapeHtml(row.Player)} · preseason overall ADP ${fmt(row.ADP, 1)} · ${basis} ${warText}">
+      <button class="in-season-adp-cell" type="button" data-in-season-board-id="${escapeHtml(row.id)}" style="--war-heat:${inSeasonWarHeatColor(value, maxMagnitude)}" title="${escapeHtml(row.Player)} · preseason overall ADP ${fmt(row.ADP, 1)} · ${metric} ${valueText}">
         <span class="in-season-adp-meta"><strong>${round}.${slot}</strong><small>#${pick} · ${escapeHtml(row.Pos)} · ADP ${row.OriginalAdpPick}</small></span>
         <span class="in-season-adp-portrait">
           ${headshot ? `<img class="in-season-adp-headshot" src="${escapeHtml(headshot)}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<span class="in-season-adp-initial">${escapeHtml(abbreviatedPlayerName(row.Player).slice(0, 1))}</span>`}
           ${teamLogo ? `<img class="in-season-adp-team" src="${escapeHtml(teamLogo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         </span>
         <strong class="in-season-adp-name">${escapeHtml(abbreviatedPlayerName(row.Player))}</strong>
-        <span class="in-season-adp-war"><small>${escapeHtml(basis)}</small><strong>${warText}</strong></span>
+        <span class="in-season-adp-war"><small>${escapeHtml(metric)}</small><strong>${valueText}</strong></span>
       </button>`;
   }).join("");
   chart.classList.add("adp-heat-board-active");
   chart.innerHTML = `
     <div class="in-season-adp-board-head">
-      <div><strong>Preseason ADP through ${rounds} rounds</strong><span>${escapeHtml(basis)} through Week ${inSeasonWeekLast()} · ${escapeHtml(inSeasonPlotContext())}</span></div>
+      <div><strong>Preseason ADP through ${rounds} rounds</strong><span>${escapeHtml(metric)} through Week ${inSeasonWeekLast()} · ${escapeHtml(inSeasonPlotContext())}</span></div>
       <div class="in-season-adp-board-actions">
-        <div class="in-season-adp-legend"><span>Negative</span><i></i><span>Higher WAR</span></div>
+        <div class="in-season-adp-legend"><span>Lower</span><i></i><span>Higher ${escapeHtml(metric)}</span></div>
         <button id="downloadInSeasonAdpBoard" class="secondary compact" type="button">Download PNG</button>
       </div>
     </div>
@@ -3998,7 +3998,7 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
         <div class="in-season-adp-grid">${cells}</div>
       </div>
     </div>`;
-  if (el("inSeasonAnalysisTitle")) el("inSeasonAnalysisTitle").textContent = "Preseason ADP Heat Board by In-Season WAR";
+  if (el("inSeasonAnalysisTitle")) el("inSeasonAnalysisTitle").textContent = `Preseason ADP Heat Board by ${metric}`;
 }
 
 function renderInSeasonAnalysisChart(rows) {
@@ -4006,7 +4006,7 @@ function renderInSeasonAnalysisChart(rows) {
   if (!chart) return;
   const boardView = inSeasonAnalysisView() === "adp-board";
   if (el("inSeasonXAxisControl")) el("inSeasonXAxisControl").hidden = boardView;
-  if (el("inSeasonYAxisControl")) el("inSeasonYAxisControl").hidden = boardView;
+  if (el("inSeasonYAxisControl")) el("inSeasonYAxisControl").hidden = false;
   if (el("inSeasonAdpRoundsControl")) el("inSeasonAdpRoundsControl").hidden = !boardView;
   if (boardView) {
     renderInSeasonAdpHeatBoard(chart, rows);
