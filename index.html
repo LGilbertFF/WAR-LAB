@@ -7,7 +7,7 @@
     <link rel="icon" href="assets/favicon.svg?v=browser-fire-20260904a" type="image/svg+xml">
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=in-season-adp-heat-board-20261013d">
+    <link rel="stylesheet" href="styles.css?v=in-season-adp-heat-board-20261013e">
   </head>
   <body>
     <main class="app-shell">
@@ -191,9 +191,13 @@
                   <option value="FPTS/G">FPTS/G</option>
                 </select>
               </label>
-              <label id="inSeasonAdpRoundsControl" hidden>
-                ADP rounds
-                <input id="inSeasonAdpRounds" type="number" min="1" max="30" value="16">
+              <label id="inSeasonAdpStartRoundControl" hidden>
+                First round
+                <input id="inSeasonAdpStartRound" type="number" min="1" max="30" value="1">
+              </label>
+              <label id="inSeasonAdpEndRoundControl" hidden>
+                Last round
+                <input id="inSeasonAdpEndRound" type="number" min="1" max="30" value="16">
               </label>
             </div>
           </div>
@@ -957,8 +961,8 @@
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "in-season-adp-heat-board-20261013d";
+      window.WAR_LAB_BUILD = "in-season-adp-heat-board-20261013e";
     </script>
-    <script src="app.js?v=in-season-adp-heat-board-20261013d"></script>
+    <script src="app.js?v=in-season-adp-heat-board-20261013e"></script>
   </body>
 </html>

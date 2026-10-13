@@ -3435,8 +3435,10 @@ function inSeasonAnalysisView() {
   return (el("inSeasonAnalysisView")?.value || "scatter") === "adp-board" ? "adp-board" : "scatter";
 }
 
-function inSeasonAdpRounds() {
-  return Math.max(1, Math.min(30, number(el("inSeasonAdpRounds")?.value, 16)));
+function inSeasonAdpRoundRange() {
+  const first = Math.max(1, Math.min(30, number(el("inSeasonAdpStartRound")?.value, 1)));
+  const last = Math.max(1, Math.min(30, number(el("inSeasonAdpEndRound")?.value, 16)));
+  return { startRound: Math.min(first, last), endRound: Math.max(first, last) };
 }
 
 function inSeasonDataKey() {
@@ -3928,7 +3930,9 @@ async function exportInSeasonAdpBoard() {
     if (!blob) throw new Error("Could not create the board image.");
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `war-lab-in-season-adp-week-${inSeasonWeekLast()}.png`;
+    const { startRound, endRound } = inSeasonAdpRoundRange();
+    const roundLabel = startRound === endRound ? `round-${startRound}` : `rounds-${startRound}-${endRound}`;
+    link.download = `war-lab-in-season-adp-${roundLabel}-week-${inSeasonWeekLast()}.png`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   } catch (error) {
@@ -3947,8 +3951,10 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
   Plotly.purge(chart);
   const cfg = settings();
   const teams = Math.max(1, cfg.teams);
-  const rounds = inSeasonAdpRounds();
-  const maxPick = teams * rounds;
+  const { startRound, endRound } = inSeasonAdpRoundRange();
+  const firstPick = ((startRound - 1) * teams) + 1;
+  const maxPick = teams * endRound;
+  const displayedPickCount = (endRound - startRound + 1) * teams;
   const metric = inSeasonAxisMetric("inSeasonYAxis", "WAR");
   const visible = inSeasonVisibleRows(sourceRows)
     .map((row) => ({
@@ -3959,14 +3965,15 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
     .filter((row) => ["QB", "RB", "WR", "TE"].includes(row.Pos) && row.OriginalAdpPick >= 1)
     .sort((a, b) => a.OriginalAdpPick - b.OriginalAdpPick || number(a.ADP, Infinity) - number(b.ADP, Infinity))
     .slice(0, maxPick);
-  const values = visible.map((row) => row.HeatValue).filter(Number.isFinite);
+  const displayedRows = visible.slice(firstPick - 1, maxPick);
+  const values = displayedRows.map((row) => row.HeatValue).filter(Number.isFinite);
   const maxMagnitude = Math.max(0.01, ...values.map(Math.abs));
   const headers = Array.from({ length: teams }, (_, index) => `<span>Pick ${index + 1}</span>`).join("");
-  const cells = Array.from({ length: maxPick }, (_, index) => {
-    const pick = index + 1;
+  const cells = Array.from({ length: displayedPickCount }, (_, index) => {
+    const pick = firstPick + index;
     const round = Math.ceil(pick / teams);
     const slot = ((pick - 1) % teams) + 1;
-    const row = visible[index];
+    const row = visible[pick - 1];
     if (!row) return `<span class="in-season-adp-cell empty"><small>${round}.${slot}</small></span>`;
     const headshot = playerHeadshotUrl(row);
     const teamLogo = nflTeamLogoUrl(row.Team);
@@ -3986,7 +3993,7 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
   chart.classList.add("adp-heat-board-active");
   chart.innerHTML = `
     <div class="in-season-adp-board-head">
-      <div><strong>Preseason ADP through ${rounds} rounds</strong><span>${escapeHtml(metric)} through Week ${inSeasonWeekLast()} · ${escapeHtml(inSeasonPlotContext())}</span></div>
+      <div><strong>Preseason ADP ${startRound === endRound ? `Round ${startRound}` : `Rounds ${startRound}-${endRound}`}</strong><span>${escapeHtml(metric)} through Week ${inSeasonWeekLast()} · ${escapeHtml(inSeasonPlotContext())}</span></div>
       <div class="in-season-adp-board-actions">
         <div class="in-season-adp-legend"><span>Lower</span><i></i><span>Higher ${escapeHtml(metric)}</span></div>
         <button id="downloadInSeasonAdpBoard" class="secondary compact" type="button">Download PNG</button>
@@ -4007,7 +4014,8 @@ function renderInSeasonAnalysisChart(rows) {
   const boardView = inSeasonAnalysisView() === "adp-board";
   if (el("inSeasonXAxisControl")) el("inSeasonXAxisControl").hidden = boardView;
   if (el("inSeasonYAxisControl")) el("inSeasonYAxisControl").hidden = false;
-  if (el("inSeasonAdpRoundsControl")) el("inSeasonAdpRoundsControl").hidden = !boardView;
+  if (el("inSeasonAdpStartRoundControl")) el("inSeasonAdpStartRoundControl").hidden = !boardView;
+  if (el("inSeasonAdpEndRoundControl")) el("inSeasonAdpEndRoundControl").hidden = !boardView;
   if (boardView) {
     renderInSeasonAdpHeatBoard(chart, rows);
     return;
@@ -8362,7 +8370,7 @@ function bindEvents() {
       scheduleRender(0);
     });
   });
-  ["inSeasonWeekLast", "inSeasonRankCutoff", "inSeasonWarBasis", "inSeasonHistoricalOverlay", "inSeasonOutlook", "inSeasonAnalysisView", "inSeasonXAxis", "inSeasonYAxis", "inSeasonAdpRounds"].forEach((id) => {
+  ["inSeasonWeekLast", "inSeasonRankCutoff", "inSeasonWarBasis", "inSeasonHistoricalOverlay", "inSeasonOutlook", "inSeasonAnalysisView", "inSeasonXAxis", "inSeasonYAxis", "inSeasonAdpStartRound", "inSeasonAdpEndRound"].forEach((id) => {
     el(id)?.addEventListener("change", () => scheduleRender(0));
   });
   el("adpLeagueFormat")?.addEventListener("change", () => {
