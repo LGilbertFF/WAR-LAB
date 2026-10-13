@@ -7,7 +7,7 @@
     <link rel="icon" href="assets/favicon.svg?v=browser-fire-20260904a" type="image/svg+xml">
     <link rel="preconnect" href="https://cdn.plot.ly">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="styles.css?v=injured-player-teams-20260925a">
+    <link rel="stylesheet" href="styles.css?v=in-season-adp-heat-board-20261013a">
   </head>
   <body>
     <main class="app-shell">
@@ -160,6 +160,13 @@
                 <input id="inSeasonRankCutoff" type="number" min="1" max="250" value="70">
               </label>
               <label>
+                Analysis view
+                <select id="inSeasonAnalysisView">
+                  <option value="scatter">Scatter plot</option>
+                  <option value="adp-board">Preseason ADP heat board</option>
+                </select>
+              </label>
+              <label id="inSeasonXAxisControl">
                 Analysis X-axis
                 <select id="inSeasonXAxis">
                   <option value="ADP">ADP</option>
@@ -168,7 +175,7 @@
                   <option value="Positional Rank">Positional rank</option>
                 </select>
               </label>
-              <label>
+              <label id="inSeasonYAxisControl">
                 Analysis Y-axis
                 <select id="inSeasonYAxis">
                   <option value="WAR">WAR</option>
@@ -183,6 +190,10 @@
                   <option value="FPTS">FPTS</option>
                   <option value="FPTS/G">FPTS/G</option>
                 </select>
+              </label>
+              <label id="inSeasonAdpRoundsControl" hidden>
+                ADP rounds
+                <input id="inSeasonAdpRounds" type="number" min="1" max="30" value="16">
               </label>
             </div>
           </div>
@@ -945,8 +956,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <script>
-      window.WAR_LAB_BUILD = "independent-weekly-refresh-20260929a";
+      window.WAR_LAB_BUILD = "in-season-adp-heat-board-20261013a";
     </script>
-    <script src="app.js?v=independent-weekly-refresh-20260929a"></script>
+    <script src="app.js?v=in-season-adp-heat-board-20261013a"></script>
   </body>
 </html>

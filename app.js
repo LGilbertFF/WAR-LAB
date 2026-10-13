@@ -3431,6 +3431,14 @@ function inSeasonAxisMetric(id, fallback) {
   return el(id)?.value || fallback;
 }
 
+function inSeasonAnalysisView() {
+  return (el("inSeasonAnalysisView")?.value || "scatter") === "adp-board" ? "adp-board" : "scatter";
+}
+
+function inSeasonAdpRounds() {
+  return Math.max(1, Math.min(30, number(el("inSeasonAdpRounds")?.value, 16)));
+}
+
 function inSeasonDataKey() {
   const cfg = settings();
   return JSON.stringify({
@@ -3789,6 +3797,7 @@ function projectedInSeasonRows(basis) {
   const eligible = (pos) => basis === "WAR" || (basis === "Flex WAR" && ["RB", "WR", "TE"].includes(pos)) || (basis === "SuperFlex WAR" && settings().slots.SUPERFLEX > 0);
   const projected = rankings.map((ranking) => {
     const key = `${playerKey(ranking.Player)}-${ranking.Pos}`;
+    const adpMatch = adpMap.get(playerKey(ranking.Player));
     const current = currentByPlayer.get(key) || {
       id: `${playerKey(ranking.Player)}-${ranking.Pos}-${ranking.Team}`,
       Player: ranking.Player,
@@ -3814,7 +3823,8 @@ function projectedInSeasonRows(basis) {
     return {
       ...current,
       Team: inSeasonPlayerTeam(ranking.Player, ranking.Pos) || current.Team || ranking.Team || adpMap.get(playerKey(ranking.Player))?.Team || projectionTeams.get(playerKey(ranking.Player)) || "",
-      ADP: adpMap.get(playerKey(ranking.Player))?.ADP ?? null,
+      ADP: adpMatch?.ADP ?? null,
+      "Preseason ADP Rank": adpMatch?.["ADP Rank"] ?? adpMatch?.ADP ?? null,
       "ROS Overall Rank": ranking.Rank,
       "ROS Rank": `${ranking.Pos} ${ranking.PosRank}`,
       "ROS Pos Rank": ranking.PosRank,
@@ -3827,11 +3837,13 @@ function projectedInSeasonRows(basis) {
     };
   });
   for (const current of currentByPlayer.values()) {
-    const adp = adpMap.get(playerKey(current.Player))?.ADP ?? null;
+    const adpMatch = adpMap.get(playerKey(current.Player));
+    const adp = adpMatch?.ADP ?? null;
     projected.push({
       ...current,
       Team: inSeasonPlayerTeam(current.Player, current.Pos) || current.Team || adpMap.get(playerKey(current.Player))?.Team || projectionTeams.get(playerKey(current.Player)) || "",
       ADP: adp,
+      "Preseason ADP Rank": adpMatch?.["ADP Rank"] ?? adp,
       "ROS Overall Rank": null,
       "ROS Rank": null,
       "ROS Pos Rank": null,
@@ -3857,9 +3869,103 @@ function inSeasonPlotContext() {
   return `${context.roster} - ${context.scoring}`;
 }
 
+function abbreviatedPlayerName(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return parts[0] || "Unknown";
+  return `${parts[0][0]}. ${parts.slice(1).join(" ")}`;
+}
+
+function nflTeamLogoUrl(team) {
+  const aliases = { ARI: "ari", BAL: "bal", BLT: "bal", CLE: "cle", CLV: "cle", JAX: "jax", KC: "kc", LV: "lv", LVR: "lv", LAC: "lac", LAR: "lar", NE: "ne", NO: "no", SF: "sf", TB: "tb", WAS: "wsh", WSH: "wsh" };
+  const key = aliases[String(team || "").toUpperCase()] || String(team || "").toLowerCase();
+  return key ? `https://a.espncdn.com/i/teamlogos/nfl/500/${key}.png` : "";
+}
+
+function inSeasonWarHeatColor(value, maxMagnitude) {
+  if (value === null || !Number.isFinite(value)) return "hsl(0 0% 20%)";
+  const ratio = Math.max(-1, Math.min(1, value / Math.max(0.01, maxMagnitude)));
+  if (ratio < 0) {
+    const light = 24 + ((ratio + 1) * 7);
+    return `hsl(352 54% ${light.toFixed(0)}%)`;
+  }
+  const hue = 38 + (92 * ratio);
+  const light = 29 + (ratio * 4);
+  return `hsl(${hue.toFixed(0)} 52% ${light.toFixed(0)}%)`;
+}
+
+function renderInSeasonAdpHeatBoard(chart, sourceRows) {
+  Plotly.purge(chart);
+  const cfg = settings();
+  const teams = Math.max(1, cfg.teams);
+  const rounds = inSeasonAdpRounds();
+  const maxPick = teams * rounds;
+  const basis = inSeasonWarBasis();
+  const visible = inSeasonVisibleRows(sourceRows)
+    .map((row) => ({
+      ...row,
+      AdpPick: Math.round(number(row["Preseason ADP Rank"], null) ?? number(row.ADP, null) ?? 0),
+      HeatWar: number(row[basis], null)
+    }))
+    .filter((row) => row.AdpPick >= 1 && row.AdpPick <= maxPick)
+    .sort((a, b) => a.AdpPick - b.AdpPick || number(a.ADP, Infinity) - number(b.ADP, Infinity));
+  const occupied = new Map();
+  for (const row of visible) {
+    let pick = row.AdpPick;
+    while (occupied.has(pick) && pick <= maxPick) pick += 1;
+    if (pick <= maxPick) occupied.set(pick, row);
+  }
+  const values = [...occupied.values()].map((row) => row.HeatWar).filter(Number.isFinite);
+  const maxMagnitude = Math.max(0.01, ...values.map(Math.abs));
+  const headers = Array.from({ length: teams }, (_, index) => `<span>Pick ${index + 1}</span>`).join("");
+  const cells = Array.from({ length: maxPick }, (_, index) => {
+    const pick = index + 1;
+    const round = Math.ceil(pick / teams);
+    const slot = ((pick - 1) % teams) + 1;
+    const row = occupied.get(pick);
+    if (!row) return `<span class="in-season-adp-cell empty"><small>${round}.${slot}</small></span>`;
+    const headshot = playerHeadshotUrl(row);
+    const teamLogo = nflTeamLogoUrl(row.Team);
+    const war = row.HeatWar;
+    const warText = war === null ? "N/A" : `${war >= 0 ? "+" : ""}${fmt(war)}`;
+    return `
+      <button class="in-season-adp-cell" type="button" data-in-season-board-id="${escapeHtml(row.id)}" style="--war-heat:${inSeasonWarHeatColor(war, maxMagnitude)}" title="${escapeHtml(row.Player)} · preseason ADP ${fmt(row.ADP, 1)} · ${basis} ${warText}">
+        <span class="in-season-adp-meta"><strong>${round}.${slot}</strong><small>#${pick} · ${escapeHtml(row.Pos)}</small></span>
+        <span class="in-season-adp-portrait">
+          ${headshot ? `<img class="in-season-adp-headshot" src="${escapeHtml(headshot)}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<span class="in-season-adp-initial">${escapeHtml(abbreviatedPlayerName(row.Player).slice(0, 1))}</span>`}
+          ${teamLogo ? `<img class="in-season-adp-team" src="${escapeHtml(teamLogo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+        </span>
+        <strong class="in-season-adp-name">${escapeHtml(abbreviatedPlayerName(row.Player))}</strong>
+        <span class="in-season-adp-war"><small>${escapeHtml(basis)}</small><strong>${warText}</strong></span>
+      </button>`;
+  }).join("");
+  chart.classList.add("adp-heat-board-active");
+  chart.innerHTML = `
+    <div class="in-season-adp-board-head">
+      <div><strong>Preseason ADP through ${rounds} rounds</strong><span>${escapeHtml(basis)} through Week ${inSeasonWeekLast()} · ${escapeHtml(inSeasonPlotContext())}</span></div>
+      <div class="in-season-adp-legend"><span>Negative</span><i></i><span>Higher WAR</span></div>
+    </div>
+    <div class="in-season-adp-scroll">
+      <div class="in-season-adp-board" style="--adp-team-count:${teams}">
+        <div class="in-season-adp-headers">${headers}</div>
+        <div class="in-season-adp-grid">${cells}</div>
+      </div>
+    </div>`;
+  if (el("inSeasonAnalysisTitle")) el("inSeasonAnalysisTitle").textContent = "Preseason ADP Heat Board by In-Season WAR";
+}
+
 function renderInSeasonAnalysisChart(rows) {
   const chart = el("inSeasonAnalysisChart");
   if (!chart) return;
+  const boardView = inSeasonAnalysisView() === "adp-board";
+  if (el("inSeasonXAxisControl")) el("inSeasonXAxisControl").hidden = boardView;
+  if (el("inSeasonYAxisControl")) el("inSeasonYAxisControl").hidden = boardView;
+  if (el("inSeasonAdpRoundsControl")) el("inSeasonAdpRoundsControl").hidden = !boardView;
+  if (boardView) {
+    renderInSeasonAdpHeatBoard(chart, rows);
+    return;
+  }
+  chart.classList.remove("adp-heat-board-active");
+  chart.innerHTML = "";
   const xMetric = inSeasonAxisMetric("inSeasonXAxis", "ADP");
   const yMetric = inSeasonAxisMetric("inSeasonYAxis", "WAR");
   const visible = inSeasonVisibleRows(rows);
@@ -8208,7 +8314,7 @@ function bindEvents() {
       scheduleRender(0);
     });
   });
-  ["inSeasonWeekLast", "inSeasonRankCutoff", "inSeasonWarBasis", "inSeasonHistoricalOverlay", "inSeasonOutlook", "inSeasonXAxis", "inSeasonYAxis"].forEach((id) => {
+  ["inSeasonWeekLast", "inSeasonRankCutoff", "inSeasonWarBasis", "inSeasonHistoricalOverlay", "inSeasonOutlook", "inSeasonAnalysisView", "inSeasonXAxis", "inSeasonYAxis", "inSeasonAdpRounds"].forEach((id) => {
     el(id)?.addEventListener("change", () => scheduleRender(0));
   });
   el("adpLeagueFormat")?.addEventListener("change", () => {
@@ -8317,6 +8423,12 @@ function bindEvents() {
     if (event.target.closest(".player-detail-row")) return;
     const row = event.target.closest("tr[data-id]");
     if (row) selectPlayer(row.dataset.id);
+  });
+  el("inSeasonAnalysisChart")?.addEventListener("click", (event) => {
+    const boardPlayer = event.target.closest("[data-in-season-board-id]");
+    if (!boardPlayer || state.activeView !== "inSeasonView") return;
+    state.selectedInSeasonId = boardPlayer.dataset.inSeasonBoardId;
+    scheduleRender(0);
   });
   el("tradeWarBasis")?.addEventListener("change", () => scheduleRender(0));
   document.querySelectorAll("[data-add-trade]").forEach((button) => button.addEventListener("click", () => addTradePlayer(button.dataset.addTrade)));

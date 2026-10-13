@@ -513,6 +513,189 @@ summary::marker {
   height: 620px;
 }
 
+#inSeasonAnalysisChart.adp-heat-board-active {
+  height: auto;
+  min-height: 620px;
+}
+
+.in-season-adp-board-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 12px;
+  color: var(--white);
+}
+
+.in-season-adp-board-head > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.in-season-adp-board-head strong {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.in-season-adp-board-head span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.in-season-adp-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.in-season-adp-legend i {
+  width: 150px;
+  height: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(90deg, hsl(352 54% 24%), hsl(38 52% 29%), hsl(130 52% 33%));
+}
+
+.in-season-adp-scroll {
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.in-season-adp-board {
+  min-width: calc(var(--adp-team-count) * 112px);
+}
+
+.in-season-adp-headers,
+.in-season-adp-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--adp-team-count), minmax(108px, 1fr));
+}
+
+.in-season-adp-headers span {
+  padding: 7px 4px;
+  border-right: 2px solid #111;
+  background: #222;
+  color: #d7d7d7;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.in-season-adp-cell {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  min-width: 0;
+  height: 142px;
+  padding: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(10, 10, 10, 0.72);
+  border-radius: 0;
+  background: var(--war-heat, #292929);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.in-season-adp-cell:hover,
+.in-season-adp-cell:focus-visible {
+  z-index: 2;
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+  filter: brightness(1.12);
+}
+
+.in-season-adp-cell.empty {
+  display: block;
+  background: #181818;
+  color: #6f6f6f;
+  cursor: default;
+}
+
+.in-season-adp-cell.empty:hover {
+  outline: 0;
+  filter: none;
+}
+
+.in-season-adp-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  font-size: 0.66rem;
+}
+
+.in-season-adp-meta small {
+  font-size: 0.58rem;
+  opacity: 0.78;
+}
+
+.in-season-adp-portrait {
+  position: relative;
+  align-self: center;
+  justify-self: center;
+  width: 52px;
+  height: 52px;
+  margin-top: 2px;
+}
+
+.in-season-adp-headshot,
+.in-season-adp-initial {
+  width: 100%;
+  height: 100%;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  background: #222;
+  object-fit: cover;
+}
+
+.in-season-adp-initial {
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.in-season-adp-team {
+  position: absolute;
+  right: -5px;
+  bottom: -2px;
+  width: 21px;
+  height: 21px;
+  padding: 2px;
+  border-radius: 50%;
+  background: rgba(245, 245, 245, 0.92);
+  object-fit: contain;
+}
+
+.in-season-adp-name {
+  overflow: hidden;
+  font-size: 0.72rem;
+  line-height: 1.12;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.in-season-adp-war {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.in-season-adp-war small {
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.in-season-adp-war strong {
+  font-size: 0.72rem;
+}
+
 .in-season-chart-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
