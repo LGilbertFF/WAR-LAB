@@ -3883,15 +3883,14 @@ function nflTeamLogoUrl(team) {
   return key ? `https://a.espncdn.com/i/teamlogos/nfl/500/${key}.png` : "";
 }
 
-function inSeasonWarHeatColor(value, maxMagnitude) {
+function inSeasonWarHeatColor(value, minimum, maximum) {
   if (value === null || !Number.isFinite(value)) return "hsl(0 0% 20%)";
-  const ratio = Math.max(-1, Math.min(1, value / Math.max(0.01, maxMagnitude)));
-  if (ratio < 0) {
-    const light = 24 + ((ratio + 1) * 7);
-    return `hsl(352 54% ${light.toFixed(0)}%)`;
-  }
-  const hue = 38 + (92 * ratio);
-  const light = 29 + (ratio * 4);
+  const span = maximum - minimum;
+  const ratio = span > 0 ? Math.max(0, Math.min(1, (value - minimum) / span)) : 0.5;
+  const hue = ratio <= 0.5
+    ? 352 + (46 * (ratio / 0.5))
+    : 38 + (92 * ((ratio - 0.5) / 0.5));
+  const light = 27 + (ratio * 7);
   return `hsl(${hue.toFixed(0)} 52% ${light.toFixed(0)}%)`;
 }
 
@@ -3967,7 +3966,8 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
     .slice(0, maxPick);
   const displayedRows = visible.slice(firstPick - 1, maxPick);
   const values = displayedRows.map((row) => row.HeatValue).filter(Number.isFinite);
-  const maxMagnitude = Math.max(0.01, ...values.map(Math.abs));
+  const minimum = values.length ? Math.min(...values) : 0;
+  const maximum = values.length ? Math.max(...values) : 0;
   const headers = Array.from({ length: teams }, (_, index) => `<span>Pick ${index + 1}</span>`).join("");
   const cells = Array.from({ length: displayedPickCount }, (_, index) => {
     const pick = firstPick + index;
@@ -3980,7 +3980,7 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
     const value = row.HeatValue;
     const valueText = value === null ? "N/A" : `${metric.includes("WAR") && value >= 0 ? "+" : ""}${fmt(value)}`;
     return `
-      <button class="in-season-adp-cell" type="button" data-in-season-board-id="${escapeHtml(row.id)}" style="--war-heat:${inSeasonWarHeatColor(value, maxMagnitude)}" title="${escapeHtml(row.Player)} · preseason overall ADP ${fmt(row.ADP, 1)} · ${metric} ${valueText}">
+      <button class="in-season-adp-cell" type="button" data-in-season-board-id="${escapeHtml(row.id)}" style="--war-heat:${inSeasonWarHeatColor(value, minimum, maximum)}" title="${escapeHtml(row.Player)} · preseason overall ADP ${fmt(row.ADP, 1)} · ${metric} ${valueText}">
         <span class="in-season-adp-meta"><strong>${round}.${slot}</strong><small>#${pick} · ${escapeHtml(row.Pos)} · ADP ${row.OriginalAdpPick}</small></span>
         <span class="in-season-adp-portrait">
           ${headshot ? `<img class="in-season-adp-headshot" src="${escapeHtml(headshot)}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<span class="in-season-adp-initial">${escapeHtml(abbreviatedPlayerName(row.Player).slice(0, 1))}</span>`}
