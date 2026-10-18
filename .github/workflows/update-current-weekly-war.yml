@@ -18,6 +18,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: update-current-weekly-war
+  cancel-in-progress: false
+
 jobs:
   schedule-check:
     runs-on: ubuntu-latest
@@ -61,6 +65,40 @@ jobs:
 
       - name: Scrape current weekly stats
         run: python scripts/fantasypros_scraper.py --current-weekly --season-year "${{ github.event.inputs.season_year || '2026' }}" --week-last "${{ steps.current-week.outputs.week_last }}"
+
+      - name: Validate weekly stats independently of ROS rankings
+        env:
+          EXPECTED_SEASON: ${{ github.event.inputs.season_year || '2026' }}
+          EXPECTED_WEEK: ${{ steps.current-week.outputs.week_last }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          import pandas as pd
+
+          path = Path("data/current_weekly_stats.csv")
+          if not path.exists():
+              raise SystemExit("Weekly stats scrape did not create data/current_weekly_stats.csv")
+          rows = pd.read_csv(path, low_memory=False)
+          required = {"Year", "Week", "Pos"}
+          missing_columns = required - set(rows.columns)
+          if missing_columns:
+              raise SystemExit(f"Weekly stats are missing columns: {sorted(missing_columns)}")
+          season = int(os.environ["EXPECTED_SEASON"])
+          week = int(os.environ["EXPECTED_WEEK"])
+          year_values = pd.to_numeric(rows["Year"], errors="coerce")
+          week_values = pd.to_numeric(rows["Week"], errors="coerce")
+          current = rows[(year_values == season) & (week_values == week)]
+          positions = set(current.get("Pos", pd.Series(dtype=str)).astype(str).str.upper())
+          missing = {"QB", "RB", "WR", "TE"} - positions
+          if current.empty or missing:
+              raise SystemExit(
+                  f"Weekly stats are incomplete for {season} Week {week}; "
+                  f"rows={len(current)}, missing positions={sorted(missing)}"
+              )
+          print(f"Validated {len(current):,} weekly stat rows for {season} Week {week}")
+          PY
 
       - name: Export browser-ready weekly stats
         run: python scripts/export_war_data.py --current
