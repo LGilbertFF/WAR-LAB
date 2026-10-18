@@ -4028,8 +4028,12 @@ function renderInSeasonAnalysisChart(rows) {
     renderInSeasonAdpHeatBoard(chart, rows);
     return;
   }
+  const leavingBoard = chart.classList.contains("adp-heat-board-active");
   chart.classList.remove("adp-heat-board-active");
-  chart.innerHTML = "";
+  if (leavingBoard) {
+    Plotly.purge(chart);
+    chart.innerHTML = "";
+  }
   const xMetric = inSeasonAxisMetric("inSeasonXAxis", "ADP");
   const yMetric = inSeasonAxisMetric("inSeasonYAxis", "WAR");
   const visible = inSeasonVisibleRows(rows);
@@ -4051,7 +4055,7 @@ function renderInSeasonAnalysisChart(rows) {
   });
   const title = `${xMetric} vs ${yMetric}`;
   if (el("inSeasonAnalysisTitle")) el("inSeasonAnalysisTitle").textContent = title;
-  Plotly.react(chart, traces, {
+  const layout = {
     title: { text: `${title}<br><span style="font-size:12px;font-weight:400">${inSeasonPlotContext()}</span>`, font: { size: 18 }, x: 0.02, xanchor: "left" },
     margin: { l: 66, r: 22, t: 78, b: 68 },
     xaxis: { title: xMetric, autorange: xMetric === "ADP" ? "reversed" : true, gridcolor: "rgba(240,240,240,0.18)", color: "#f0f0f0" },
@@ -4060,7 +4064,10 @@ function renderInSeasonAnalysisChart(rows) {
     font: { family: "Mulish, sans-serif", color: "#f0f0f0" },
     plot_bgcolor: "#111111",
     paper_bgcolor: "#111111"
-  }, { responsive: true });
+  };
+  const plotConfig = { responsive: true };
+  if (chart.classList.contains("js-plotly-plot")) Plotly.react(chart, traces, layout, plotConfig);
+  else Plotly.newPlot(chart, traces, layout, plotConfig);
 }
 
 function renderInSeasonChart(chartId, sourceRows, metric, title, historicalMetric, perGame = false, historicalGames = inSeasonWeekLast()) {
