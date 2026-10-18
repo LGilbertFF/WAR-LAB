@@ -4141,7 +4141,7 @@ function renderInSeasonView() {
   if (el("inSeasonChartTitle")) el("inSeasonChartTitle").textContent = title;
   if (el("inSeasonChartSubtitle")) el("inSeasonChartSubtitle").textContent = subtitle;
   if (el("inSeasonTableTitle")) el("inSeasonTableTitle").textContent = `${context.year} Weekly and Projected WAR Table Through Week ${weekLast}`;
-  if (el("inSeasonTableSubtitle")) el("inSeasonTableSubtitle").textContent = `${subtitle}${state.inSeasonSource ? ` - Raw source: ${state.inSeasonSource.replace("data/", "")}` : ""}`;
+  if (el("inSeasonTableSubtitle")) el("inSeasonTableSubtitle").textContent = subtitle;
   if (el("inSeasonTotalTitle")) el("inSeasonTotalTitle").textContent = `${projected ? "Projected Season" : "Total"} ${displayBasis} by Positional Rank`;
   if (el("inSeasonPerGameTitle")) el("inSeasonPerGameTitle").textContent = `${projected ? `Projected ${displayBasis}/G` : `${displayBasis}/G`} by Positional Rank`;
   if (el("inSeasonRosRateHead")) el("inSeasonRosRateHead").textContent = `ROS Hist ${displayBasis}/G`;
