@@ -3883,15 +3883,23 @@ function nflTeamLogoUrl(team) {
   return key ? `https://a.espncdn.com/i/teamlogos/nfl/500/${key}.png` : "";
 }
 
-function inSeasonWarHeatColor(value, minimum, maximum) {
-  if (value === null || !Number.isFinite(value)) return "hsl(0 0% 20%)";
+function inSeasonHeatRatio(value, minimum, maximum) {
+  if (value === null || !Number.isFinite(value)) return null;
   const span = maximum - minimum;
-  const ratio = span > 0 ? Math.max(0, Math.min(1, (value - minimum) / span)) : 0.5;
-  const hue = ratio <= 0.5
-    ? 352 + (46 * (ratio / 0.5))
-    : 38 + (92 * ((ratio - 0.5) / 0.5));
-  const light = 27 + (ratio * 7);
-  return `hsl(${hue.toFixed(0)} 52% ${light.toFixed(0)}%)`;
+  return span > 0 ? Math.max(0, Math.min(1, (value - minimum) / span)) : 0.5;
+}
+
+function inSeasonWarHeatColor(value, minimum, maximum) {
+  const ratio = inSeasonHeatRatio(value, minimum, maximum);
+  if (ratio === null) return "hsl(0 0% 20%)";
+  const saturation = 42 + (ratio * 36);
+  const light = 94 - (ratio * 60);
+  return `hsl(282 ${saturation.toFixed(0)}% ${light.toFixed(0)}%)`;
+}
+
+function inSeasonWarHeatTextColor(value, minimum, maximum) {
+  const ratio = inSeasonHeatRatio(value, minimum, maximum);
+  return ratio !== null && ratio < 0.57 ? "#171119" : "#ffffff";
 }
 
 async function exportInSeasonAdpBoard() {
@@ -3980,7 +3988,7 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
     const value = row.HeatValue;
     const valueText = value === null ? "N/A" : `${metric.includes("WAR") && value >= 0 ? "+" : ""}${fmt(value)}`;
     return `
-      <button class="in-season-adp-cell" type="button" data-in-season-board-id="${escapeHtml(row.id)}" style="--war-heat:${inSeasonWarHeatColor(value, minimum, maximum)}" title="${escapeHtml(row.Player)} · preseason overall ADP ${fmt(row.ADP, 1)} · ${metric} ${valueText}">
+      <button class="in-season-adp-cell" type="button" data-in-season-board-id="${escapeHtml(row.id)}" style="--war-heat:${inSeasonWarHeatColor(value, minimum, maximum)};--war-text:${inSeasonWarHeatTextColor(value, minimum, maximum)}" title="${escapeHtml(row.Player)} · preseason overall ADP ${fmt(row.ADP, 1)} · ${metric} ${valueText}">
         <span class="in-season-adp-meta"><strong>${round}.${slot}</strong><small>#${pick} · ${escapeHtml(row.Pos)} · ADP ${row.OriginalAdpPick}</small></span>
         <span class="in-season-adp-portrait">
           ${headshot ? `<img class="in-season-adp-headshot" src="${escapeHtml(headshot)}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<span class="in-season-adp-initial">${escapeHtml(abbreviatedPlayerName(row.Player).slice(0, 1))}</span>`}

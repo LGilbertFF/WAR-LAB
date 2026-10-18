@@ -565,7 +565,7 @@ summary::marker {
   width: 150px;
   height: 8px;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  background: linear-gradient(90deg, hsl(352 54% 24%), hsl(38 52% 29%), hsl(130 52% 33%));
+  background: linear-gradient(90deg, hsl(282 42% 94%), hsl(282 60% 64%), hsl(282 78% 34%));
 }
 
 .in-season-adp-scroll {
@@ -605,7 +605,7 @@ summary::marker {
   border: 1px solid rgba(10, 10, 10, 0.72);
   border-radius: 0;
   background: var(--war-heat, #292929);
-  color: #fff;
+  color: var(--war-text, #fff);
   text-align: left;
   cursor: pointer;
 }
