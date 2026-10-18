@@ -3976,11 +3976,12 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
   const values = displayedRows.map((row) => row.HeatValue).filter(Number.isFinite);
   const minimum = values.length ? Math.min(...values) : 0;
   const maximum = values.length ? Math.max(...values) : 0;
-  const headers = Array.from({ length: teams }, (_, index) => `<span>Pick ${index + 1}</span>`).join("");
+  const headers = Array.from({ length: teams }, (_, index) => `<span>Team ${index + 1}</span>`).join("");
   const cells = Array.from({ length: displayedPickCount }, (_, index) => {
-    const pick = firstPick + index;
-    const round = Math.ceil(pick / teams);
-    const slot = ((pick - 1) % teams) + 1;
+    const round = startRound + Math.floor(index / teams);
+    const column = (index % teams) + 1;
+    const slot = round % 2 === 1 ? column : teams - column + 1;
+    const pick = ((round - 1) * teams) + slot;
     const row = visible[pick - 1];
     if (!row) return `<span class="in-season-adp-cell empty"><small>${round}.${slot}</small></span>`;
     const headshot = playerHeadshotUrl(row);
@@ -3991,7 +3992,7 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
       <button class="in-season-adp-cell" type="button" data-in-season-board-id="${escapeHtml(row.id)}" style="--war-heat:${inSeasonWarHeatColor(value, minimum, maximum)};--war-text:${inSeasonWarHeatTextColor(value, minimum, maximum)}" title="${escapeHtml(row.Player)} · preseason overall ADP ${fmt(row.ADP, 1)} · ${metric} ${valueText}">
         <span class="in-season-adp-meta"><strong>${round}.${slot}</strong><small>#${pick} · ${escapeHtml(row.Pos)} · ADP ${row.OriginalAdpPick}</small></span>
         <span class="in-season-adp-portrait">
-          ${headshot ? `<img class="in-season-adp-headshot" src="${escapeHtml(headshot)}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<span class="in-season-adp-initial">${escapeHtml(abbreviatedPlayerName(row.Player).slice(0, 1))}</span>`}
+          ${headshot ? `<span class="in-season-adp-headshot" role="img" aria-label="${escapeHtml(row.Player)}" style="background-image:url(&quot;${escapeHtml(headshot)}&quot;)"></span>` : `<span class="in-season-adp-initial">${escapeHtml(abbreviatedPlayerName(row.Player).slice(0, 1))}</span>`}
           ${teamLogo ? `<img class="in-season-adp-team" src="${escapeHtml(teamLogo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         </span>
         <strong class="in-season-adp-name">${escapeHtml(abbreviatedPlayerName(row.Player))}</strong>

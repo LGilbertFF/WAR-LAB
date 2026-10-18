@@ -700,8 +700,10 @@ summary::marker {
   box-sizing: border-box;
   border: 2px solid rgba(255, 255, 255, 0.72);
   border-radius: 50%;
-  background: #222;
-  object-fit: cover;
+  background-color: #222;
+  background-position: 50% 12%;
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 .in-season-adp-initial {
