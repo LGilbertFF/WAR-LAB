@@ -3816,7 +3816,14 @@ function historicalRosWarRate(pos, rank, basis) {
 }
 
 function projectedInSeasonRows(basis) {
-  const currentByPlayer = new Map(state.inSeasonRows.map((row) => [`${playerKey(row.Player)}-${row.Pos}`, row]));
+  const unmatchedCurrent = new Set(state.inSeasonRows);
+  const currentByPlayer = new Map();
+  state.inSeasonRows.forEach((row) => {
+    playerKeyVariants(row.Player).forEach((key) => {
+      const lookupKey = `${key}-${row.Pos}`;
+      if (!currentByPlayer.has(lookupKey)) currentByPlayer.set(lookupKey, row);
+    });
+  });
   const adpMap = normalizeAdp(state.adpRows);
   const projectionTeams = new Map(state.results
     .filter((row) => row.Team)
@@ -3825,9 +3832,11 @@ function projectedInSeasonRows(basis) {
   const remainingGames = Math.max(0, settings().weeks - inSeasonWeekLast());
   const eligible = (pos) => basis === "WAR" || (basis === "Flex WAR" && ["RB", "WR", "TE"].includes(pos)) || (basis === "SuperFlex WAR" && settings().slots.SUPERFLEX > 0);
   const projected = rankings.map((ranking) => {
-    const key = `${playerKey(ranking.Player)}-${ranking.Pos}`;
+    const currentMatch = playerKeyVariants(ranking.Player)
+      .map((key) => currentByPlayer.get(`${key}-${ranking.Pos}`))
+      .find(Boolean);
     const adpMatch = adpMap.get(playerKey(ranking.Player));
-    const current = currentByPlayer.get(key) || {
+    const current = currentMatch || {
       id: `${playerKey(ranking.Player)}-${ranking.Pos}-${ranking.Team}`,
       Player: ranking.Player,
       Team: ranking.Team,
@@ -3843,7 +3852,7 @@ function projectedInSeasonRows(basis) {
       "SuperFlex WAR/G": null,
       Weeks: []
     };
-    currentByPlayer.delete(key);
+    if (currentMatch) unmatchedCurrent.delete(currentMatch);
     const rate = eligible(ranking.Pos) ? historicalRosWarRate(ranking.Pos, ranking.PosRank, basis) : null;
     const playedValue = eligible(ranking.Pos) ? number(current[basis], 0) : null;
     const remaining = rate === null ? null : rate * remainingGames;
@@ -3865,25 +3874,23 @@ function projectedInSeasonRows(basis) {
       "Projected Games": projectedGames
     };
   });
-  for (const current of currentByPlayer.values()) {
+  for (const current of unmatchedCurrent) {
     const adpMatch = adpMap.get(playerKey(current.Player));
     const adp = adpMatch?.ADP ?? null;
-    const fallbackPosRank = number(adpMatch?.["Pos ADP Rank"], null);
-    const fallbackRate = fallbackPosRank !== null && eligible(current.Pos)
-      ? historicalRosWarRate(current.Pos, fallbackPosRank, basis)
-      : null;
+    const playedGames = number(current.games, 0);
     const playedValue = eligible(current.Pos) ? number(current[basis], 0) : null;
+    const fallbackRate = playedValue === null || playedGames <= 0 ? null : playedValue / playedGames;
     const remaining = fallbackRate === null ? null : fallbackRate * remainingGames;
     const total = playedValue === null || remaining === null ? null : playedValue + remaining;
-    const projectedGames = number(current.games, 0) + (remaining === null ? 0 : remainingGames);
+    const projectedGames = playedGames + (remaining === null ? 0 : remainingGames);
     projected.push({
       ...current,
       Team: inSeasonPlayerTeam(current.Player, current.Pos) || current.Team || adpMap.get(playerKey(current.Player))?.Team || projectionTeams.get(playerKey(current.Player)) || "",
       ADP: adp,
       "Preseason ADP Rank": adpMatch?.["ADP Rank"] ?? adp,
       "ROS Overall Rank": null,
-      "ROS Rank": fallbackPosRank === null ? null : `${current.Pos} ${fallbackPosRank} (ADP estimate)`,
-      "ROS Pos Rank": fallbackPosRank,
+      "ROS Rank": fallbackRate === null ? null : "Current pace estimate",
+      "ROS Pos Rank": null,
       "ROS Historical WAR/G": fallbackRate,
       "Projected Remaining WAR": remaining,
       "Projected Season WAR": total,
