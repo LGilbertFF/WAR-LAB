@@ -465,8 +465,11 @@ function normalizeAdp(rows) {
       const player = firstValue(row, ["Player", "player", "Name"], extracted?.[1] || combined);
       return {
         Player: String(player || "").trim(),
+        Team: String(firstValue(row, ["Team", "team", "Tm"], "") || "").trim(),
         ADP: number(firstValue(row, ["ADP", "AVG", "Average"], null), null),
-        "ADP Rank": number(firstValue(row, ["ADP Rank", "Rank", "RK"], null), null)
+        "ADP Rank": number(firstValue(row, ["ADP Rank", "Rank", "RK"], null), null),
+        Pos: String(firstValue(row, ["Pos", "POS", "Position"], "") || "").toUpperCase().replace(/\d+$/, ""),
+        "Pos ADP Rank": number((String(firstValue(row, ["POS", "Pos", "Pos ADP Rank"], "")).match(/\d+/) || [null])[0], null)
       };
     });
   const map = new Map();
@@ -3865,19 +3868,27 @@ function projectedInSeasonRows(basis) {
   for (const current of currentByPlayer.values()) {
     const adpMatch = adpMap.get(playerKey(current.Player));
     const adp = adpMatch?.ADP ?? null;
+    const fallbackPosRank = number(adpMatch?.["Pos ADP Rank"], null);
+    const fallbackRate = fallbackPosRank !== null && eligible(current.Pos)
+      ? historicalRosWarRate(current.Pos, fallbackPosRank, basis)
+      : null;
+    const playedValue = eligible(current.Pos) ? number(current[basis], 0) : null;
+    const remaining = fallbackRate === null ? null : fallbackRate * remainingGames;
+    const total = playedValue === null || remaining === null ? null : playedValue + remaining;
+    const projectedGames = number(current.games, 0) + (remaining === null ? 0 : remainingGames);
     projected.push({
       ...current,
       Team: inSeasonPlayerTeam(current.Player, current.Pos) || current.Team || adpMap.get(playerKey(current.Player))?.Team || projectionTeams.get(playerKey(current.Player)) || "",
       ADP: adp,
       "Preseason ADP Rank": adpMatch?.["ADP Rank"] ?? adp,
       "ROS Overall Rank": null,
-      "ROS Rank": null,
-      "ROS Pos Rank": null,
-      "ROS Historical WAR/G": null,
-      "Projected Remaining WAR": null,
-      "Projected Season WAR": null,
-      "Projected Season WAR/G": null,
-      "Projected Games": current.games
+      "ROS Rank": fallbackPosRank === null ? null : `${current.Pos} ${fallbackPosRank} (ADP estimate)`,
+      "ROS Pos Rank": fallbackPosRank,
+      "ROS Historical WAR/G": fallbackRate,
+      "Projected Remaining WAR": remaining,
+      "Projected Season WAR": total,
+      "Projected Season WAR/G": total === null || !projectedGames ? null : total / projectedGames,
+      "Projected Games": projectedGames
     });
   }
   return projected.sort((a, b) => number(b["Projected Season WAR"], -Infinity) - number(a["Projected Season WAR"], -Infinity))
@@ -3888,6 +3899,16 @@ function inSeasonMetricValue(row, metric) {
   if (metric === "FPTS/G") return number(row.AVG, null);
   if (metric === "Positional Rank") return number(row["ROS Pos Rank"] ?? row["Position Rank"], null);
   return number(row[metric], null);
+}
+
+function inSeasonBoardMetricLabel(metric) {
+  return ({
+    "Projected Remaining WAR": "ROS WAR",
+    "Projected Season WAR": "PROJ WAR",
+    "Projected Season WAR/G": "PROJ WAR/G",
+    "SuperFlex WAR": "SF WAR",
+    "SuperFlex WAR/G": "SF WAR/G"
+  })[metric] || metric;
 }
 
 function inSeasonPlotContext() {
@@ -3987,6 +4008,7 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
   const maxPick = teams * endRound;
   const displayedPickCount = (endRound - startRound + 1) * teams;
   const metric = inSeasonAxisMetric("inSeasonYAxis", "WAR");
+  const metricLabel = inSeasonBoardMetricLabel(metric);
   const visible = inSeasonVisibleRows(sourceRows)
     .map((row) => ({
       ...row,
@@ -4020,7 +4042,7 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
           ${teamLogo ? `<img class="in-season-adp-team" src="${escapeHtml(teamLogo)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         </span>
         <strong class="in-season-adp-name">${escapeHtml(abbreviatedPlayerName(row.Player))}</strong>
-        <span class="in-season-adp-war"><small>${escapeHtml(metric)}</small><strong>${valueText}</strong></span>
+        <span class="in-season-adp-war"><small>${escapeHtml(metricLabel)}</small><strong>${valueText}</strong></span>
       </button>`;
   }).join("");
   chart.classList.add("adp-heat-board-active");

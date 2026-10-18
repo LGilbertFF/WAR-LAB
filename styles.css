@@ -735,17 +735,22 @@ summary::marker {
 }
 
 .in-season-adp-war {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 3px;
+  min-height: 16px;
   margin-top: 3px;
 }
 
 .in-season-adp-war small {
+  overflow: hidden;
   font-size: 0.55rem;
   font-weight: 800;
+  line-height: 1;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .in-season-adp-war strong {
