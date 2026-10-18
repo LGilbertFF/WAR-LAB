@@ -12,7 +12,7 @@ import csv
 import json
 import re
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -41,16 +41,6 @@ HEADERS = {
     ),
     "Accept-Language": "en-US,en;q=0.9",
 }
-
-
-def infer_completed_week(season_year: int, today: date | None = None) -> int:
-    today = today or datetime.now(timezone.utc).date()
-    first_rollover = date(season_year, 9, 15)
-    while first_rollover.weekday() != 1:
-        first_rollover += timedelta(days=1)
-    if today < first_rollover:
-        return 1
-    return max(1, min(18, ((today - first_rollover).days // 7) + 1))
 
 
 def fetch(url: str, *, delay: float = 0.35) -> str:
@@ -482,7 +472,7 @@ def main() -> None:
     parser.add_argument("--start-year", type=int, default=2015)
     parser.add_argument("--end-year", type=int, default=datetime.now().year - 1)
     parser.add_argument("--adp-scoring", choices=sorted(ADP_URLS), default="ppr")
-    parser.add_argument("--week-last", type=int, help="Most recent completed NFL week for current weekly stats. Defaults to an automatic season calendar estimate.")
+    parser.add_argument("--week-last", type=int, help="Most recent completed NFL week. Defaults to data/current_week.json; it is never calendar-estimated.")
     parser.add_argument(
         "--skip-current-adp",
         action="store_true",
@@ -539,7 +529,18 @@ def main() -> None:
 
     if args.current_weekly:
         output = DATA_DIR / "current_weekly_stats.csv"
-        week_last = args.week_last if args.week_last is not None else infer_completed_week(args.season_year)
+        if args.week_last is not None:
+            week_last = args.week_last
+        else:
+            week_state_path = DATA_DIR / "current_week.json"
+            if not week_state_path.exists():
+                raise RuntimeError("Missing data/current_week.json; set the current week before scraping weekly stats.")
+            week_state = json.loads(week_state_path.read_text(encoding="utf-8"))
+            if int(week_state.get("season_year", 0)) != args.season_year:
+                raise RuntimeError(
+                    f"Saved current week belongs to {week_state.get('season_year')}; set it for {args.season_year}."
+                )
+            week_last = int(week_state["week_last"])
         current_weekly = scrape_current_weekly(args.season_year, week_last, output, args.positions)
         outputs["current_weekly_stats"] = f"data/{output.name}"
         outputs["current_weekly_stats_rows"] = int(len(current_weekly))
