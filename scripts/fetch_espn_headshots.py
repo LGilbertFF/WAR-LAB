@@ -8,6 +8,7 @@ from pathlib import Path
 import requests
 
 
+ROOT = Path(__file__).resolve().parents[1]
 ROSTER_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/{team}/roster"
 SLEEPER_PLAYERS_URL = "https://api.sleeper.app/v1/players/nfl"
 FANTASY_POSITIONS = {"QB", "RB", "WR", "TE"}
@@ -130,17 +131,47 @@ def build_map() -> dict:
     }
 
 
+def cache_active_sleeper_headshots(data: dict, cache_dir: Path) -> int:
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cached = 0
+    for player in data.get("players", []):
+        if player.get("source") != "sleeper" or not player.get("team") or not player.get("sleeper_id"):
+            continue
+        destination = cache_dir / f"{player['sleeper_id']}.jpg"
+        if not destination.exists():
+            try:
+                response = requests.get(
+                    player["headshot_url"],
+                    timeout=30,
+                    headers={"User-Agent": "Mozilla/5.0"},
+                )
+                response.raise_for_status()
+                if not response.headers.get("content-type", "").lower().startswith("image/"):
+                    continue
+                destination.write_bytes(response.content)
+            except requests.RequestException as exc:
+                print(f"could not cache {player['name']} headshot: {exc}")
+                continue
+        player["headshot_url"] = destination.relative_to(ROOT).as_posix()
+        cached += 1
+    return cached
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch ESPN NFL player headshots for WAR Lab.")
     parser.add_argument("--out", type=Path, default=Path("data/player_headshots.json"))
+    parser.add_argument("--cache-dir", type=Path, default=Path("assets/player-headshots"))
     args = parser.parse_args()
     data = build_map()
+    cache_dir = args.cache_dir if args.cache_dir.is_absolute() else ROOT / args.cache_dir
+    cached_count = cache_active_sleeper_headshots(data, cache_dir)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(data, separators=(",", ":"), sort_keys=True), encoding="utf-8")
     counts = data.get("counts", {})
     print(
         f"wrote {len(data['players'])} headshots to {args.out} "
-        f"({counts.get('espn', 0)} ESPN, {counts.get('sleeper_fallback', 0)} Sleeper fallback)"
+        f"({counts.get('espn', 0)} ESPN, {counts.get('sleeper_fallback', 0)} Sleeper fallback, "
+        f"{cached_count} active fallback images cached locally)"
     )
 
 

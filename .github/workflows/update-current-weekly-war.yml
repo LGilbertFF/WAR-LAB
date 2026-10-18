@@ -100,6 +100,9 @@ jobs:
           print(f"Validated {len(current):,} weekly stat rows for {season} Week {week}")
           PY
 
+      - name: Refresh current player teams and headshots
+        run: python scripts/fetch_espn_headshots.py
+
       - name: Export browser-ready weekly stats
         run: python scripts/export_war_data.py --current
 
@@ -107,4 +110,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Update current weekly WAR stats"
-          file_pattern: data/current_week.json data/current_weekly_stats.csv data/war/current_weekly_stats.json.gz data/war/manifest.json data/scrape_manifest.json
+          file_pattern: assets/player-headshots/*.jpg data/current_week.json data/current_weekly_stats.csv data/player_headshots.json data/war/current_weekly_stats.json.gz data/war/manifest.json data/scrape_manifest.json

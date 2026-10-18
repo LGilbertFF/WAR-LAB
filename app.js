@@ -306,6 +306,10 @@ function playerHeadshotUrl(row, fallback = "") {
   return fallback || firstValue(row, ["headshot_url", "headshot"], "") || "";
 }
 
+function exportSafeHeadshotUrl(url) {
+  return String(url || "");
+}
+
 function headshotImg(row, className = "adp-row-headshot", fallback = "") {
   const src = playerHeadshotUrl(row, fallback);
   return src
@@ -3518,7 +3522,29 @@ function normalizeInSeasonStatRow(row) {
 function inSeasonPlayerTeam(player, pos = "") {
   const key = playerKey(player);
   const position = String(pos || "").toUpperCase();
-  const sources = [state.rosRankingsRows, state.results, state.adpRows];
+  const headshotEntry = state.playerHeadshots?.by_key?.[`${key}|${position}`] || state.playerHeadshots?.by_key?.[key];
+  if (headshotEntry?.team) return headshotEntry.team;
+  const latestWeekly = (state.inSeasonRawRows || [])
+    .filter((row) => {
+      const rowPlayer = firstValue(row, ["Player", "player", "Name", "name"], "");
+      const rowPos = String(firstValue(row, ["Pos", "POS", "position"], "") || "").toUpperCase().replace(/\d+$/, "");
+      const team = firstValue(row, ["Team", "team", "Tm"], "");
+      return team && playerKey(rowPlayer) === key && (!position || !rowPos || rowPos === position);
+    })
+    .sort((a, b) => number(firstValue(b, ["Week", "week"], 0), 0) - number(firstValue(a, ["Week", "week"], 0), 0))[0];
+  const weeklyTeam = latestWeekly ? firstValue(latestWeekly, ["Team", "team", "Tm"], "") : "";
+  if (weeklyTeam) return weeklyTeam;
+  const rosSources = [state.rosRankings];
+  for (const rows of rosSources) {
+    const match = (rows || []).find((row) => {
+      const rowPlayer = firstValue(row, ["Player", "player", "Name", "name"], "");
+      const rowPos = String(firstValue(row, ["Pos", "POS", "position"], "") || "").toUpperCase().replace(/\d+$/, "");
+      return playerKey(rowPlayer) === key && (!position || !rowPos || rowPos === position);
+    });
+    const team = match ? firstValue(match, ["Team", "team", "Tm"], "") : "";
+    if (team) return team;
+  }
+  const sources = [state.results, state.adpRows];
   for (const rows of sources) {
     const match = (rows || []).find((row) => {
       const rowPlayer = firstValue(row, ["Player", "player", "Name", "name"], "");
@@ -3528,8 +3554,6 @@ function inSeasonPlayerTeam(player, pos = "") {
     const team = match ? firstValue(match, ["Team", "team", "Tm"], "") : "";
     if (team) return team;
   }
-  const headshotEntry = state.playerHeadshots?.by_key?.[`${key}|${position}`] || state.playerHeadshots?.by_key?.[key];
-  if (headshotEntry?.team) return headshotEntry.team;
   return "";
 }
 
@@ -3984,7 +4008,7 @@ function renderInSeasonAdpHeatBoard(chart, sourceRows) {
     const pick = ((round - 1) * teams) + slot;
     const row = visible[pick - 1];
     if (!row) return `<span class="in-season-adp-cell empty"><small>${round}.${slot}</small></span>`;
-    const headshot = playerHeadshotUrl(row);
+    const headshot = exportSafeHeadshotUrl(playerHeadshotUrl(row));
     const teamLogo = nflTeamLogoUrl(row.Team);
     const value = row.HeatValue;
     const valueText = value === null ? "N/A" : `${metric.includes("WAR") && value >= 0 ? "+" : ""}${fmt(value)}`;
