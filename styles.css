@@ -815,29 +815,29 @@ summary::marker {
   overflow-wrap: anywhere;
 }
 
-.in-season-results-table th:nth-child(1),
-.in-season-results-table th:nth-child(2),
-.in-season-results-table td:nth-child(1),
-.in-season-results-table td:nth-child(2) {
+.in-season-results-table > thead > tr > th:nth-child(1),
+.in-season-results-table > thead > tr > th:nth-child(2),
+.in-season-results-table > tbody > tr:not(.player-detail-row) > td:nth-child(1),
+.in-season-results-table > tbody > tr:not(.player-detail-row) > td:nth-child(2) {
   width: 5%;
 }
 
-.in-season-results-table th:nth-child(3),
-.in-season-results-table td:nth-child(3) {
+.in-season-results-table > thead > tr > th:nth-child(3),
+.in-season-results-table > tbody > tr:not(.player-detail-row) > td:nth-child(3) {
   width: 14%;
   text-align: left;
 }
 
-.in-season-results-table th:nth-child(4),
-.in-season-results-table th:nth-child(5),
-.in-season-results-table th:nth-child(6),
-.in-season-results-table td:nth-child(4),
-.in-season-results-table td:nth-child(5),
-.in-season-results-table td:nth-child(6) {
+.in-season-results-table > thead > tr > th:nth-child(4),
+.in-season-results-table > thead > tr > th:nth-child(5),
+.in-season-results-table > thead > tr > th:nth-child(6),
+.in-season-results-table > tbody > tr:not(.player-detail-row) > td:nth-child(4),
+.in-season-results-table > tbody > tr:not(.player-detail-row) > td:nth-child(5),
+.in-season-results-table > tbody > tr:not(.player-detail-row) > td:nth-child(6) {
   width: 4%;
 }
 
-.in-season-results-table td:not(:nth-child(3)) {
+.in-season-results-table > tbody > tr:not(.player-detail-row) > td:not(:nth-child(3)) {
   text-align: center;
 }
 
