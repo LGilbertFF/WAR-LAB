@@ -40,8 +40,11 @@ def main() -> None:
     elif args.advance:
         eastern_date = datetime.now(ZoneInfo("America/New_York")).date().isoformat()
         if state.get("last_advanced_date") != eastern_date:
-            state["week_last"] += 1
-            state["last_advanced_date"] = eastern_date
+            if state["week_last"] < 18:
+                state["week_last"] += 1
+                state["last_advanced_date"] = eastern_date
+            else:
+                print("Week 18 is final; keeping the saved week unchanged")
         else:
             print(f"Week already advanced on {eastern_date}; keeping Week {state['week_last']}")
 
