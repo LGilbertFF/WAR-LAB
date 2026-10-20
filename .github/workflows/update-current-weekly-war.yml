@@ -31,7 +31,11 @@ jobs:
       - id: local-time
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$(TZ=America/New_York date +%H)" = "06" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif [ "$(TZ=America/New_York date +%z)" = "-0400" ] && [ "${{ github.event.schedule }}" = "0 10 * * 2" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif [ "$(TZ=America/New_York date +%z)" = "-0500" ] && [ "${{ github.event.schedule }}" = "0 11 * * 2" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"

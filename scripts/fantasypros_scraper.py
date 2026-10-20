@@ -74,6 +74,37 @@ def table_to_df(html: str) -> pd.DataFrame:
                 table = candidate
                 break
     if table is None:
+        marker = "window.FP.reportConfig = "
+        for script in soup.find_all("script"):
+            script_text = script.string or script.get_text()
+            marker_at = script_text.find(marker)
+            if marker_at < 0:
+                continue
+            try:
+                config, _ = json.JSONDecoder().raw_decode(script_text[marker_at + len(marker) :])
+            except (json.JSONDecodeError, TypeError):
+                continue
+            report_table = config.get("table", {}) if isinstance(config, dict) else {}
+            fields = report_table.get("fields", [])
+            report_rows = report_table.get("rows", [])
+            if not fields or not report_rows:
+                continue
+            headers = unique_headers(
+                "Rank" if field.get("label") in {"RK", "Rank"} else str(field.get("label") or field.get("key") or "Column")
+                for field in fields
+            )
+            rows: list[list[object]] = []
+            for report_row in report_rows:
+                values: list[object] = []
+                for field in fields:
+                    value = report_row.get(field.get("key"))
+                    if isinstance(value, dict) and field.get("key") == "player":
+                        name = str(value.get("name", "")).strip()
+                        team = str(value.get("team", "")).strip()
+                        value = f"{name} ({team})" if team else name
+                    values.append(value)
+                rows.append(values)
+            return pd.DataFrame(rows, columns=headers)
         title = soup.find("title")
         title_text = f": {title.get_text(strip=True)}" if title else ""
         raise RuntimeError(f"Could not find FantasyPros data table{title_text}")
