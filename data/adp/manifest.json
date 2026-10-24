@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-22T14:48:37.788790+00:00",
+  "updated_at": "2026-10-24T13:37:25.920243+00:00",
   "shards": [
     {
       "season": 2019,
@@ -160,12 +160,12 @@
       "season": 2026,
       "league_format": "dynasty",
       "path": "data/adp/2026-dynasty.json.gz",
-      "rows": 202062,
+      "rows": 202474,
       "players": 1070,
-      "drafts": 7981,
+      "drafts": 7995,
       "start_date": "2025-12-31",
       "end_date": "2026-10-20",
-      "bytes": 5784246
+      "bytes": 5797646
     },
     {
       "season": 2026,
