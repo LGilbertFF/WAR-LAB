@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-08T17:14:56.260655+00:00",
+  "updated_at": "2026-11-09T19:54:59.029655+00:00",
   "shards": [
     {
       "season": 2019,
@@ -160,23 +160,23 @@
       "season": 2026,
       "league_format": "dynasty",
       "path": "data/adp/2026-dynasty.json.gz",
-      "rows": 208281,
+      "rows": 209081,
       "players": 1072,
-      "drafts": 8105,
+      "drafts": 8113,
       "start_date": "2025-12-31",
       "end_date": "2026-11-04",
-      "bytes": 5989732
+      "bytes": 6017002
     },
     {
       "season": 2026,
       "league_format": "redraft",
       "path": "data/adp/2026-redraft.json.gz",
-      "rows": 398261,
-      "players": 1126,
+      "rows": 401505,
+      "players": 1128,
       "drafts": 19756,
       "start_date": "2025-12-01",
       "end_date": "2026-11-08",
-      "bytes": 10598735
+      "bytes": 10711010
     }
   ]
 }
